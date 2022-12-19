@@ -1,0 +1,183 @@
+@import '~@douyinfe/semi-ui/dist/css/semi.min.css';
+@import './var.scss';
+@import './reset.scss';
+@import './Compass.scss';
+@import './tooltip.scss';
+@import './zoom-controller.scss';
+@import './cesium.scss';
+
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    width: 720px;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    width: 750px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    width: 960px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1440px;
+  }
+}
+
+.Resizer {
+  z-index: 1;
+  opacity: 0.2;
+  box-sizing: border-box;
+  background-clip: padding;
+}
+
+.Resizer:hover {
+  background: var(--semi-color-border);
+  transition: all 2s ease;
+}
+
+.Resizer.horizontal {
+  width: 100%;
+  height: 1px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  margin: -5px 0;
+  cursor: row-resize;
+}
+
+.Resizer.horizontal:hover {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.Resizer.vertical {
+  width: 1px;
+  border-left: 5px solid transparent;
+  margin: 0 -5px;
+  cursor: col-resize;
+  border-right: 5px solid transparent;
+}
+
+.Resizer.vertical:hover {
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+.Resizer.disabled {
+  cursor: not-allowed;
+}
+
+.Resizer.disabled:hover {
+  border-color: transparent;
+}
+
+.semi-navigation-sub-title-selected {
+  color: var(--semi-color-text-0);
+  background-color: var(--semi-color-primary-light-default);
+}
+
+.semi-spin-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/**
+ * @see https://github.com/react-component/tooltip/issues/18#issuecomment-411476678
+ */
+.semi-button-disabled {
+  pointer-events: none;
+}
+
+.semi-select-selection-text {
+  font-size: 1em;
+  font-weight: normal;
+
+  > * {
+    font-size: inherit !important;
+    font-weight: inherit;
+  }
+}
+
+.semi-navigation-horizontal .semi-navigation-header {
+  margin-right: 0;
+}
+
+.semi-navigation {
+  transition: all ease .2s;
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--semi-color-text-2);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-track-piece {
+  background: transparent;
+}
+::-webkit-scrollbar-corner {
+  background: var(--semi-color-text-2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--semi-color-text-1);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--semi-color-bg-1);
+  border-radius: 10px;
+}
+
+.hidden-scrollbar {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+}
+
+.excalidraw.excalidraw-modal-container {
+  z-index: 1010 !important;
+}

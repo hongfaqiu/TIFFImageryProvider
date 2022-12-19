@@ -1,0 +1,20 @@
+.dragHandle {
+  flex-shrink: 0;
+  padding: 0 4px;
+  color: var(--semi-color-text-1);
+  cursor: grab;
+  transition: background 0.3s ease;
+}
+.dragHandle:hover {
+  color: var(--semi-color-text-0);
+  background: var(--semi-color-tertiary-light-hover);
+  border-radius: 3px;
+}
+.listItem {
+  border-bottom: 1px solid var(--semi-color-border) !important;
+  :global {
+    .semi-list-item {
+      padding: 0;
+    }
+  }
+}

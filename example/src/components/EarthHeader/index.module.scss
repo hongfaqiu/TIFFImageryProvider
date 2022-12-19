@@ -1,0 +1,27 @@
+.earth-header {
+  min-height: 36px;
+  background: #2A2E39;
+  border: 1px solid #464C5C;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  .left {
+    display: flex;
+    align-items: center;
+    .project-name {
+      color: #E2E5E8;
+      margin: 0 10px;
+    }
+  }
+  .right {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.interval-line {
+  height: 20px;
+  width: 1px;
+  background: #4B5265;
+  display: block;
+}

@@ -1,0 +1,53 @@
+.formItem {
+  display: flex;
+  align-items: center;
+  margin: 10px;
+  font-size: 14px;
+  .label {
+    padding-right: 5px;
+    text-align: right;
+    color: var(--semi-color-text-0);
+  }
+  .input {
+    margin: 0 10px;
+  }
+}
+.colorPicker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 22px;
+  background-color: var(--semi-color-bg-0);
+  border: 1px solid #d9d9d9;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  &:hover {
+    border: 1px solid var(--semi-color-primary);
+  }
+  .colorPickerItem {
+    width: 100%;
+    min-width: 20px;
+    height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+  }
+}
+.colorBlock {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.colorPopover {
+  :global {
+    .ant-popover-inner-content {
+      padding: 0;
+    }
+    .sketch-picker {
+      width: 220px !important;
+    }
+  }
+}

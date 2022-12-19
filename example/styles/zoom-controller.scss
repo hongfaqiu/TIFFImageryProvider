@@ -1,0 +1,19 @@
+.cesium-zoom-controller {
+  position: absolute;
+  top: 187px;
+  right: 30px;
+  box-sizing: border-box;
+  line-height: 1.2rem;
+  text-align: center;
+  border-radius: 100px;
+  user-select: none;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  .zoom-in,
+  .refresh,
+  .zoom-out {
+    margin-bottom: 5px;
+    border-radius: 14%;
+  }
+}

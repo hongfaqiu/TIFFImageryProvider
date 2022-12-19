@@ -1,0 +1,19 @@
+.map-status {
+  display: flex;
+  .msg {
+    font-size: 12px;
+    margin-right: 20px;
+    color: #E2E5E8;
+    display: flex;
+    label {
+      color: #7A8086;
+      margin-right: 6px;
+    }
+    .lonlat {
+      min-width: 90px;
+    }
+    .camera {
+      min-width: 40px;
+    }
+  }
+}

@@ -13,6 +13,7 @@
     "noImplicitReturns": true,
     "suppressImplicitAnyIndexErrors": true,
     "allowJs": true,
+    "declaration": true,
     "esModuleInterop": true,
   },
   "include": [

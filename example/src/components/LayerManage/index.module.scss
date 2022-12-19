@@ -1,0 +1,132 @@
+.layerMangeContainer {
+  overflow: auto;
+}
+.layerItemControl {
+  width: 100%;
+  padding: 0 8px;
+  overflow: hidden;
+  background-color: var(--semi-color-bg-0);
+  border-bottom: 1px solid var(--semi-color-border);
+  transition: all ease 0.2s;
+
+  .header {
+    display: flex;
+    align-items: center;
+    height: 42px;
+    padding: 8px 0;
+    cursor: auto;
+    .switchShow {
+      flex-shrink: 0;
+      margin: 0 2px;
+    }
+    .layerName {
+      flex-grow: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .icons {
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      justify-self: flex-end;
+      span {
+        transition: all ease 0.2s;
+      }
+      .activeIcon span {
+        color: var(--semi-color-primary);
+        font-size: 14px;
+      }
+      .activeIcon :hover span {
+        color: var(--semi-color-primary) !important;
+      }
+      .rotateIcon span {
+        transform: rotate(-90deg);
+      }
+      .rotateIconLeft span {
+        transform: rotate(90deg);
+      }
+    }
+  }
+  :global {
+    .semi-typography-icon {
+      cursor: pointer;
+      color: var(--semi-color-text-1);
+      padding: 2px;
+      transition: all ease 0.3s;
+      &:hover {
+        color: var(--semi-color-text-0);
+        background: var(--semi-color-tertiary-light-hover);
+        border-radius: 3px;
+      }
+      .semi-icon-default {
+        font-size: 14px;
+      }
+    }
+  }
+}
+.renderPopover {
+  margin-left: 65px;
+}
+.setting {
+  width: 320px;
+}
+.show {
+  display: block;
+  opacity: 1;
+}
+
+.hide {
+  display: none;
+  opacity: 0;
+}
+.activeIcon {
+  color: var(--semi-color-primary);
+  font-size: 14px;
+}
+.renderPopTitle {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  .title {
+    display: flex;
+    align-items: center;
+    width: 290px;
+    padding: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    border-radius: 4px;
+    .layerName {
+      display: inline-block;
+      max-width: 150px;
+      overflow: hidden;
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
+  .closebtn {
+    color: var(--semi-color-text-1);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all ease 0.3s;
+  }
+  .rightBtn {
+    right: 10px;
+  }
+  .leftBtn {
+    left: 10px;
+  }
+  .closebtn :hover {
+    color: #000;
+  }
+}
+
+.img {
+  width: 100%;
+  height: 22px;
+  padding: 1px;
+  border-radius: 4px;
+}
