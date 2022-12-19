@@ -17,7 +17,6 @@ interface TIFFImageryProviderOptions {
   maximumLevel?: number;
   minimumLevel?: number;
   enablePickFeatures?: boolean;
-  tilingScheme?: WebMercatorTilingScheme | GeographicTilingScheme;
   hasAlphaChannel?: boolean;
   nodata?: number;
   renderOptions?: {
