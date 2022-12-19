@@ -36,5 +36,6 @@
     "@types/d3-interpolate": "^3.0.1",
     "cesium": "^1.99.0",
     "typescript": "4.8.4"
-  }
+  },
+  "gitHead": "06f706d0bfb0c41f61b2066514243a850cdba2cb"
 }
