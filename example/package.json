@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/hongfaqiu/TIFFImageryProvider.git"
+  },
   "dependencies": {
     "@douyinfe/semi-icons": "^2.25.1",
     "@douyinfe/semi-next": "^2.25.1",
