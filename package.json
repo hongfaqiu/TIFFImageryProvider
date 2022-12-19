@@ -1,0 +1,12 @@
+{
+  "name": "root",
+  "private": true,
+  "npmClient": "pnpm",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "conventional-changelog-cli": "^2.2.2",
+    "lerna": "^6.1.0"
+  }
+}

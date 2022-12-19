@@ -1,0 +1,40 @@
+{
+  "name": "tiff-imagery-provider",
+  "version": "1.0.0",
+  "description": "Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium",
+  "keywords": [
+    "cesium",
+    "geotiff",
+    "cog"
+  ],
+  "main": "index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./lib/index.js",
+      "require": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc"
+  },
+  "author": "hongfaqiu",
+  "license": "MIT",
+  "files": [
+    "lib",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "cesium": "*"
+  },
+  "dependencies": {
+    "d3-interpolate": "^3.0.1",
+    "geotiff": "^2.0.7"
+  },
+  "devDependencies": {
+    "@types/d3-interpolate": "^3.0.1",
+    "cesium": "^1.99.0",
+    "typescript": "4.8.4"
+  }
+}
