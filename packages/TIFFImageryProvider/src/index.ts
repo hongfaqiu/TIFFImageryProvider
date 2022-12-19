@@ -1,6 +1,6 @@
 import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, Rectangle, Cartesian2, Cartesian3, Color } from "cesium";
 import GeoTIFF, { Pool, fromUrl as tiffFromUrl, GeoTIFFImage } from 'geotiff';
-import d3 from 'd3-interpolate';
+import * as d3 from 'd3-interpolate';
 
 let workerPool: Pool;
 function getWorkerPool() {
