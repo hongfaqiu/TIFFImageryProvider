@@ -66,6 +66,7 @@ importers:
   packages/TIFFImageryProvider:
     specifiers:
       '@types/d3-interpolate': ^3.0.1
+      '@types/d3-scale': ^4.0.2
       cesium: ^1.99.0
       d3-interpolate: ^3.0.1
       d3-scale: ^4.0.2
@@ -77,6 +78,7 @@ importers:
       geotiff: 2.0.7
     devDependencies:
       '@types/d3-interpolate': 3.0.1
+      '@types/d3-scale': 4.0.2
       cesium: 1.100.0
       typescript: 4.8.4
 
@@ -1704,6 +1706,16 @@ packages:
     resolution: {integrity: sha512-jx5leotSeac3jr0RePOH1KdR9rISG91QIE4Q2PYTu4OymLTZfA3SrnURSLzKH48HmXVUru50b8nje4E79oQSQw==}
     dependencies:
       '@types/d3-color': 3.1.0
+    dev: true
+
+  /@types/d3-scale/4.0.2:
+    resolution: {integrity: sha512-Yk4htunhPAwN0XGlIwArRomOjdoBFXC3+kCxK2Ubg7I9shQlVSJy/pG/Ht5ASN+gdMIalpk8TJ5xV74jFsetLA==}
+    dependencies:
+      '@types/d3-time': 3.0.0
+    dev: true
+
+  /@types/d3-time/3.0.0:
+    resolution: {integrity: sha512-sZLCdHvBUcNby1cB6Fd3ZBrABbjz3v1Vm90nysCQ6Vt7vd6e/h9Lt7SiJUoEX0l4Dzc7P5llKyhqSi1ycSf1Hg==}
     dev: true
 
   /@types/js-cookie/2.2.7:

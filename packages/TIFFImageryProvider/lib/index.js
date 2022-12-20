@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Cartographic } from "cesium";
 import { Pool, fromUrl as tiffFromUrl } from 'geotiff';
 import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
 import { scaleLinear } from "d3-scale";
@@ -230,6 +230,34 @@ export class TIFFImageryProvider {
             this._error.raiseEvent(e);
             throw e;
         }
+    }
+    async pickFeatures(x, y, zoom, longitude, latitude) {
+        if (!this.options.enablePickFeatures)
+            return undefined;
+        const z = zoom > this._imageCount ? this._imageCount : zoom;
+        let image = this._images[z];
+        if (!image) {
+            image = this._images[z] = await this._source.getImage(z);
+        }
+        const { west, east, south, north } = this.rectangle;
+        const width = image.getWidth();
+        const height = image.getHeight();
+        const posX = ~~(Math.abs((longitude - west) / (east - west)) * width);
+        const posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
+        const res = await image.readRasters({
+            window: [posX, posY, posX + 1, posY + 1],
+            width: 1,
+            height: 1
+        });
+        const featureInfo = new ImageryLayerFeatureInfo();
+        const position = Cartographic.fromDegrees(longitude, latitude);
+        featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
+        featureInfo.data = res[0];
+        featureInfo.position = position;
+        if (res) {
+            featureInfo.configureDescriptionFromProperties(res[0]);
+        }
+        return [featureInfo];
     }
     destroy() {
         this._images = undefined;

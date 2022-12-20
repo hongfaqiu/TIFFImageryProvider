@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@types/d3-interpolate": "^3.0.1",
+    "@types/d3-scale": "^4.0.2",
     "cesium": "^1.99.0",
     "typescript": "4.8.4"
   },

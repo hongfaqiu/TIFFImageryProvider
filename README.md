@@ -2,6 +2,10 @@
 
 Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
+- Three band rendering.
+- Multi mode color rendering.
+- support identify TIFF value with cartographic position.
+
 ## Install
 
 ```bash
@@ -19,15 +23,8 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 
 const cesiumViewer = new Cesium.Viewer("cesiumContainer");
 
-// Load remote cogTIFF and render with continuous color
 const provider = new TIFFImageryProvider({
   url: 'https://data-of-vrexp.oss-cn-hangzhou.aliyuncs.com/cog/SIO_MERGE_MERGE_20000101TO20000131_L3B_EAMS_1KM_ACP_CT2017_.tif',
-  renderOptions: {
-    fill: {
-      colors: ['red', 'blue'],
-      mode: 'hslLong'
-    }
-  }
 });
 
 cesiumViewer.imageryLayers.addImageryProvider(provider);
@@ -48,7 +45,6 @@ class TIFFImageryProvider {
   constructor(options: TIFFImageryProviderOptions);
 
   get isDestroyed(): boolean;
-  private getTiffSource;
   destroy(): void;
 }
 

@@ -1,5 +1,10 @@
 # TIFFImageryProvider
+
 Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
+
+- Three band rendering.
+- Multi mode color rendering.
+- support identify TIFF value with cartographic position.
 
 ## Install
 
@@ -40,7 +45,6 @@ class TIFFImageryProvider {
   constructor(options: TIFFImageryProviderOptions);
 
   get isDestroyed(): boolean;
-  private getTiffSource;
   destroy(): void;
 }
 

@@ -91,7 +91,6 @@ export default class BaseMap {
       animation: false, // 左下角仪表
       fullscreenButton: false, // 全屏按钮
       geocoder: false, // 右上角查询搜索
-      infoBox: false, // 信息框
       homeButton: false, // home按钮
       sceneModePicker: false, // 3d 2d选择器
       selectionIndicator: false, //

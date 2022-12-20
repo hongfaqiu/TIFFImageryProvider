@@ -1,4 +1,4 @@
-import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit } from "cesium";
+import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, ImageryLayerFeatureInfo } from "cesium";
 import GeoTIFF, { GeoTIFFImage } from 'geotiff';
 export interface TIFFImageryProviderOptions {
     url: string;
@@ -84,6 +84,7 @@ export declare class TIFFImageryProvider {
      */
     loadTile(x: number, y: number, z: number): Promise<number[][]>;
     requestImage(x: number, y: number, z: number): Promise<any>;
+    pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number): Promise<ImageryLayerFeatureInfo[]>;
     destroy(): void;
 }
 export default TIFFImageryProvider;

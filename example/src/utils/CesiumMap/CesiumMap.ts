@@ -117,7 +117,8 @@ export default class CesiumMap extends BaseMap {
           url,
           minimumLevel,
           maximumLevel,
-          renderOptions
+          renderOptions,
+          enablePickFeatures: true,
         });
         break;
       case 'pic':
