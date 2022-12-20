@@ -51,10 +51,11 @@ interface TIFFImageryProviderOptions {
   maximumLevel?: number;
   minimumLevel?: number;
   enablePickFeatures?: boolean;
-  tilingScheme?: WebMercatorTilingScheme | GeographicTilingScheme;
   hasAlphaChannel?: boolean;
+  /** nodata value, default read from tiff meta */
   nodata?: number;
   renderOptions?: {
+    /** Band value starts from 1 */
     r?: {
       band: number;
       min?: number;
@@ -71,10 +72,17 @@ interface TIFFImageryProviderOptions {
       max?: number;
     };
     fill?: {
-      colors: [number, string][];
-      type: 'discrete' | 'continuous';
+      /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
+      colors: [number, string][] | string[];
+      /** defaults to continuous */
+      type?: 'continuous' | 'discrete';
+      /** interpolate mode, defaults to 'rgb'
+       * 
+       *  refer to https://observablehq.com/@d3/working-with-color
+       */
+      mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab'
     };
-  };
+  }
 }
 ```
 
@@ -89,6 +97,8 @@ pnpm install
 cd example
 pnpm start
 ```
+
+![zOP7o6.md.png](https://s1.ax1x.com/2022/12/20/zOP7o6.md.png)
 
 ## Credit
 

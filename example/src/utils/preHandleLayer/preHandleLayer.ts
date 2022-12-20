@@ -1,5 +1,4 @@
 import { getViewPort } from './handle-utils';
-import {  handleRasterLayer } from './handleLayers';
 
 import { boundary4326 } from '../usefulFunc';
 
@@ -13,10 +12,6 @@ function handleAllLayer(layer: Layer.LayerItem): Layer.LayerItem {
     originId: layer.id,
     method: layer.method?.toLowerCase() as any,
   };
-  if (
-    !layerPro.renderOptions
-    || (typeof layerPro.renderOptions === 'object' && Object.keys(layerPro.renderOptions).length === 0)
-  ) delete layerPro.renderOptions;
 
   return layerPro
 }
@@ -31,11 +26,16 @@ export default async function preHandleLayer(
 
   const layerPro = handleAllLayer(layer);
 
-  const { method } = layerPro;
-  switch (method) {
-    case 'cog':
-      return handleRasterLayer(layerPro);
-    default:
-      return handleRasterLayer(layerPro);
-  }
+  return {
+    ...layerPro,
+    renderOptions: {
+      brightness: 1,
+      alpha: 1,
+      gamma: 1,
+      saturation: 1,
+      contrast: 1,
+      hue: 0,
+      ...layerPro.renderOptions
+    },
+  };
 }

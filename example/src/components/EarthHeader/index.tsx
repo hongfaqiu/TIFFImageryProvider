@@ -6,6 +6,7 @@ import styles from './index.module.scss'
 import SettingPanel from '../SettingPanel';
 import TooltipBtn from '../TooltipBtn';
 import useSearch from '@/hooks/use-search';
+import { Theme } from '../theme';
 
 export type HeaderBtnType = {
   key: string;
@@ -31,7 +32,9 @@ const EarthHeader = () => {
       <div className={styles.left}>
       </div>
       <div className={styles["right"]}>
-        <MapStatus/>
+        <MapStatus />
+        <div className={styles["interval-line"]} />
+        <Theme/>
         <div className={styles["interval-line"]} />
         {
           BtnsRight.map(item => (

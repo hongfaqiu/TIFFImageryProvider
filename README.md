@@ -1,4 +1,5 @@
 # TIFFImageryProvider
+
 Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 ## Install
@@ -18,8 +19,15 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 
 const cesiumViewer = new Cesium.Viewer("cesiumContainer");
 
+// Load remote cogTIFF and render with continuous color
 const provider = new TIFFImageryProvider({
   url: 'https://data-of-vrexp.oss-cn-hangzhou.aliyuncs.com/cog/SIO_MERGE_MERGE_20000101TO20000131_L3B_EAMS_1KM_ACP_CT2017_.tif',
+  renderOptions: {
+    fill: {
+      colors: ['red', 'blue'],
+      mode: 'hslLong'
+    }
+  }
 });
 
 cesiumViewer.imageryLayers.addImageryProvider(provider);
@@ -51,10 +59,11 @@ interface TIFFImageryProviderOptions {
   maximumLevel?: number;
   minimumLevel?: number;
   enablePickFeatures?: boolean;
-  tilingScheme?: WebMercatorTilingScheme | GeographicTilingScheme;
   hasAlphaChannel?: boolean;
+  /** nodata value, default read from tiff meta */
   nodata?: number;
   renderOptions?: {
+    /** Band value starts from 1 */
     r?: {
       band: number;
       min?: number;
@@ -71,10 +80,17 @@ interface TIFFImageryProviderOptions {
       max?: number;
     };
     fill?: {
-      colors: [number, string][];
-      type: 'discrete' | 'continuous';
+      /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
+      colors: [number, string][] | string[];
+      /** defaults to continuous */
+      type?: 'continuous' | 'discrete';
+      /** interpolate mode, defaults to 'rgb'
+       * 
+       *  refer to https://observablehq.com/@d3/working-with-color
+       */
+      mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab'
     };
-  };
+  }
 }
 ```
 
@@ -89,6 +105,8 @@ pnpm install
 cd example
 pnpm start
 ```
+
+![zOP7o6.md.png](https://s1.ax1x.com/2022/12/20/zOP7o6.md.png)
 
 ## Credit
 

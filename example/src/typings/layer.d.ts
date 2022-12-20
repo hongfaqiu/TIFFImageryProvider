@@ -43,7 +43,7 @@ declare namespace Layer {
    * 栅格图层元数据格式
    */
   export type RasterLayerItem = {
-    method: 'wms' | 'wmts' | 'tms' | 'amap' | 'arcgis' | 'pic' | 'cog';
+    method: 'wms' | 'wmts' | 'tms' | 'amap' | 'arcgis' | 'pic';
     layerType?: 'raster' | 'ogc';
     /** 是否添加鉴权 */
     addTgt?: boolean;
@@ -51,7 +51,45 @@ declare namespace Layer {
     renderOptions?: RasterOptions;
   } & BasicLayer;
 
+  /**
+   * 栅格图层元数据格式
+   */
+  export type COGLayerItem = {
+    method: 'cog';
+    loaderinfo?: LoaderInfo;
+    renderOptions?: {
+      /** Band value starts from 1 */
+      r?: {
+        band: number;
+        min?: number;
+        max?: number;
+      };
+      g?: {
+        band: number;
+        min?: number;
+        max?: number;
+      };
+      b?: {
+        band: number;
+        min?: number;
+        max?: number;
+      };
+      fill?: {
+        /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
+        colors: [number, string][] | string[];
+        /** defaults to continuous */
+        type?: 'continuous' | 'discrete';
+        /** interpolate mode, defaults to 'rgb'
+         * 
+         *  refer to https://observablehq.com/@d3/working-with-color
+         */
+        mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab'
+      };
+    } & RasterOptions;
+  } & BasicLayer;
+
   export type LayerItem =
+    | COGLayerItem
     | RasterLayerItem
 
   export type LayerMethod = LayerItem['method'];

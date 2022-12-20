@@ -1,6 +1,7 @@
 import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, Rectangle, Cartesian2, Cartesian3, Color } from "cesium";
 import GeoTIFF, { Pool, fromUrl as tiffFromUrl, GeoTIFFImage } from 'geotiff';
-import * as d3 from 'd3-interpolate';
+import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
+import { scaleLinear } from "d3-scale";
 
 let workerPool: Pool;
 function getWorkerPool() {
@@ -10,7 +11,11 @@ function getWorkerPool() {
   return workerPool;
 }
 
-interface TIFFImageryProviderOptions {
+function decimal2rgb(number: number): number {
+  return Math.round(number * 255)
+}
+
+export interface TIFFImageryProviderOptions {
   url: string;
   credit?: string;
   tileSize?: number;
@@ -18,8 +23,10 @@ interface TIFFImageryProviderOptions {
   minimumLevel?: number;
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
+  /** nodata value, default read from tiff meta */
   nodata?: number;
   renderOptions?: {
+    /** Band value starts from 1 */
     r?: {
       band: number;
       min?: number;
@@ -36,10 +43,24 @@ interface TIFFImageryProviderOptions {
       max?: number;
     };
     fill?: {
-      colors: [number, string][];
-      type: 'discrete' | 'continuous';
+      /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
+      colors: [number, string][] | string[];
+      /** defaults to continuous */
+      type?: 'continuous' | 'discrete';
+      /** interpolate mode, defaults to 'rgb'
+       * 
+       *  refer to https://observablehq.com/@d3/working-with-color
+       */
+      mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab'
     };
   }
+}
+
+const interpolateFactorys = {
+  'rgb': interpolateRgb,
+  'hsl': interpolateHsl,
+  'hslLong': interpolateHslLong,
+  'lab': interpolateLab
 }
 
 export class TIFFImageryProvider {
@@ -58,6 +79,7 @@ export class TIFFImageryProvider {
   _source!: GeoTIFF;
   private _imageCount!: number;
   _images: (GeoTIFFImage | null)[] = [];
+  _imagesCache = {};
   bands: {
     STATISTICS_MINIMUM: string;
     STATISTICS_MAXIMUM: string;
@@ -95,7 +117,7 @@ export class TIFFImageryProvider {
       if (prj === 4326) {
         this.rectangle = Rectangle.fromDegrees(...bbox)
       } else if (prj === 3857 || prj === 900913) {
-        const [west, south, east, north ] = bbox;
+        const [west, south, east, north] = bbox;
         this.rectangle = Rectangle.fromCartesianArray([new Cartesian3(west, south), new Cartesian3(east, north)]);
       } else {
         const error = new Error('Unspported projection type')
@@ -113,7 +135,7 @@ export class TIFFImageryProvider {
       this.ready = true;
     })
   }
-  
+
   /**
    * Gets an event that will be raised if an error is encountered during processing.
    * @memberof GeoJsonDataSource.prototype
@@ -122,7 +144,7 @@ export class TIFFImageryProvider {
   get errorEvent() {
     return this._error
   }
-  
+
   get isDestroyed() {
     return this._destroyed
   }
@@ -133,6 +155,13 @@ export class TIFFImageryProvider {
     return tiffFromUrl(url, options)
   }
 
+  /**
+   * 获取瓦片数据
+   * @param x 
+   * @param y 
+   * @param z 
+   * @returns 已根据最大最小值进行归一化(0-255)的数组
+   */
   async loadTile(x: number, y: number, z: number) {
     const { tileSize } = this;
     const index = this._imageCount - z - 1;
@@ -140,7 +169,7 @@ export class TIFFImageryProvider {
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
     }
-    
+
     const pool = getWorkerPool();
     const width = image.getWidth();
     const height = image.getHeight();
@@ -162,9 +191,7 @@ export class TIFFImageryProvider {
       width: tileSize,
       height: tileSize,
       fillValue: this.noData,
-      samples: [0],
       pool: pool,
-      interleave: false,
     })
 
     return promise
@@ -175,8 +202,8 @@ export class TIFFImageryProvider {
           let min: number, max: number;
           ['r', 'g', 'b'].forEach(k => {
             const bandOpt = this.options.renderOptions?.[k]
-            min = bandOpt?.min ?? +this.bands[index].STATISTICS_MINIMUM; 
-            max = bandOpt?.max ?? +this.bands[index].STATISTICS_MAXIMUM; 
+            min = bandOpt?.min ?? +this.bands[index].STATISTICS_MINIMUM;
+            max = bandOpt?.max ?? +this.bands[index].STATISTICS_MAXIMUM;
           })
           const bias = 255 / (+max - +min);
           return band.map(item => (item === this.noData || item < min || item > max) ? 0 : (item - min) * bias)
@@ -193,8 +220,9 @@ export class TIFFImageryProvider {
     y: number,
     z: number,
   ) {
-    if(z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount) return undefined
-    
+    if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount) return undefined
+    if (this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`];
+
     const width = this.tileSize;
     const height = this.tileSize;
     const { renderOptions } = this.options;
@@ -202,35 +230,48 @@ export class TIFFImageryProvider {
 
     try {
       const data = await this.loadTile(x, y, z);
-      
-      const redData = data[r?.band] ?? data[0];
-      const greenData = data[g?.band] ?? redData;
-      const blueData = data[b?.band] ?? redData;
+
+      const redData = data[(r?.band ?? 1) - 1];
+      const greenData = data[(g?.band ?? 1) - 1];
+      const blueData = data[(b?.band ?? 1) - 1];
       const imageData = new Uint8ClampedArray(width * height * 4);
-      
+
       if (fill) {
-        const min = r?.min ?? +this.bands[r?.band ?? 0].STATISTICS_MINIMUM;
-        const max = r?.max ?? +this.bands[r?.band ?? 0].STATISTICS_MAXIMUM;
-        const colors = fill.colors.sort((a, b) => a[0] - b[0]);
-        const type = fill.type;
+        const min = r?.min ?? +this.bands[(r?.band ?? 1) - 1].STATISTICS_MINIMUM;
+        const max = r?.max ?? +this.bands[(r?.band ?? 1) - 1].STATISTICS_MAXIMUM;
+        const { type = 'continuous', colors, mode = 'rgb' } = fill;
+        let stops: [number, string][];
+        if (typeof colors[0] === 'string') {
+          const step = 255 / colors.length;
+          stops = (colors as string[]).map((color, index) => {
+            return [index === (colors.length - 1) ? 255 : index * step, color]
+          })
+        } else {
+          stops = (colors as [number, string][]).sort((a, b) => a[0] - b[0]).map(item => [(item[0] - min) / max * 255, item[1]])
+        }
         for (let i = 0; i < data[0].length; i += 1) {
           const val = redData[i];
           let color = 'black';
-          for (let j = 0; j < colors.length - 1; j += 1) {
-            if (val >= colors[j][0] && val <= colors[j + 1][0]) {
-              if (type === 'continuous') {
-                color = d3.interpolate(colors[j][1], colors[j + 1][1])((val - min) / (max - min));
-              } else {
-                color = colors[j][1];
+          if (val !== 0) {
+            for (let j = 0; j < stops.length - 1; j += 1) {
+              if (val >= stops[j][0] && val <= stops[j + 1][0]) {
+                if (type === 'continuous') {
+                  color = scaleLinear<string>()
+                    .domain(stops.map(item => item[0]))
+                    .range(stops.map(item => item[1]))
+                    .interpolate(interpolateFactorys[mode])(val)
+                } else {
+                  color = stops[j][1];
+                }
+                break;
               }
-              break;
             }
           }
-          const { red, green, blue } = Color.fromCssColorString(color)
-          imageData[i * 4] = red;
-          imageData[i * 4 + 1] = green;
-          imageData[i * 4 + 2] = blue;
-          imageData[i * 4 + 3] = val === 0 ? 0 : 255;
+          const { red, green, blue, alpha } = Color.fromCssColorString(color)
+          imageData[i * 4] = decimal2rgb(red);
+          imageData[i * 4 + 1] = decimal2rgb(green);
+          imageData[i * 4 + 2] = decimal2rgb(blue);
+          imageData[i * 4 + 3] = val === 0 ? 0 : decimal2rgb(alpha);
         }
       } else {
         for (let i = 0; i < data[0].length; i++) {
@@ -243,8 +284,9 @@ export class TIFFImageryProvider {
           imageData[i * 4 + 3] = (red === 0 && red === green && green === blue) ? 0 : 255;
         }
       }
-
-      return new ImageData(imageData, width, height);
+      const result = new ImageData(imageData, width, height);
+      this._imagesCache[`${x}_${y}_${z}`] = result;
+      return result;
     } catch (e) {
       this._error.raiseEvent(e);
       throw e;
@@ -253,6 +295,7 @@ export class TIFFImageryProvider {
 
   destroy() {
     this._images = undefined;
+    this._imagesCache = undefined;
     this._destroyed = true;
   }
 }

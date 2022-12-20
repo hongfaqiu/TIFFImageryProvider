@@ -144,17 +144,8 @@ const useLayerHook = () => {
       const ifPreHandle = options?.preHandle ?? true;
       const layerPro = ifPreHandle ? await preHandleLayer(layer) : layer;
       if (!layerPro) return null;
-      if (!layerPro.originId) layerPro.originId = layerPro.id;
-      // 暂时将所有tms都以4326形式加载
-      if (
-        layerPro.method === 'tms' &&
-        !layerPro.loaderinfo &&
-        layerPro.url.indexOf('4326') !== -1
-      ) {
-        layerPro.loaderinfo = {
-          srs: 'EPSG: 4326',
-        };
-      }
+      console.log(layerPro)
+      
       // 添加到地图
       const lay = await MainMapObj.addLayerByMethod(layerPro, zoom);
       if (lay) {

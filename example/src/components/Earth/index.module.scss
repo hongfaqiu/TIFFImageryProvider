@@ -3,6 +3,8 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+  background-color: var(--semi-color-bg-0);
+  transition: all ease .2s;
 }
 .cesiumContainer {
   position: relative;

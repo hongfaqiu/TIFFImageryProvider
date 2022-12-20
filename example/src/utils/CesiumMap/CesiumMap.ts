@@ -33,7 +33,6 @@ export default class CesiumMap extends BaseMap {
       url: OriginUrl,
       method,
       boundary,
-      layerType,
       layerName,
       renderOptions,
       headers,
@@ -116,10 +115,9 @@ export default class CesiumMap extends BaseMap {
       case 'cog':
         imageryProvider = new TIFFImageryProvider({
           url,
-          tilingScheme,
           minimumLevel,
           maximumLevel,
-          enablePickFeatures: false
+          renderOptions
         });
         break;
       case 'pic':

@@ -43,7 +43,13 @@ const EarthViewer: React.FC<ViewerProps> = ({
         layerName: 'cogtest',
         id: '1',
         method: 'cog',
-        url: 'https://data-of-vrexp.oss-cn-hangzhou.aliyuncs.com/cog/SIO_MERGE_MERGE_20000101TO20000131_L3B_EAMS_1KM_ACP_CT2017_.tif'
+        url: 'https://data-of-vrexp.oss-cn-hangzhou.aliyuncs.com/cog/SIO_MERGE_MERGE_20000101TO20000131_L3B_EAMS_1KM_ACP_CT2017_.tif',
+        renderOptions: {
+          fill: {
+            colors: ['red', 'blue'],
+            mode: 'hslLong'
+          }
+        }
       })
     }, 0)
     
