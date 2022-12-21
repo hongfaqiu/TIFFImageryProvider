@@ -74,7 +74,7 @@ export declare class TIFFImageryProvider {
      */
     get errorEvent(): Event<(...args: any[]) => void>;
     get isDestroyed(): boolean;
-    private getTiffSource;
+    private _getIndex;
     /**
      * 获取瓦片数据
      * @param x
@@ -82,7 +82,7 @@ export declare class TIFFImageryProvider {
      * @param z
      * @returns 已根据最大最小值进行归一化(0-255)的数组
      */
-    loadTile(x: number, y: number, z: number): Promise<number[][]>;
+    private _loadTile;
     requestImage(x: number, y: number, z: number): Promise<any>;
     pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number): Promise<ImageryLayerFeatureInfo[]>;
     destroy(): void;

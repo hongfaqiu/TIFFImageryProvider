@@ -104,6 +104,10 @@ pnpm start
 
 ![zOP7o6.md.png](https://s1.ax1x.com/2022/12/20/zOP7o6.md.png)
 
+## Bugs
+
+- Aliyun OSS has a broken API for HTTP Range requests, so will resposed with full file.
+
 ## Credit
 
 <https://github.com/geotiffjs/geotiff.js>

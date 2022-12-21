@@ -96,7 +96,9 @@ export class TIFFImageryProvider {
     this.minimumLevel = options.minimumLevel ?? 0;
     this.credit = new Credit(options.credit || "", false);
     this._error = new Event();
-    this.readyPromise = this.getTiffSource(options.url).then(async (res) => {
+    this.readyPromise = tiffFromUrl(options.url, {
+      allowFullFile: true
+    }).then(async (res) => {
       this._source = res;
       const image = await res.getImage();
       const bands = [];
@@ -149,10 +151,10 @@ export class TIFFImageryProvider {
     return this._destroyed
   }
 
-  private getTiffSource(url: string, options?: {
-    cache?: boolean
-  }) {
-    return tiffFromUrl(url, options)
+  private _getIndex(level: number) {
+    const z = level > this._imageCount ? this._imageCount : level;
+    const index = this._imageCount - z - 1;
+    return index;
   }
 
   /**
@@ -162,9 +164,9 @@ export class TIFFImageryProvider {
    * @param z 
    * @returns 已根据最大最小值进行归一化(0-255)的数组
    */
-  async loadTile(x: number, y: number, z: number) {
+  private async _loadTile(x: number, y: number, z: number) {
     const { tileSize } = this;
-    const index = this._imageCount - z - 1;
+    const index = this._getIndex(z);
     let image = this._images[index];
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
@@ -229,7 +231,7 @@ export class TIFFImageryProvider {
     const { r, g, b, fill } = renderOptions ?? {};
 
     try {
-      const data = await this.loadTile(x, y, z);
+      const data = await this._loadTile(x, y, z);
 
       const redData = data[(r?.band ?? 1) - 1];
       const greenData = data[(g?.band ?? 1) - 1];
@@ -296,9 +298,10 @@ export class TIFFImageryProvider {
   async pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number) {
     if (!this.options.enablePickFeatures) return undefined
     const z = zoom > this._imageCount ? this._imageCount : zoom;
-    let image = this._images[z];
+    const index = this._getIndex(z);
+    let image = this._images[index];
     if (!image) {
-      image = this._images[z] = await this._source.getImage(z);
+      image = this._images[index] = await this._source.getImage(index);
     }
     const { west, east,  south, north } = this.rectangle;
     const width = image.getWidth();
@@ -307,12 +310,13 @@ export class TIFFImageryProvider {
     const posX = ~~(Math.abs((longitude - west) / (east - west)) * width);
     const posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
 
+    const pool = getWorkerPool();
     const res = await image.readRasters({
       window: [posX, posY, posX + 1, posY + 1],
+      height: 1,
       width: 1,
-      height: 1
+      pool: pool,
     })
-
     const featureInfo = new ImageryLayerFeatureInfo()
     const position = Cartographic.fromDegrees(longitude, latitude)
     featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;

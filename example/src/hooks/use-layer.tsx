@@ -144,7 +144,6 @@ const useLayerHook = () => {
       const ifPreHandle = options?.preHandle ?? true;
       const layerPro = ifPreHandle ? await preHandleLayer(layer) : layer;
       if (!layerPro) return null;
-      console.log(layerPro)
       
       // 添加到地图
       const lay = await MainMapObj.addLayerByMethod(layerPro, zoom);
