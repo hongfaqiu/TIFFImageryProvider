@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Cartographic } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo } from "cesium";
 import { Pool, fromUrl as tiffFromUrl } from 'geotiff';
 import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
 import { scaleLinear } from "d3-scale";
@@ -257,10 +257,8 @@ export class TIFFImageryProvider {
             pool: pool,
         });
         const featureInfo = new ImageryLayerFeatureInfo();
-        const position = Cartographic.fromDegrees(longitude, latitude);
         featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
         featureInfo.data = res[0];
-        featureInfo.position = position;
         if (res) {
             featureInfo.configureDescriptionFromProperties(res[0]);
         }

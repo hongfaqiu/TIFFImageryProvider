@@ -93,7 +93,7 @@ export default class BaseMap {
       geocoder: false, // 右上角查询搜索
       homeButton: false, // home按钮
       sceneModePicker: false, // 3d 2d选择器
-      selectionIndicator: false, //
+      selectionIndicator: true, //
       timeline: false, // 时间轴
       navigationHelpButton: false, // 右上角帮助按钮
       shouldAnimate: true,
