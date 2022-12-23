@@ -161,7 +161,11 @@ export default class CesiumMap extends BaseMap {
       }
 
       if (zoom) {
-        this.zoomToViewPort(viewPort);
+        if (imageLayer.method === 'cog') {
+          this.zoomToViewPort(undefined, layer)
+        } else {
+          this.zoomToViewPort(viewPort);
+        }
       }
       this.viewer.scene.requestRender();
       return layer;

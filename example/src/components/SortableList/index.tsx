@@ -1,4 +1,4 @@
-import React, { ReactNode, useRef, useState } from 'react';
+import React, { ReactNode, useRef } from 'react';
 import { List } from '@douyinfe/semi-ui';
 import classNames from 'classnames';
 import { SortableContainer, SortableContainerProps, SortableElement, SortableHandle } from 'react-sortable-hoc';
@@ -6,6 +6,7 @@ import { ListProps } from '@douyinfe/semi-ui/lib/es/list';
 
 import { SvgType, DragIcon } from '../SVGIcons';
 import styles from './index.module.scss';
+import useMergedState from '@/hooks/useMergedState';
 
 export const DragHandle = SortableHandle<SvgType>((props: SvgType) => <DragIcon {...props} className={classNames(styles.dragHandle, props.className)} />);
 
@@ -15,20 +16,30 @@ export const SortableItem = SortableElement<{ node: React.ReactNode }>(({ node }
 
 export const SortableListComp = SortableContainer<ListProps<any>>(List);
 
-export interface SortableListProps<T> {
-  data: T[];
+export interface SortableListProps<T extends {
+  id: string;
+}> {
+  value: T[];
+  onChange?: (value: T[]) => void;
   onDrop?: (oldIndex: number, newIndex: number, data: T[]) => void;
   renderItem: (item: T) => ReactNode;
   listProps?: ListProps<T> & SortableContainerProps;
   dragHandleProps?: SvgType;
   disDragable?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-const SortableList = <T, >(props: SortableListProps<T>) => {
-  const { data, onDrop, renderItem, listProps, dragHandleProps, disDragable } = props;
+const SortableList = <T extends {
+  id: string;
+}, >(props: SortableListProps<T>) => {
+  const { value, onChange, onDrop, renderItem, listProps, dragHandleProps, disDragable, className, style } = props;
 
   const componentRef = useRef<HTMLDivElement>(null);
-  const [list, setList] = useState(data);
+  const [list, setList] = useMergedState([], {
+    value,
+    onChange
+  })
 
   const renderDragableItem = (item: T) => {
     return (
@@ -52,7 +63,7 @@ const SortableList = <T, >(props: SortableListProps<T>) => {
   };
 
   return (
-    <div id="dragableContainer" ref={componentRef}>
+    <div id="dragableContainer" className={className} style={style} ref={componentRef}>
       <SortableListComp
         onSortEnd={({ oldIndex, newIndex }) => onDropFuc(oldIndex, newIndex)}
         useDragHandle
@@ -62,9 +73,9 @@ const SortableList = <T, >(props: SortableListProps<T>) => {
         size="small"
         {...listProps}
       >
-        {data.map((item, index) => (
+        {list.map((item, index) => (
           <SortableItem
-            key={index}
+            key={item.id}
             index={index}
             node={renderDragableItem(item)}
           />

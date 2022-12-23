@@ -12,7 +12,11 @@ import { LayerHook } from '@/hooks/use-layer';
 const { Text } = Typography;
 
 const zoomToLayer = (layerItem: Layer.layerManageItem) => {
-  MainMapObj?.zoomToViewPort(layerItem.layer.viewPort);
+  if (layerItem.layer.method === 'cog') {
+    MainMapObj?.zoomToViewPort(undefined, layerItem.layerObj);
+  } else {
+    MainMapObj?.zoomToViewPort(layerItem.layer.viewPort);
+  }
 };
 
 export interface LayerItemTools {
