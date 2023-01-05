@@ -78,55 +78,25 @@ const LayerItemControl = (props: LayerItemControlProps) => {
         <Text
           className={styles.layerName}
           title={layerItem.layerName}
+          onClick={() => setShowRender((val) => !val)}
         >
           {layerItem.layerName}
         </Text>
         <span className={styles.icons}>
           {!hideTools?.render && (
-            <Popover
-              className={styles.renderPopover}
-              content={
-                <div className={styles.setting}>
-                  <div className={styles.renderPopTitle}>
-                    <Text className={styles.title}>
-                      自定义渲染[{layerItem.layer.method}](
-                      <span className={styles.layerName}>{layerItem.layerName}</span>)
-                    </Text>
-                    <span
-                      className={`${styles.closebtn}`}
-                      title={'关闭自定义渲染'}
-                      onClick={() => setShowRender(false)}
-                    >
-                      <IconCrossStroked />
-                    </span>
-                  </div>
-                  <LayerRenderMethod layerItem={layerItem} />
-                </div>
-              }
-              showArrow
-              arrowPointAtCenter
-              zIndex={900}
-              trigger="click"
-              position="rightTop"
-              visible={showRender}
-              onVisibleChange={setShowRender}
+            <Tooltip
+              content={ showRender ? '收起渲染面板' : '展开渲染面板' }
             >
-              <div>
-                <Tooltip
-                  content={ showRender ? '收起渲染面板' : '展开渲染面板' }
-                >
-                  <Text
-                    className={
-                      showRender
-                        ? `${styles.activeIcon} ${styles.rotateIcon}`
-                        : ''
-                    }
-                    onClick={() => setShowRender((oldval) => !oldval)}
-                    icon={<IconChevronDownStroked />}
-                  />
-                </Tooltip>
-              </div>
-            </Popover>
+              <Text
+                className={
+                  showRender
+                    ? `${styles.activeIcon} ${styles.rotateIcon}`
+                    : ''
+                }
+                onClick={() => setShowRender((oldval) => !oldval)}
+                icon={<IconChevronDownStroked />}
+              />
+            </Tooltip>
           )}
           {!hideTools?.zoom && (
             <Tooltip content={'缩放至'}>
@@ -151,6 +121,10 @@ const LayerItemControl = (props: LayerItemControlProps) => {
             </Tooltip>
           )}
         </span>
+      </div>
+
+      <div className={classNames(styles.legendContainer, { [styles.open]: showRender })}>
+        <LayerRenderMethod layerItem={layerItem} />
       </div>
     </div>
   );

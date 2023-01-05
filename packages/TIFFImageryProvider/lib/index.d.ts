@@ -1,5 +1,36 @@
 import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, ImageryLayerFeatureInfo } from "cesium";
 import GeoTIFF, { GeoTIFFImage } from 'geotiff';
+export interface TIFFImageryProviderRenderOptions {
+    /** nodata value, default read from tiff meta */
+    nodata?: number;
+    /** Band value starts from 1 */
+    r?: {
+        band?: number;
+        min?: number;
+        max?: number;
+    };
+    g?: {
+        band?: number;
+        min?: number;
+        max?: number;
+    };
+    b?: {
+        band?: number;
+        min?: number;
+        max?: number;
+    };
+    fill?: {
+        /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
+        colors: [number, string][] | string[];
+        /** defaults to continuous */
+        type?: 'continuous' | 'discrete';
+        /** interpolate mode, defaults to 'rgb'
+         *
+         *  refer to https://observablehq.com/@d3/working-with-color
+         */
+        mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab';
+    };
+}
 export interface TIFFImageryProviderOptions {
     url: string;
     credit?: string;
@@ -8,37 +39,7 @@ export interface TIFFImageryProviderOptions {
     minimumLevel?: number;
     enablePickFeatures?: boolean;
     hasAlphaChannel?: boolean;
-    /** nodata value, default read from tiff meta */
-    nodata?: number;
-    renderOptions?: {
-        /** Band value starts from 1 */
-        r?: {
-            band: number;
-            min?: number;
-            max?: number;
-        };
-        g?: {
-            band: number;
-            min?: number;
-            max?: number;
-        };
-        b?: {
-            band: number;
-            min?: number;
-            max?: number;
-        };
-        fill?: {
-            /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
-            colors: [number, string][] | string[];
-            /** defaults to continuous */
-            type?: 'continuous' | 'discrete';
-            /** interpolate mode, defaults to 'rgb'
-             *
-             *  refer to https://observablehq.com/@d3/working-with-color
-             */
-            mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab';
-        };
-    };
+    renderOptions?: TIFFImageryProviderRenderOptions;
 }
 export declare class TIFFImageryProvider {
     private readonly options;
@@ -59,10 +60,8 @@ export declare class TIFFImageryProvider {
     _images: (GeoTIFFImage | null)[];
     _imagesCache: {};
     bands: {
-        STATISTICS_MINIMUM: string;
-        STATISTICS_MAXIMUM: string;
-        STATISTICS_MEAN: string;
-        STATISTICS_STDDEV: string;
+        min: number;
+        max: number;
     }[];
     noData: number;
     hasAlphaChannel: boolean;

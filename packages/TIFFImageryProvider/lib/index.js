@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Cartographic } from "cesium";
 import { Pool, fromUrl as tiffFromUrl } from 'geotiff';
 import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
 import { scaleLinear } from "d3-scale";
@@ -53,18 +53,36 @@ export class TIFFImageryProvider {
         }).then(async (res) => {
             this._source = res;
             const image = await res.getImage();
+            this._imageCount = await res.getImageCount();
             const bands = [];
             // 获取波段数
             const samples = image.getSamplesPerPixel();
             for (let i = 0; i < samples; i++) {
-                // 获取该波段信息
+                // 获取该波段最大最小值信息
                 const element = image.getGDALMetadata(i);
-                bands.push(element);
+                if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
+                    bands.push({
+                        min: element.STATISTICS_MINIMUM,
+                        max: element.STATISTICS_MAXIMUM,
+                    });
+                }
+                else {
+                    const pool = getWorkerPool();
+                    const previewImage = await res.getImage(this._imageCount - 1);
+                    const data = (await previewImage.readRasters({
+                        samples: [i],
+                        pool
+                    }))[0].filter((item) => !isNaN(item));
+                    bands.push({
+                        min: Math.min(...data),
+                        max: Math.max(...data)
+                    });
+                }
             }
             // 获取nodata值
             const noData = image.getGDALNoData();
             this.bands = bands;
-            this.noData = options.nodata ?? noData;
+            this.noData = options.renderOptions.nodata ?? noData;
             const bbox = image.getBoundingBox();
             const prj = +image.geoKeys.GeographicTypeGeoKey;
             if (prj === 4326) {
@@ -83,7 +101,6 @@ export class TIFFImageryProvider {
                 numberOfLevelZeroTilesX: 1,
                 numberOfLevelZeroTilesY: 1
             });
-            this._imageCount = await res.getImageCount();
             this.maximumLevel = this.maximumLevel >= this._imageCount ? this._imageCount - 1 : this.maximumLevel;
             this._images = new Array(this._imageCount).fill(null);
             this.ready = true;
@@ -148,11 +165,11 @@ export class TIFFImageryProvider {
                 let min, max;
                 ['r', 'g', 'b'].forEach(k => {
                     const bandOpt = this.options.renderOptions?.[k];
-                    min = bandOpt?.min ?? +this.bands[index].STATISTICS_MINIMUM;
-                    max = bandOpt?.max ?? +this.bands[index].STATISTICS_MAXIMUM;
+                    min = bandOpt?.min ?? +this.bands[index].min;
+                    max = bandOpt?.max ?? +this.bands[index].max;
                 });
                 const bias = 255 / (+max - +min);
-                return band.map(item => (item === this.noData || item < min || item > max) ? 0 : (item - min) * bias);
+                return band.map(item => (isNaN(item) || item === this.noData || item < min || item > max) ? 0 : (item - min) * bias);
             });
         })
             .catch((error) => {
@@ -176,8 +193,8 @@ export class TIFFImageryProvider {
             const blueData = data[(b?.band ?? 1) - 1];
             const imageData = new Uint8ClampedArray(width * height * 4);
             if (fill) {
-                const min = r?.min ?? +this.bands[(r?.band ?? 1) - 1].STATISTICS_MINIMUM;
-                const max = r?.max ?? +this.bands[(r?.band ?? 1) - 1].STATISTICS_MAXIMUM;
+                const min = r?.min ?? +this.bands[(r?.band ?? 1) - 1].min;
+                const max = r?.max ?? +this.bands[(r?.band ?? 1) - 1].max;
                 const { type = 'continuous', colors, mode = 'rgb' } = fill;
                 let stops;
                 if (typeof colors[0] === 'string') {
@@ -257,8 +274,10 @@ export class TIFFImageryProvider {
             pool: pool,
         });
         const featureInfo = new ImageryLayerFeatureInfo();
+        const position = Cartographic.fromDegrees(longitude, latitude);
         featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
         featureInfo.data = res[0];
+        featureInfo.position = position;
         if (res) {
             featureInfo.configureDescriptionFromProperties(res[0]);
         }

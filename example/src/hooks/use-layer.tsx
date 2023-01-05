@@ -346,6 +346,14 @@ const useLayerHook = () => {
     if (!newRenderOptions) return false;
 
     switch (method) {
+      case 'cog':
+        newLayer.renderOptions = { ...newRenderOptions };
+        const newLayerObj = await MainMapObj.reLoadImageLayer(
+          layerItem.layerObj as ImageryLayer,
+          newLayer,
+        );
+        layerItem.layerObj = newLayerObj;
+        break;
       default:
         MainMapObj.updateImageLayer(layerItem.layerObj as ImageryLayer, newRenderOptions);
         break;

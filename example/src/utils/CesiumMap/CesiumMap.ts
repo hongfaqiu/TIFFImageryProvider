@@ -130,6 +130,7 @@ export default class CesiumMap extends BaseMap {
       default:
         break;
     }
+    await imageryProvider.readyPromise
     return imageryProvider;
   }
 

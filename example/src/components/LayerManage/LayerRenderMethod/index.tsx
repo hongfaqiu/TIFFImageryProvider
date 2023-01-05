@@ -1,8 +1,11 @@
 import { LayerHook } from '@/hooks/use-layer';
 import { Spin, Toast } from '@douyinfe/semi-ui';
-import { useState } from 'react';
+import { ImageryLayer } from 'cesium';
+import TIFFImageryProvider from 'tiff-imagery-provider';
+import { useEffect, useMemo, useState } from 'react';
 
 import styles from '../index.module.scss';
+import COGRenderMethods from './COGRenderMethods';
 import RasterRenderMethods from './RasterRenderMethods';
 
 type RenderMethodProps = {
@@ -18,7 +21,7 @@ const LayerRenderMethod = (props: RenderMethodProps) => {
   const { renderLayer } = LayerHook.useHook();
   const [rendering, setRendering] = useState(false);
 
-  const { renderOptions } = layerItem.layer;
+  const { renderOptions, method } = layerItem.layer;
 
   const onValuesChange = (
     values: Layer.RenderOptions,
@@ -39,9 +42,17 @@ const LayerRenderMethod = (props: RenderMethodProps) => {
   return (
     <Spin spinning={rendering}>
       <div className={styles.paramsSetting}>
+        {
+          method === 'cog' && 
+          <COGRenderMethods
+            value={renderOptions}
+            onChange={(val) => onValuesChange(val)}
+          />
+        }
+
         <RasterRenderMethods
           value={renderOptions as Layer.RasterOptions}
-          onOptionsChange={(val) => onValuesChange(val)}
+          onOptionsChange={(val) => onValuesChange(val, 'wms')}
         />
       </div>
     </Spin>

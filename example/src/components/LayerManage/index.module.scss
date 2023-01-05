@@ -1,5 +1,13 @@
 .layerMangeContainer {
   overflow: auto;
+  height: 100%;
+  .addLayer {
+    display: flex;
+    margin-bottom: 10px;
+    >button {
+      margin: 0 10px;
+    }
+  }
 }
 .layerItemControl {
   width: 100%;
@@ -42,11 +50,21 @@
         color: var(--semi-color-primary) !important;
       }
       .rotateIcon span {
-        transform: rotate(-90deg);
+        transform: rotate(-180deg);
       }
       .rotateIconLeft span {
         transform: rotate(90deg);
       }
+    }
+  }
+  .legendContainer {
+    max-height: 0;
+    padding: 0 10px;
+    transition: all 0.3s cubic-bezier(0, 0, 0.2, 1);
+    &.open {
+      max-height: 1000px;
+      padding-bottom: 10px;
+      transition-timing-function: ease-in;
     }
   }
   :global {

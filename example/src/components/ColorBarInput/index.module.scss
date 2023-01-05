@@ -1,0 +1,53 @@
+.formItem {
+  display: flex;
+  align-items: center;
+  margin: 10px;
+  font-size: 13px;
+  .label {
+    padding-right: 5px;
+    text-align: right;
+    color: var(--semi-color-text-0);
+  }
+  .input {
+    margin: 10px;
+    :global {
+      .ant-slider {
+        margin: 0;
+      }
+    }
+  }
+}
+.colorBar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 22px;
+  .colors {
+    display: flex;
+    flex-grow: 1;
+    flex-shrink: 1;
+    .colorBarItem {
+      height: 7px;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-width: 1px 0;
+    }
+    & > .colorBarItem:first-child {
+      border-width: 1px 0 1px 1px;
+      border-radius: 3px 0 0 3px;
+    }
+    & > .colorBarItem:last-child {
+      border-width: 1px 1px 1px 0;
+      border-radius: 0 3px 3px 0;
+    }
+  }
+  .extra {
+    flex-shrink: 0;
+  }
+}
+.multiColorInput {
+  :global {
+    .semi-select-content-wrapper {
+      width: 100%;
+    }
+  }
+}

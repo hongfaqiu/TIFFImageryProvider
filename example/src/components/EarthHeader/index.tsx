@@ -7,6 +7,9 @@ import SettingPanel from '../SettingPanel';
 import TooltipBtn from '../TooltipBtn';
 import useSearch from '@/hooks/use-search';
 import { Theme } from '../theme';
+import { IconGithubLogo } from '@douyinfe/semi-icons';
+import { Tooltip } from '../tooltip';
+import { Button } from '@douyinfe/semi-ui';
 
 export type HeaderBtnType = {
   key: string;
@@ -49,6 +52,16 @@ const EarthHeader = () => {
             />
           ))
         }
+        <div className={styles["interval-line"]} />
+        <Tooltip
+          content={'喜欢就去点个星星吧'}
+        >
+          <Button
+            type='secondary'
+            icon={<IconGithubLogo size='large' />}
+            onClick={() => window.open('https://github.com/hongfaqiu/TIFFImageryProvider')}
+          />
+        </Tooltip>
       </div>
     </div>
   )
