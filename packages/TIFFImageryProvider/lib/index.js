@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Cartographic } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo } from "cesium";
 import { Pool, fromUrl as tiffFromUrl } from 'geotiff';
 import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
 import { scaleLinear } from "d3-scale";
@@ -204,7 +204,14 @@ export class TIFFImageryProvider {
                     });
                 }
                 else {
-                    stops = colors.sort((a, b) => a[0] - b[0]).map(item => [(item[0] - min) / max * 255, item[1]]);
+                    stops = colors.sort((a, b) => a[0] - b[0]).map(item => [(item[0] - min) / (max - min) * 255, item[1]]);
+                    // 补足间隔点
+                    if (stops[0][0] > min) {
+                        stops[0][0] = min;
+                    }
+                    if (stops[stops.length - 1][0] < max) {
+                        stops[stops.length] = [max, stops[stops.length - 1][1]];
+                    }
                 }
                 for (let i = 0; i < data[0].length; i += 1) {
                     const val = redData[i];
@@ -274,10 +281,8 @@ export class TIFFImageryProvider {
             pool: pool,
         });
         const featureInfo = new ImageryLayerFeatureInfo();
-        const position = Cartographic.fromDegrees(longitude, latitude);
         featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
         featureInfo.data = res[0];
-        featureInfo.position = position;
         if (res) {
             featureInfo.configureDescriptionFromProperties(res[0]);
         }
