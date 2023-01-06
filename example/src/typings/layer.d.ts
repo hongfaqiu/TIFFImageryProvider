@@ -58,19 +58,21 @@ declare namespace Layer {
     method: 'cog';
     loaderinfo?: LoaderInfo;
     renderOptions?: {
+      /** nodata value, default read from tiff meta */
+      nodata?: number;
       /** Band value starts from 1 */
       r?: {
-        band: number;
+        band?: number;
         min?: number;
         max?: number;
       };
       g?: {
-        band: number;
+        band?: number;
         min?: number;
         max?: number;
       };
       b?: {
-        band: number;
+        band?: number;
         min?: number;
         max?: number;
       };

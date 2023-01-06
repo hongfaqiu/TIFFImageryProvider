@@ -26,8 +26,9 @@ const cesiumViewer = new Cesium.Viewer("cesiumContainer");
 const provider = new TIFFImageryProvider({
   url: 'https://data-of-vrexp.oss-cn-hangzhou.aliyuncs.com/cog/SIO_MERGE_MERGE_20000101TO20000131_L3B_EAMS_1KM_ACP_CT2017_.tif',
 });
-
-cesiumViewer.imageryLayers.addImageryProvider(provider);
+provider.readyPromise().then(() => {
+  cesiumViewer.imageryLayers.addImageryProvider(provider);
+})
 
 ```
 
@@ -36,6 +37,7 @@ cesiumViewer.imageryLayers.addImageryProvider(provider);
 ```ts
 class TIFFImageryProvider {
   ready: boolean;
+  readyPromise: Promise<void>
   bands: {
       STATISTICS_MINIMUM: string;
       STATISTICS_MAXIMUM: string;
@@ -56,22 +58,22 @@ interface TIFFImageryProviderOptions {
   minimumLevel?: number;
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
-  /** nodata value, default read from tiff meta */
-  nodata?: number;
   renderOptions?: {
+    /** nodata value, default read from tiff meta */
+    nodata?: number;
     /** Band value starts from 1 */
     r?: {
-      band: number;
+      band?: number;
       min?: number;
       max?: number;
     };
     g?: {
-      band: number;
+      band?: number;
       min?: number;
       max?: number;
     };
     b?: {
-      band: number;
+      band?: number;
       min?: number;
       max?: number;
     };

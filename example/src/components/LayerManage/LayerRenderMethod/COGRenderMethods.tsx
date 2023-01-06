@@ -1,6 +1,6 @@
 import { Divider, Radio } from '@douyinfe/semi-ui';
 import { TIFFImageryProviderRenderOptions } from 'tiff-imagery-provider';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import MultiColorInput from '../../ColorBarInput';
 import styles from './COGRenderMethods.module.scss';
 
@@ -15,16 +15,13 @@ type COGRenderMethodsProps = {
 
 const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
   value,
-  onChange,
-  range = {
-    min: 1,
-    max: 1,
-  }
+  onChange
 }) => {
   const [mode, setMode] = useState<'default' | 'public' | 'private'>('default')
   const [fill, setFill] = useState(value?.fill)
-  const [showModal, setShowModal] = useState(false)
   const [noData, setNoData] = useState(value?.nodata)
+  
+  const defaultStyle = useMemo(() => value, [])
   
   useEffect(() => {
     if (!onChange) return;
@@ -36,11 +33,11 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
       })
     } else if (mode === 'default') {
       onChange({
-        fill: undefined,
+        fill: defaultStyle?.fill,
         nodata: noData
       })
     }
-  }, [mode, fill, noData])
+  }, [mode, fill, noData, defaultStyle])
 
   return (
     <div className={styles.cogRenderContainer}>
@@ -55,10 +52,11 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
       <div className={mode === 'public' ? styles.show : styles.hide}>
         <MultiColorInput
           label='色带'
-          onChange={colors => setFill(old => ({
-            ...old,
-            colors
-          }))}
+          onChange={colors => setFill({
+            colors,
+            type: 'continuous',
+            mode: 'rgb'
+          })}
         />
       </div>
 

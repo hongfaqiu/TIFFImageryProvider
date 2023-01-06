@@ -264,7 +264,7 @@ export class TIFFImageryProvider {
             return [index === (colors.length - 1) ? 255 : index * step, color]
           })
         } else {
-          stops = (colors as [number, string][]).sort((a, b) => a[0] - b[0]).map(item => [(item[0] - min) / max * 255, item[1]])
+          stops = (colors as [number, string][]).sort((a, b) => a[0] - b[0]).map(item => [(item[0] - min) / (max - min) * 255, item[1]])
         }
         for (let i = 0; i < data[0].length; i += 1) {
           const val = redData[i];
