@@ -340,10 +340,8 @@ export class TIFFImageryProvider {
       pool: pool,
     })
     const featureInfo = new ImageryLayerFeatureInfo()
-    const position = Cartographic.fromDegrees(longitude, latitude)
     featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
     featureInfo.data = res[0]
-    featureInfo.position = position;
     if (res) {
       featureInfo.configureDescriptionFromProperties(res[0])
     }
