@@ -99,6 +99,10 @@ interface TIFFImageryProviderOptions {
 
 [online Demo](https://tiff-imagery-provider-example.vercel.app/)
 
+- Powered by [Next.js](https://github.com/vercel/next.js).
+- Dark mode with [Semi-UI](<https://github.com/DouyinFE/semi-design>).
+- Simple cog custom render method.
+
 Launch the app in the demo folder, and then visit <http://localhost:3000/>
 
 ```node
