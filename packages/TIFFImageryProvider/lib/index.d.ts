@@ -40,6 +40,8 @@ export interface TIFFImageryProviderOptions {
     enablePickFeatures?: boolean;
     hasAlphaChannel?: boolean;
     renderOptions?: TIFFImageryProviderRenderOptions;
+    /** projection function, convert [lon, lat] position to EPSG:4326 */
+    projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
 }
 export declare class TIFFImageryProvider {
     private readonly options;
@@ -79,9 +81,10 @@ export declare class TIFFImageryProvider {
      * @param x
      * @param y
      * @param z
-     * @returns 已根据最大最小值进行归一化(0-255)的数组
      */
     private _loadTile;
+    private ifNoData;
+    private getRange;
     requestImage(x: number, y: number, z: number): Promise<any>;
     pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number): Promise<ImageryLayerFeatureInfo[]>;
     destroy(): void;

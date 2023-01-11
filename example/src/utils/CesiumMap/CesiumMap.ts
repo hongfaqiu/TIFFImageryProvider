@@ -2,6 +2,8 @@ import * as Cesium from 'cesium';
 import { Resource } from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { TIFFImageryProvider } from 'tiff-imagery-provider';
+// @ts-ignore
+import proj4 from 'proj4-fully-loaded'; 
 
 import { boundary2Coors, calculateRange } from '../usefulFunc';
 import BaseMap from './BaseMap';
@@ -119,6 +121,11 @@ export default class CesiumMap extends BaseMap {
           maximumLevel,
           renderOptions,
           enablePickFeatures: true,
+          projFunc: (code) => {
+            if (![4326, 3857, 900913].includes(code)) {
+              return proj4(`EPSG:${code}`, "EPSG:4326").forward
+            }
+          }
         });
         break;
       case 'pic':

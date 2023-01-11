@@ -6,8 +6,8 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 - Three band rendering.
 - Multi mode color rendering.
-- support identify TIFF value with cartographic position.
-- support EPSG:4326 & EPSG:3857 projected TIFF.
+- Support identify TIFF value with cartographic position.
+- Support any projected TIFF.
 
 ## Install
 
@@ -19,6 +19,8 @@ pnpm add tiff-imagery-provider
 ```
 
 ## Usage
+
+- Basic
 
 ```ts
 import * as Cesium from "cesium";
@@ -33,6 +35,22 @@ provider.readyPromise().then(() => {
   cesiumViewer.imageryLayers.addImageryProvider(provider);
 })
 
+```
+
+- If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
+
+```ts
+import proj4 from 'proj4';
+
+new TIFFImageryProvider({
+  url: YOUR_TIFF_URL,
+  projFunc: (code) => {
+    if (code === 32760) {
+      proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
+      return proj4("EPSG:32760", "EPSG:4326").forward
+    }
+  }
+});
 ```
 
 ## API
@@ -92,6 +110,8 @@ interface TIFFImageryProviderOptions {
       mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab'
     };
   }
+  /** projection function, convert [lon, lat] position to EPSG:4326 */
+  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
 }
 ```
 

@@ -76,6 +76,8 @@ export interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
+  /** projection function, convert [lon, lat] position to EPSG:4326 */
+  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
 }
 
 const interpolateFactorys = {
@@ -110,7 +112,6 @@ export class TIFFImageryProvider {
   hasAlphaChannel: boolean;
   constructor(private readonly options: TIFFImageryProviderOptions) {
     this.ready = false;
-    this.tileSize = this.tileWidth = this.tileHeight = options.tileSize || 512;
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
     this.maximumLevel = options.maximumLevel ?? 18;
     this.minimumLevel = options.minimumLevel ?? 0;
@@ -122,6 +123,8 @@ export class TIFFImageryProvider {
       this._source = res;
       const image = await res.getImage();
       this._imageCount = await res.getImageCount();
+      
+      this.tileSize = this.tileWidth = this.tileHeight = options.tileSize || image.getTileWidth() || 512;
 
       // 获取nodata值
       const noData = image.getGDALNoData();
@@ -149,16 +152,24 @@ export class TIFFImageryProvider {
         }
       }
       this.bands = bands;
+
       // 获取空间范围
       const bbox = image.getBoundingBox();
-      const prj = +image.geoKeys.GeographicTypeGeoKey
-      if (prj === 4326) {
+      const [west, south, east, north] = bbox;
+      
+      const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
+      const { projFunc } = options;
+      const proj = projFunc?.(prjCode)
+      if (typeof proj === 'function') {
+        const leftBottom = proj([west, south])
+        const rightTop = proj([east, north])
+        this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1])
+      } else if (prjCode === 4326) {
         this.rectangle = Rectangle.fromDegrees(...bbox)
-      } else if (prj === 3857 || prj === 900913) {
-        const [west, south, east, north] = bbox;
+      } else if (prjCode === 3857 || prjCode === 900913) {
         this.rectangle = Rectangle.fromCartesianArray([new Cartesian3(west, south), new Cartesian3(east, north)]);
       } else {
-        const error = new Error('Unspported projection type')
+        const error = new Error(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
         throw error;
       }
       this.tilingScheme = new GeographicTilingScheme({
@@ -166,7 +177,6 @@ export class TIFFImageryProvider {
         numberOfLevelZeroTilesX: 1,
         numberOfLevelZeroTilesY: 1
       });
-
       this.maximumLevel = this.maximumLevel >= this._imageCount ? this._imageCount - 1 : this.maximumLevel;
       this._images = new Array(this._imageCount).fill(null);
       this.ready = true;
@@ -220,7 +230,6 @@ export class TIFFImageryProvider {
       Math.round((x + 1) * tilePixel.xWidth),
       Math.round((y + 1) * tilePixel.yWidth),
     ];
-
     const promise = image.readRasters({
       window: pixelBounds,
       width: tileSize,
@@ -231,8 +240,7 @@ export class TIFFImageryProvider {
 
     return promise
       .then((res) => {
-        const data = res as unknown as number[][];
-        return data
+        return res as unknown as number[][]
       })
       .catch((error) => {
         this._error.raiseEvent(error);
@@ -260,6 +268,7 @@ export class TIFFImageryProvider {
     y: number,
     z: number,
   ) {
+    console.log(x, y,z);
     if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount) return undefined
     if (this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`];
 
@@ -275,7 +284,6 @@ export class TIFFImageryProvider {
       const blueData = data[(b?.band ?? 1) - 1];
       const ranges = [r, g, b].map(item => this.getRange(item));
       const imageData = new Uint8ClampedArray(width * height * 4);
-
       if (fill) {
         const { min, max, range } = ranges[0];
         const { type = 'continuous', colors, mode = 'rgb' } = fill;
@@ -303,9 +311,9 @@ export class TIFFImageryProvider {
               if ((val >= stops[j][0] && (!stops[j + 1] || (val < stops[j + 1][0])))) {
                 if (type === 'continuous') {
                   color = scaleLinear<string>()
-                    .domain(stops.map(item => item[0]))
+                    .domain(stops.map(item => (item[0] - min) / range))
                     .range(stops.map(item => item[1]))
-                    .interpolate(interpolateFactorys[mode])(val / range)
+                    .interpolate(interpolateFactorys[mode])((val - min) / range)
                 } else {
                   color = stops[j][1];
                 }
@@ -324,9 +332,9 @@ export class TIFFImageryProvider {
           const red = redData[i];
           const green = greenData[i];
           const blue = blueData[i];
-          imageData[i * 4] = decimal2rgb(red / ranges[0].range);
-          imageData[i * 4 + 1] = decimal2rgb(green / ranges[1].range);
-          imageData[i * 4 + 2] = decimal2rgb(blue / ranges[2].range);
+          imageData[i * 4] = decimal2rgb((red - ranges[0].min) / ranges[0].range);
+          imageData[i * 4 + 1] = decimal2rgb((green - ranges[1].min) / ranges[1].range);
+          imageData[i * 4 + 2] = decimal2rgb((blue - ranges[2].min) / ranges[2].range);
           imageData[i * 4 + 3] = this.ifNoData(red, green, blue) ? 0 : 255;
         }
       }
@@ -362,10 +370,8 @@ export class TIFFImageryProvider {
       pool: pool,
     })
     const featureInfo = new ImageryLayerFeatureInfo()
-    const position = Cartographic.fromDegrees(longitude, latitude)
     featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
     featureInfo.data = res[0]
-    featureInfo.position = position;
     if (res) {
       featureInfo.configureDescriptionFromProperties(res[0])
     }

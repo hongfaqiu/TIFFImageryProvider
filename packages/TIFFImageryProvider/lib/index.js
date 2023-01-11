@@ -12,6 +12,27 @@ function getWorkerPool() {
 function decimal2rgb(number) {
     return Math.round(number * 255);
 }
+function getMinMax(data, nodata) {
+    let min, max;
+    for (let j = 0; j < data.length; j += 1) {
+        const val = data[j];
+        if (val === nodata)
+            continue;
+        if (min === undefined && max === undefined) {
+            min = max = val;
+            continue;
+        }
+        if (val < min) {
+            min = val;
+        }
+        else if (val > max) {
+            max = val;
+        }
+    }
+    return {
+        min, max
+    };
+}
 const interpolateFactorys = {
     'rgb': interpolateRgb,
     'hsl': interpolateHsl,
@@ -42,7 +63,6 @@ export class TIFFImageryProvider {
     constructor(options) {
         this.options = options;
         this.ready = false;
-        this.tileSize = this.tileWidth = this.tileHeight = options.tileSize || 512;
         this.hasAlphaChannel = options.hasAlphaChannel ?? true;
         this.maximumLevel = options.maximumLevel ?? 18;
         this.minimumLevel = options.minimumLevel ?? 0;
@@ -54,6 +74,10 @@ export class TIFFImageryProvider {
             this._source = res;
             const image = await res.getImage();
             this._imageCount = await res.getImageCount();
+            this.tileSize = this.tileWidth = this.tileHeight = options.tileSize || image.getTileWidth() || 512;
+            // 获取nodata值
+            const noData = image.getGDALNoData();
+            this.noData = options.renderOptions.nodata ?? noData;
             const bands = [];
             // 获取波段数
             const samples = image.getSamplesPerPixel();
@@ -68,32 +92,34 @@ export class TIFFImageryProvider {
                 }
                 else {
                     const pool = getWorkerPool();
-                    const previewImage = await res.getImage(this._imageCount - 1);
+                    const previewImage = await res.getImage();
                     const data = (await previewImage.readRasters({
                         samples: [i],
                         pool
                     }))[0].filter((item) => !isNaN(item));
-                    bands.push({
-                        min: Math.min(...data),
-                        max: Math.max(...data)
-                    });
+                    bands.push(getMinMax(data, noData));
                 }
             }
-            // 获取nodata值
-            const noData = image.getGDALNoData();
             this.bands = bands;
-            this.noData = options.renderOptions.nodata ?? noData;
+            // 获取空间范围
             const bbox = image.getBoundingBox();
-            const prj = +image.geoKeys.GeographicTypeGeoKey;
-            if (prj === 4326) {
+            const [west, south, east, north] = bbox;
+            const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey);
+            const { projFunc } = options;
+            const proj = projFunc?.(prjCode);
+            if (typeof proj === 'function') {
+                const leftBottom = proj([west, south]);
+                const rightTop = proj([east, north]);
+                this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1]);
+            }
+            else if (prjCode === 4326) {
                 this.rectangle = Rectangle.fromDegrees(...bbox);
             }
-            else if (prj === 3857 || prj === 900913) {
-                const [west, south, east, north] = bbox;
+            else if (prjCode === 3857 || prjCode === 900913) {
                 this.rectangle = Rectangle.fromCartesianArray([new Cartesian3(west, south), new Cartesian3(east, north)]);
             }
             else {
-                const error = new Error('Unspported projection type');
+                const error = new Error(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`);
                 throw error;
             }
             this.tilingScheme = new GeographicTilingScheme({
@@ -127,7 +153,6 @@ export class TIFFImageryProvider {
      * @param x
      * @param y
      * @param z
-     * @returns 已根据最大最小值进行归一化(0-255)的数组
      */
     async _loadTile(x, y, z) {
         const { tileSize } = this;
@@ -160,24 +185,24 @@ export class TIFFImageryProvider {
         });
         return promise
             .then((res) => {
-            const data = res;
-            return data.map((band, index) => {
-                let min, max;
-                ['r', 'g', 'b'].forEach(k => {
-                    const bandOpt = this.options.renderOptions?.[k];
-                    min = bandOpt?.min ?? +this.bands[index].min;
-                    max = bandOpt?.max ?? +this.bands[index].max;
-                });
-                const bias = 255 / (+max - +min);
-                return band.map(item => (isNaN(item) || item === this.noData || item < min || item > max) ? 0 : (item - min) * bias);
-            });
+            return res;
         })
             .catch((error) => {
             this._error.raiseEvent(error);
             throw error;
         });
     }
+    ifNoData(...vals) {
+        return vals.every(val => isNaN(val) || val === this.noData);
+    }
+    getRange(opts) {
+        const min = opts?.min ?? +this.bands[(opts?.band ?? 1) - 1].min;
+        const max = opts?.max ?? +this.bands[(opts?.band ?? 1) - 1].max;
+        const range = max - min;
+        return { min, max, range };
+    }
     async requestImage(x, y, z) {
+        console.log(x, y, z);
         if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount)
             return undefined;
         if (this._imagesCache[`${x}_${y}_${z}`])
@@ -191,21 +216,20 @@ export class TIFFImageryProvider {
             const redData = data[(r?.band ?? 1) - 1];
             const greenData = data[(g?.band ?? 1) - 1];
             const blueData = data[(b?.band ?? 1) - 1];
+            const ranges = [r, g, b].map(item => this.getRange(item));
             const imageData = new Uint8ClampedArray(width * height * 4);
             if (fill) {
-                const min = r?.min ?? +this.bands[(r?.band ?? 1) - 1].min;
-                const max = r?.max ?? +this.bands[(r?.band ?? 1) - 1].max;
+                const { min, max, range } = ranges[0];
                 const { type = 'continuous', colors, mode = 'rgb' } = fill;
                 let stops;
                 if (typeof colors[0] === 'string') {
-                    const step = 255 / colors.length;
+                    const step = range / colors.length;
                     stops = colors.map((color, index) => {
-                        return [index === (colors.length - 1) ? 255 : index * step, color];
+                        return [min + index * step, color];
                     });
                 }
                 else {
-                    stops = colors.sort((a, b) => a[0] - b[0]).map(item => [(item[0] - min) / (max - min) * 255, item[1]]);
-                    // 补足间隔点
+                    stops = colors.sort((a, b) => a[0] - b[0]);
                     if (stops[0][0] > min) {
                         stops[0][0] = min;
                     }
@@ -216,14 +240,15 @@ export class TIFFImageryProvider {
                 for (let i = 0; i < data[0].length; i += 1) {
                     const val = redData[i];
                     let color = 'black';
-                    if (val !== 0) {
-                        for (let j = 0; j < stops.length - 1; j += 1) {
-                            if (val >= stops[j][0] && val <= stops[j + 1][0]) {
+                    const ifNoData = this.ifNoData(val);
+                    if (!ifNoData) {
+                        for (let j = 0; j < stops.length; j += 1) {
+                            if ((val >= stops[j][0] && (!stops[j + 1] || (val < stops[j + 1][0])))) {
                                 if (type === 'continuous') {
                                     color = scaleLinear()
-                                        .domain(stops.map(item => item[0]))
+                                        .domain(stops.map(item => (item[0] - min) / range))
                                         .range(stops.map(item => item[1]))
-                                        .interpolate(interpolateFactorys[mode])(val);
+                                        .interpolate(interpolateFactorys[mode])((val - min) / range);
                                 }
                                 else {
                                     color = stops[j][1];
@@ -236,7 +261,7 @@ export class TIFFImageryProvider {
                     imageData[i * 4] = decimal2rgb(red);
                     imageData[i * 4 + 1] = decimal2rgb(green);
                     imageData[i * 4 + 2] = decimal2rgb(blue);
-                    imageData[i * 4 + 3] = val === 0 ? 0 : decimal2rgb(alpha);
+                    imageData[i * 4 + 3] = ifNoData ? 0 : decimal2rgb(alpha);
                 }
             }
             else {
@@ -244,10 +269,10 @@ export class TIFFImageryProvider {
                     const red = redData[i];
                     const green = greenData[i];
                     const blue = blueData[i];
-                    imageData[i * 4] = red;
-                    imageData[i * 4 + 1] = green;
-                    imageData[i * 4 + 2] = blue;
-                    imageData[i * 4 + 3] = (red === 0 && red === green && green === blue) ? 0 : 255;
+                    imageData[i * 4] = decimal2rgb((red - ranges[0].min) / ranges[0].range);
+                    imageData[i * 4 + 1] = decimal2rgb((green - ranges[1].min) / ranges[1].range);
+                    imageData[i * 4 + 2] = decimal2rgb((blue - ranges[2].min) / ranges[2].range);
+                    imageData[i * 4 + 3] = this.ifNoData(red, green, blue) ? 0 : 255;
                 }
             }
             const result = new ImageData(imageData, width, height);
