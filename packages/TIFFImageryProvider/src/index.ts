@@ -15,6 +15,26 @@ function decimal2rgb(number: number): number {
   return Math.round(number * 255)
 }
 
+function getMinMax(data: number[], nodata: number) {
+  let min: number, max: number;
+  for (let j = 0; j < data.length; j += 1) {
+    const val = data[j];
+    if (val === nodata) continue;
+    if (min === undefined && max === undefined) {
+      min = max = val;
+      continue;
+    } 
+    if (val < min) {
+      min = val;
+    } else if (val > max) {
+      max = val;
+    }
+  }
+  return {
+    min, max
+  }
+}
+
 export interface TIFFImageryProviderRenderOptions {
   /** nodata value, default read from tiff meta */
   nodata?: number;
@@ -103,6 +123,10 @@ export class TIFFImageryProvider {
       const image = await res.getImage();
       this._imageCount = await res.getImageCount();
 
+      // 获取nodata值
+      const noData = image.getGDALNoData();
+      this.noData = options.renderOptions.nodata ?? noData;
+
       const bands = [];
       // 获取波段数
       const samples = image.getSamplesPerPixel();
@@ -116,22 +140,16 @@ export class TIFFImageryProvider {
           })
         } else {
           const pool = getWorkerPool();
-          const previewImage = await res.getImage(this._imageCount - 1)
+          const previewImage = await res.getImage()
           const data = (await previewImage.readRasters({
             samples: [i],
             pool
           }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
-          bands.push({
-            min: Math.min(...data),
-            max: Math.max(...data)
-          })
+          bands.push(getMinMax(data, noData))
         }
       }
-      // 获取nodata值
-      const noData = image.getGDALNoData();
       this.bands = bands;
-      this.noData = options.renderOptions.nodata ?? noData;
-
+      // 获取空间范围
       const bbox = image.getBoundingBox();
       const prj = +image.geoKeys.GeographicTypeGeoKey
       if (prj === 4326) {
@@ -179,7 +197,6 @@ export class TIFFImageryProvider {
    * @param x 
    * @param y 
    * @param z 
-   * @returns 已根据最大最小值进行归一化(0-255)的数组
    */
   private async _loadTile(x: number, y: number, z: number) {
     const { tileSize } = this;
@@ -215,21 +232,27 @@ export class TIFFImageryProvider {
     return promise
       .then((res) => {
         const data = res as unknown as number[][];
-        return data.map((band, index) => {
-          let min: number, max: number;
-          ['r', 'g', 'b'].forEach(k => {
-            const bandOpt = this.options.renderOptions?.[k]
-            min = bandOpt?.min ?? +this.bands[index].min;
-            max = bandOpt?.max ?? +this.bands[index].max;
-          })
-          const bias = 255 / (+max - +min);
-          return band.map(item => (isNaN(item) || item === this.noData || item < min || item > max) ? 0 : (item - min) * bias)
-        });
+        return data
       })
       .catch((error) => {
         this._error.raiseEvent(error);
         throw error;
       });
+  }
+
+  private ifNoData(...vals: number[]) {
+    return vals.every(val => isNaN(val) || val === this.noData) 
+  }
+
+  private getRange(opts: {
+      min?: number,
+      max?: number,
+      band?: number
+    } | undefined) {
+    const min = opts?.min ?? +this.bands[(opts?.band ?? 1) - 1].min;
+    const max = opts?.max ?? +this.bands[(opts?.band ?? 1) - 1].max;
+    const range = max - min;
+    return { min, max, range };
   }
 
   async requestImage(
@@ -247,25 +270,23 @@ export class TIFFImageryProvider {
 
     try {
       const data = await this._loadTile(x, y, z);
-
       const redData = data[(r?.band ?? 1) - 1];
       const greenData = data[(g?.band ?? 1) - 1];
       const blueData = data[(b?.band ?? 1) - 1];
+      const ranges = [r, g, b].map(item => this.getRange(item));
       const imageData = new Uint8ClampedArray(width * height * 4);
 
       if (fill) {
-        const min = r?.min ?? +this.bands[(r?.band ?? 1) - 1].min;
-        const max = r?.max ?? +this.bands[(r?.band ?? 1) - 1].max;
+        const { min, max, range } = ranges[0];
         const { type = 'continuous', colors, mode = 'rgb' } = fill;
         let stops: [number, string][];
         if (typeof colors[0] === 'string') {
-          const step = 255 / colors.length;
+          const step = range / colors.length;
           stops = (colors as string[]).map((color, index) => {
-            return [index === (colors.length - 1) ? 255 : index * step, color]
+            return [min + index * step, color]
           })
         } else {
-          stops = (colors as [number, string][]).sort((a, b) => a[0] - b[0]).map(item => [(item[0] - min) / (max - min) * 255, item[1]])
-          // 补足间隔点
+          stops = (colors as [number, string][]).sort((a, b) => a[0] - b[0])
           if (stops[0][0] > min) {
             stops[0][0] = min;
           }
@@ -276,14 +297,15 @@ export class TIFFImageryProvider {
         for (let i = 0; i < data[0].length; i += 1) {
           const val = redData[i];
           let color = 'black';
-          if (val !== 0) {
-            for (let j = 0; j < stops.length - 1; j += 1) {
-              if (val >= stops[j][0] && val <= stops[j + 1][0]) {
+          const ifNoData = this.ifNoData(val)
+          if (!ifNoData) {
+            for (let j = 0; j < stops.length; j += 1) {
+              if ((val >= stops[j][0] && (!stops[j + 1] || (val < stops[j + 1][0])))) {
                 if (type === 'continuous') {
                   color = scaleLinear<string>()
                     .domain(stops.map(item => item[0]))
                     .range(stops.map(item => item[1]))
-                    .interpolate(interpolateFactorys[mode])(val)
+                    .interpolate(interpolateFactorys[mode])(val / range)
                 } else {
                   color = stops[j][1];
                 }
@@ -295,17 +317,17 @@ export class TIFFImageryProvider {
           imageData[i * 4] = decimal2rgb(red);
           imageData[i * 4 + 1] = decimal2rgb(green);
           imageData[i * 4 + 2] = decimal2rgb(blue);
-          imageData[i * 4 + 3] = val === 0 ? 0 : decimal2rgb(alpha);
+          imageData[i * 4 + 3] = ifNoData ? 0 : decimal2rgb(alpha);
         }
       } else {
         for (let i = 0; i < data[0].length; i++) {
           const red = redData[i];
           const green = greenData[i];
           const blue = blueData[i];
-          imageData[i * 4] = red;
-          imageData[i * 4 + 1] = green;
-          imageData[i * 4 + 2] = blue;
-          imageData[i * 4 + 3] = (red === 0 && red === green && green === blue) ? 0 : 255;
+          imageData[i * 4] = decimal2rgb(red / ranges[0].range);
+          imageData[i * 4 + 1] = decimal2rgb(green / ranges[1].range);
+          imageData[i * 4 + 2] = decimal2rgb(blue / ranges[2].range);
+          imageData[i * 4 + 3] = this.ifNoData(red, green, blue) ? 0 : 255;
         }
       }
       const result = new ImageData(imageData, width, height);
@@ -340,8 +362,10 @@ export class TIFFImageryProvider {
       pool: pool,
     })
     const featureInfo = new ImageryLayerFeatureInfo()
+    const position = Cartographic.fromDegrees(longitude, latitude)
     featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
     featureInfo.data = res[0]
+    featureInfo.position = position;
     if (res) {
       featureInfo.configureDescriptionFromProperties(res[0])
     }
