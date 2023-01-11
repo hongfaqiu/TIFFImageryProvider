@@ -2,9 +2,12 @@
 
 Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
+[![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider/lib?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
+
 - Three band rendering.
 - Multi mode color rendering.
 - support identify TIFF value with cartographic position.
+- support EPSG:4326 & EPSG:3857 projected TIFF.
 
 ## Install
 
@@ -110,6 +113,10 @@ pnpm start
 
 - Aliyun OSS has a broken API for HTTP Range requests, so will resposed with full file.
 
-## Credit
+## Plans
+
+- GPU speed up calculation
+
+## Credits
 
 <https://github.com/geotiffjs/geotiff.js>
