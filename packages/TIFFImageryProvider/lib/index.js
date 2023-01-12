@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Math as CMath } from "cesium";
 import { Pool, fromUrl as tiffFromUrl } from 'geotiff';
 import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
 import { scaleLinear } from "d3-scale";
@@ -122,6 +122,7 @@ export class TIFFImageryProvider {
                 const error = new Error(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`);
                 throw error;
             }
+            console.log(this.rectangle);
             this.tilingScheme = new GeographicTilingScheme({
                 rectangle: this.rectangle,
                 numberOfLevelZeroTilesX: 1,
@@ -192,17 +193,16 @@ export class TIFFImageryProvider {
             throw error;
         });
     }
-    ifNoData(...vals) {
+    _ifNoData(...vals) {
         return vals.every(val => isNaN(val) || val === this.noData);
     }
-    getRange(opts) {
+    _getRange(opts) {
         const min = opts?.min ?? +this.bands[(opts?.band ?? 1) - 1].min;
         const max = opts?.max ?? +this.bands[(opts?.band ?? 1) - 1].max;
         const range = max - min;
         return { min, max, range };
     }
     async requestImage(x, y, z) {
-        console.log(x, y, z);
         if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount)
             return undefined;
         if (this._imagesCache[`${x}_${y}_${z}`])
@@ -216,7 +216,7 @@ export class TIFFImageryProvider {
             const redData = data[(r?.band ?? 1) - 1];
             const greenData = data[(g?.band ?? 1) - 1];
             const blueData = data[(b?.band ?? 1) - 1];
-            const ranges = [r, g, b].map(item => this.getRange(item));
+            const ranges = [r, g, b].map(item => this._getRange(item));
             const imageData = new Uint8ClampedArray(width * height * 4);
             if (fill) {
                 const { min, max, range } = ranges[0];
@@ -240,7 +240,7 @@ export class TIFFImageryProvider {
                 for (let i = 0; i < data[0].length; i += 1) {
                     const val = redData[i];
                     let color = 'black';
-                    const ifNoData = this.ifNoData(val);
+                    const ifNoData = this._ifNoData(val);
                     if (!ifNoData) {
                         for (let j = 0; j < stops.length; j += 1) {
                             if ((val >= stops[j][0] && (!stops[j + 1] || (val < stops[j + 1][0])))) {
@@ -272,7 +272,7 @@ export class TIFFImageryProvider {
                     imageData[i * 4] = decimal2rgb((red - ranges[0].min) / ranges[0].range);
                     imageData[i * 4 + 1] = decimal2rgb((green - ranges[1].min) / ranges[1].range);
                     imageData[i * 4 + 2] = decimal2rgb((blue - ranges[2].min) / ranges[2].range);
-                    imageData[i * 4 + 3] = this.ifNoData(red, green, blue) ? 0 : 255;
+                    imageData[i * 4 + 3] = this._ifNoData(red, green, blue) ? 0 : 255;
                 }
             }
             const result = new ImageData(imageData, width, height);
@@ -293,10 +293,15 @@ export class TIFFImageryProvider {
         if (!image) {
             image = this._images[index] = await this._source.getImage(index);
         }
-        const { west, east, south, north } = this.rectangle;
+        const { west, south, north, width: lonWidth } = this.rectangle;
         const width = image.getWidth();
         const height = image.getHeight();
-        const posX = ~~(Math.abs((longitude - west) / (east - west)) * width);
+        let lonGap = longitude - west;
+        // 处理跨180°经线的情况
+        if (longitude < west) {
+            lonGap += CMath.TWO_PI;
+        }
+        const posX = ~~(Math.abs(lonGap / lonWidth) * width);
         const posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
         const pool = getWorkerPool();
         const res = await image.readRasters({

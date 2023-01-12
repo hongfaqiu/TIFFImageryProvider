@@ -2,7 +2,6 @@ import * as Cesium from 'cesium';
 import { Resource } from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { TIFFImageryProvider } from 'tiff-imagery-provider';
-// @ts-ignore
 import proj4 from 'proj4-fully-loaded'; 
 
 import { boundary2Coors, calculateRange } from '../usefulFunc';
@@ -10,9 +9,6 @@ import BaseMap from './BaseMap';
 
 import type { ImageryLayer, ImageryProvider , Rectangle} from 'cesium';
 
-/**
- * dde专用CesiumMap类，添加图层管理相关方法
- */
 export default class CesiumMap extends BaseMap {
   protected getResource(options: { url: string; headers?: any; queryParameters?: any }) {
     if (!options.url) return null;

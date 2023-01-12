@@ -1,4 +1,4 @@
-import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, ImageryLayerFeatureInfo } from "cesium";
+import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo } from "cesium";
 import GeoTIFF, { GeoTIFFImage } from 'geotiff';
 export interface TIFFImageryProviderRenderOptions {
     /** nodata value, default read from tiff meta */
@@ -47,7 +47,7 @@ export declare class TIFFImageryProvider {
     private readonly options;
     ready: boolean;
     tilingScheme: WebMercatorTilingScheme | GeographicTilingScheme;
-    rectangle: any;
+    rectangle: Rectangle;
     tileSize: number;
     tileWidth: number;
     tileHeight: number;
@@ -83,8 +83,8 @@ export declare class TIFFImageryProvider {
      * @param z
      */
     private _loadTile;
-    private ifNoData;
-    private getRange;
+    private _ifNoData;
+    private _getRange;
     requestImage(x: number, y: number, z: number): Promise<any>;
     pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number): Promise<ImageryLayerFeatureInfo[]>;
     destroy(): void;

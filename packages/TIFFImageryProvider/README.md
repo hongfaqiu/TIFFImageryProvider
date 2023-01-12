@@ -60,10 +60,8 @@ class TIFFImageryProvider {
   ready: boolean;
   readyPromise: Promise<void>
   bands: {
-      STATISTICS_MINIMUM: string;
-      STATISTICS_MAXIMUM: string;
-      STATISTICS_MEAN: string;
-      STATISTICS_STDDEV: string;
+      min: number;
+      max: number;
   }[];
   constructor(options: TIFFImageryProviderOptions);
 
