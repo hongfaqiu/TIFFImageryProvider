@@ -1,4 +1,4 @@
-import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo } from "cesium";
 import GeoTIFF, { GeoTIFFImage } from 'geotiff';
 export interface TIFFImageryProviderRenderOptions {
     /** nodata value, default read from tiff meta */
@@ -46,7 +46,7 @@ export interface TIFFImageryProviderOptions {
 export declare class TIFFImageryProvider {
     private readonly options;
     ready: boolean;
-    tilingScheme: WebMercatorTilingScheme | GeographicTilingScheme;
+    tilingScheme: GeographicTilingScheme;
     rectangle: Rectangle;
     tileSize: number;
     tileWidth: number;

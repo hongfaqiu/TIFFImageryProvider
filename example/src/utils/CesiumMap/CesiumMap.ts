@@ -7,7 +7,7 @@ import proj4 from 'proj4-fully-loaded';
 import { boundary2Coors, calculateRange } from '../usefulFunc';
 import BaseMap from './BaseMap';
 
-import type { ImageryLayer, ImageryProvider , Rectangle} from 'cesium';
+import { ImageryLayer, ImageryProvider , Rectangle} from 'cesium';
 
 export default class CesiumMap extends BaseMap {
   protected getResource(options: { url: string; headers?: any; queryParameters?: any }) {
@@ -165,7 +165,7 @@ export default class CesiumMap extends BaseMap {
       }
 
       if (zoom) {
-        if (imageLayer.method === 'cog') {
+        if (['cog', 'pic'].includes(imageLayer.method)) {
           this.zoomToViewPort(undefined, layer)
         } else {
           this.zoomToViewPort(viewPort);

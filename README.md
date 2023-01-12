@@ -134,6 +134,7 @@ pnpm start
 ## Bugs
 
 - Aliyun OSS has a broken API for HTTP Range requests, so will resposed with full file.
+- Cesium@1.101 misplacement
 
 ## Plans
 

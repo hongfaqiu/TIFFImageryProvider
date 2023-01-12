@@ -1,4 +1,4 @@
-import { Event, WebMercatorTilingScheme, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Math as CMath } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Math as CMath, DeveloperError } from "cesium";
 import GeoTIFF, { Pool, fromUrl as tiffFromUrl, GeoTIFFImage } from 'geotiff';
 import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
 import { scaleLinear } from "d3-scale";
@@ -89,7 +89,7 @@ const interpolateFactorys = {
 
 export class TIFFImageryProvider {
   ready: boolean;
-  tilingScheme: WebMercatorTilingScheme | GeographicTilingScheme;
+  tilingScheme: GeographicTilingScheme;
   rectangle: Rectangle;
   tileSize: number;
   tileWidth: number;
@@ -172,7 +172,11 @@ export class TIFFImageryProvider {
         const error = new Error(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
         throw error;
       }
-      console.log(this.rectangle);
+      // 处理跨180度经线的情况
+      // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
+      if (this.rectangle.east < this.rectangle.west) {
+        this.rectangle.east += CMath.TWO_PI;
+      }
       this.tilingScheme = new GeographicTilingScheme({
         rectangle: this.rectangle,
         numberOfLevelZeroTilesX: 1,
@@ -269,6 +273,12 @@ export class TIFFImageryProvider {
     y: number,
     z: number,
   ) {
+    if (!this.ready) {
+      throw new DeveloperError(
+        "requestImage must not be called before the imagery provider is ready."
+      );
+    }
+    
     if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount) return undefined
     if (this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`];
 

@@ -12,7 +12,7 @@ import { LayerHook } from '@/hooks/use-layer';
 const { Text } = Typography;
 
 const zoomToLayer = (layerItem: Layer.layerManageItem) => {
-  if (layerItem.layer.method === 'cog') {
+  if (['cog', 'pic'].includes(layerItem.layer.method)) {
     MainMapObj?.zoomToViewPort(undefined, layerItem.layerObj);
   } else {
     MainMapObj?.zoomToViewPort(layerItem.layer.viewPort);
