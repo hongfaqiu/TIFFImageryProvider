@@ -349,6 +349,7 @@ export class TIFFImageryProvider {
 
   async pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number) {
     if (!this.options.enablePickFeatures) return undefined
+
     const z = zoom > this._imageCount ? this._imageCount : zoom;
     const index = this._getIndex(z);
     let image = this._images[index];
