@@ -1,6 +1,6 @@
 {
   "name": "tiff-imagery-provider",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium",
   "keywords": [
     "cesium",
