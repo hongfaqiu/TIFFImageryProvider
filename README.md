@@ -4,6 +4,8 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest/lib?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
+## Features
+
 - Three band rendering.
 - Multi mode color rendering.
 - Support identify TIFF value with cartographic position.
@@ -20,7 +22,7 @@ pnpm add tiff-imagery-provider
 
 ## Usage
 
-- Basic
+Basic
 
 ```ts
 import * as Cesium from "cesium";
@@ -37,7 +39,7 @@ provider.readyPromise().then(() => {
 
 ```
 
-- If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
+If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
 
 ```ts
 import proj4 from 'proj4';
