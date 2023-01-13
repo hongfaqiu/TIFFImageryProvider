@@ -254,7 +254,13 @@ export class TIFFImageryProvider {
   }
 
   private _ifNoData(...vals: number[]) {
-    return vals.every(val => isNaN(val) || val === this.noData) 
+    for (let i = 0; i < vals.length; i++) {
+      const val = vals[i]
+      if (isNaN(val) || val === this.noData) {
+        return true
+      }
+    }
+    return false
   }
 
   private _getRange(opts: {
@@ -314,7 +320,7 @@ export class TIFFImageryProvider {
         }
         for (let i = 0; i < data[0].length; i += 1) {
           const val = redData[i];
-          let color = 'black';
+          let color = 'transparent';
           const ifNoData = this._ifNoData(val)
           if (!ifNoData) {
             for (let j = 0; j < stops.length; j += 1) {

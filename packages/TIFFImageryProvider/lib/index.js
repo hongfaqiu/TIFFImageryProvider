@@ -198,7 +198,13 @@ export class TIFFImageryProvider {
         });
     }
     _ifNoData(...vals) {
-        return vals.every(val => isNaN(val) || val === this.noData);
+        for (let i = 0; i < vals.length; i++) {
+            const val = vals[i];
+            if (isNaN(val) || val === this.noData) {
+                return true;
+            }
+        }
+        return false;
     }
     _getRange(opts) {
         const min = opts?.min ?? +this.bands[(opts?.band ?? 1) - 1].min;
@@ -246,7 +252,7 @@ export class TIFFImageryProvider {
                 }
                 for (let i = 0; i < data[0].length; i += 1) {
                     const val = redData[i];
-                    let color = 'black';
+                    let color = 'transparent';
                     const ifNoData = this._ifNoData(val);
                     if (!ifNoData) {
                         for (let j = 0; j < stops.length; j += 1) {

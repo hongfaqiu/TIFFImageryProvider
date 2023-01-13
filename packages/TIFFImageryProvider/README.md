@@ -2,7 +2,7 @@
 
 Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
-[![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest/lib?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
+[![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
 ## Features
 
