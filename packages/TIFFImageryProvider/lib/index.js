@@ -134,6 +134,7 @@ class TIFFImageryProvider {
     hasAlphaChannel;
     _pool;
     _workerFarm;
+    _cacheTime;
     constructor(options) {
         this.options = options;
         this.ready = false;
@@ -142,7 +143,8 @@ class TIFFImageryProvider {
         this.minimumLevel = options.minimumLevel ?? 0;
         this.credit = new Credit(options.credit || "", false);
         this._error = new Event();
-        this._workerFarm = this.options.webWorker !== false ? new WorkerFarm() : null;
+        this._workerFarm = new WorkerFarm();
+        this._cacheTime = options.cache ?? 60 * 1000;
         this.readyPromise = fromUrl(options.url, {
             allowFullFile: true
         }).then(async (res) => {
@@ -277,8 +279,8 @@ class TIFFImageryProvider {
         }
         if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount)
             return undefined;
-        if (this._imagesCache[`${x}_${y}_${z}`])
-            return this._imagesCache[`${x}_${y}_${z}`];
+        if (this._cacheTime && this._imagesCache[`${x}_${y}_${z}`])
+            return this._imagesCache[`${x}_${y}_${z}`].data;
         const width = this.tileSize;
         const height = this.tileSize;
         const { renderOptions } = this.options;
@@ -291,14 +293,22 @@ class TIFFImageryProvider {
                 bands: this.bands,
                 noData: this.noData
             };
-            let result;
-            if (this._workerFarm?.worker) {
-                result = await this._workerFarm.scheduleTask(data, opts);
+            if (!this._workerFarm?.worker) {
+                throw new Error('web workers bootstrap error');
             }
-            else {
-                result = undefined;
+            const result = await this._workerFarm.scheduleTask(data, opts);
+            if (this._cacheTime) {
+                const now = new Date().getTime();
+                this._imagesCache[`${x}_${y}_${z}`] = {
+                    time: now,
+                    data: result
+                };
+                for (let key in this._imagesCache) {
+                    if ((now - this._imagesCache[key].time) > this._cacheTime) {
+                        delete this._imagesCache[key];
+                    }
+                }
             }
-            this._imagesCache[`${x}_${y}_${z}`] = result;
             return result;
         }
         catch (e) {
@@ -343,6 +353,7 @@ class TIFFImageryProvider {
         this._images = undefined;
         this._imagesCache = undefined;
         this._workerFarm?.destory();
+        this._pool.destroy();
         this._destroyed = true;
     }
 }

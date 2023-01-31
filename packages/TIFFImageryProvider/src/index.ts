@@ -11,7 +11,7 @@ function getMinMax(data: number[], nodata: number) {
     if (min === undefined && max === undefined) {
       min = max = val;
       continue;
-    } 
+    }
     if (val < min) {
       min = val;
     } else if (val > max) {
@@ -66,6 +66,8 @@ export interface TIFFImageryProviderOptions {
   renderOptions?: TIFFImageryProviderRenderOptions;
   /** projection function, convert [lon, lat] position to EPSG:4326 */
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+  /** cache survival time, defaults to 60 * 3000 ms */
+  cache?: number;
 }
 
 export class TIFFImageryProvider {
@@ -84,7 +86,10 @@ export class TIFFImageryProvider {
   _source!: GeoTIFF;
   private _imageCount!: number;
   _images: (GeoTIFFImage | null)[] = [];
-  _imagesCache = {};
+  _imagesCache: Record<string, {
+    time: number;
+    data: ImageData;
+  }> = {};
   bands: {
     min: number;
     max: number;
@@ -93,6 +98,7 @@ export class TIFFImageryProvider {
   hasAlphaChannel: boolean;
   private _pool: Pool;
   private _workerFarm: WorkerFarm | null;
+  private _cacheTime: number;
   constructor(private readonly options: TIFFImageryProviderOptions) {
     this.ready = false;
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
@@ -100,7 +106,10 @@ export class TIFFImageryProvider {
     this.minimumLevel = options.minimumLevel ?? 0;
     this.credit = new Credit(options.credit || "", false);
     this._error = new Event();
+
     this._workerFarm = new WorkerFarm();
+    this._cacheTime = options.cache ?? 60 * 1000;
+
     this.readyPromise = tiffFromUrl(options.url, {
       allowFullFile: true
     }).then(async (res) => {
@@ -108,7 +117,7 @@ export class TIFFImageryProvider {
       this._source = res;
       const image = await res.getImage();
       this._imageCount = await res.getImageCount();
-      
+
       this.tileSize = this.tileWidth = this.tileHeight = options.tileSize || image.getTileWidth() || 512;
 
       // 获取nodata值
@@ -140,7 +149,7 @@ export class TIFFImageryProvider {
       // 获取空间范围
       const bbox = image.getBoundingBox();
       const [west, south, east, north] = bbox;
-      
+
       const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
       const { projFunc } = options;
       const proj = projFunc?.(prjCode)
@@ -246,9 +255,9 @@ export class TIFFImageryProvider {
         "requestImage must not be called before the imagery provider is ready."
       );
     }
-    
+
     if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount) return undefined
-    if (this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`];
+    if (this._cacheTime && this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`].data;
 
     const width = this.tileSize;
     const height = this.tileSize;
@@ -263,14 +272,24 @@ export class TIFFImageryProvider {
         bands: this.bands,
         noData: this.noData
       }
-      let result;
-      if (this._workerFarm?.worker) {
-        result = await this._workerFarm.scheduleTask(data, opts);
-      } else {
-        result = undefined
+      if (!this._workerFarm?.worker) {
+        throw new Error('web workers bootstrap error');
       }
-      
-      this._imagesCache[`${x}_${y}_${z}`] = result;
+
+      const result = await this._workerFarm.scheduleTask(data, opts);
+
+      if (this._cacheTime) {
+        const now = new Date().getTime()
+        this._imagesCache[`${x}_${y}_${z}`] = {
+          time: now,
+          data: result
+        };
+        for (let key in this._imagesCache) {
+          if ((now - this._imagesCache[key].time) > this._cacheTime) {
+            delete this._imagesCache[key]
+          }
+        }
+      }
       return result;
     } catch (e) {
       this._error.raiseEvent(e);
@@ -318,6 +337,7 @@ export class TIFFImageryProvider {
     this._images = undefined;
     this._imagesCache = undefined;
     this._workerFarm?.destory();
+    this._pool.destroy();
     this._destroyed = true;
   }
 }

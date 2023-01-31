@@ -286,6 +286,7 @@ export default class BaseMap {
 
   // 移除对应图层
   removeImageLayer(layer: ImageryLayer) {
+    (layer.imageryProvider as any)?.destroy();
     return this.viewer.imageryLayers.remove(layer, true);
   }
 

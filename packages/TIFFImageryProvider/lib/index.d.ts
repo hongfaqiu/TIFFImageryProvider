@@ -42,6 +42,8 @@ export interface TIFFImageryProviderOptions {
     renderOptions?: TIFFImageryProviderRenderOptions;
     /** projection function, convert [lon, lat] position to EPSG:4326 */
     projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+    /** cache survival time, defaults to 60 * 3000 ms */
+    cache?: number;
 }
 export declare class TIFFImageryProvider {
     private readonly options;
@@ -60,7 +62,10 @@ export declare class TIFFImageryProvider {
     _source: GeoTIFF;
     private _imageCount;
     _images: (GeoTIFFImage | null)[];
-    _imagesCache: {};
+    _imagesCache: Record<string, {
+        time: number;
+        data: ImageData;
+    }>;
     bands: {
         min: number;
         max: number;
@@ -69,6 +74,7 @@ export declare class TIFFImageryProvider {
     hasAlphaChannel: boolean;
     private _pool;
     private _workerFarm;
+    private _cacheTime;
     constructor(options: TIFFImageryProviderOptions);
     /**
      * Gets an event that will be raised if an error is encountered during processing.
@@ -85,7 +91,7 @@ export declare class TIFFImageryProvider {
      * @param z
      */
     private _loadTile;
-    requestImage(x: number, y: number, z: number): Promise<any>;
+    requestImage(x: number, y: number, z: number): Promise<ImageData>;
     pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number): Promise<ImageryLayerFeatureInfo[]>;
     destroy(): void;
 }

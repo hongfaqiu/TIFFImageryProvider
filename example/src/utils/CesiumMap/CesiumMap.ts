@@ -260,6 +260,7 @@ export default class CesiumMap extends BaseMap {
   ) => {
     if (layerObj && !layerObj.isDestroyed()) {
       const objIndex = this.viewer.imageryLayers.indexOf(layerObj);
+      (layerObj.imageryProvider as any)?.destroy();
       const bool = this.viewer.imageryLayers.remove(layerObj, true);
       if (bool) {
         const newImageryLayer = await this.addRasterLayer(layer, {
