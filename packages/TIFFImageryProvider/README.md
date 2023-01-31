@@ -107,7 +107,7 @@ interface TIFFImageryProviderOptions {
        * 
        *  refer to https://observablehq.com/@d3/working-with-color
        */
-      mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab'
+      mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab';
       /** cache survival time, defaults to 60 * 3000 ms */
       cache?: number;
     };
