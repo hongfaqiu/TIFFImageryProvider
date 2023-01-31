@@ -67,6 +67,8 @@ export declare class TIFFImageryProvider {
     }[];
     noData: number;
     hasAlphaChannel: boolean;
+    private _pool;
+    private _workerFarm;
     constructor(options: TIFFImageryProviderOptions);
     /**
      * Gets an event that will be raised if an error is encountered during processing.
@@ -83,8 +85,6 @@ export declare class TIFFImageryProvider {
      * @param z
      */
     private _loadTile;
-    private _ifNoData;
-    private _getRange;
     requestImage(x: number, y: number, z: number): Promise<any>;
     pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number): Promise<ImageryLayerFeatureInfo[]>;
     destroy(): void;

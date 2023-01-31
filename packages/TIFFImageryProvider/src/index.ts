@@ -1,19 +1,7 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, Color, ImageryLayerFeatureInfo, Math as CMath, DeveloperError } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, ImageryLayerFeatureInfo, Math as CMath, DeveloperError } from "cesium";
 import GeoTIFF, { Pool, fromUrl as tiffFromUrl, GeoTIFFImage } from 'geotiff';
-import { interpolateHsl, interpolateHslLong, interpolateLab, interpolateRgb } from "d3-interpolate";
-import { scaleLinear } from "d3-scale";
 
-let workerPool: Pool;
-function getWorkerPool() {
-  if (!workerPool) {
-    workerPool = new Pool();
-  }
-  return workerPool;
-}
-
-function decimal2rgb(number: number): number {
-  return Math.round(number * 255)
-}
+import WorkerFarm from "./worker-farm";
 
 function getMinMax(data: number[], nodata: number) {
   let min: number, max: number;
@@ -80,13 +68,6 @@ export interface TIFFImageryProviderOptions {
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
 }
 
-const interpolateFactorys = {
-  'rgb': interpolateRgb,
-  'hsl': interpolateHsl,
-  'hslLong': interpolateHslLong,
-  'lab': interpolateLab
-}
-
 export class TIFFImageryProvider {
   ready: boolean;
   tilingScheme: GeographicTilingScheme;
@@ -110,6 +91,8 @@ export class TIFFImageryProvider {
   }[];
   noData: number;
   hasAlphaChannel: boolean;
+  private _pool: Pool;
+  private _workerFarm: WorkerFarm | null;
   constructor(private readonly options: TIFFImageryProviderOptions) {
     this.ready = false;
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
@@ -117,9 +100,11 @@ export class TIFFImageryProvider {
     this.minimumLevel = options.minimumLevel ?? 0;
     this.credit = new Credit(options.credit || "", false);
     this._error = new Event();
+    this._workerFarm = new WorkerFarm();
     this.readyPromise = tiffFromUrl(options.url, {
       allowFullFile: true
     }).then(async (res) => {
+      this._pool = new Pool()
       this._source = res;
       const image = await res.getImage();
       this._imageCount = await res.getImageCount();
@@ -142,11 +127,10 @@ export class TIFFImageryProvider {
             max: element.STATISTICS_MAXIMUM,
           })
         } else {
-          const pool = getWorkerPool();
           const previewImage = await res.getImage()
           const data = (await previewImage.readRasters({
             samples: [i],
-            pool
+            pool: this._pool,
           }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
           bands.push(getMinMax(data, noData))
         }
@@ -220,7 +204,6 @@ export class TIFFImageryProvider {
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
     }
-    const pool = getWorkerPool();
     const width = image.getWidth();
     const height = image.getHeight();
     const tileXNum = this.tilingScheme.getNumberOfXTilesAtLevel(z);
@@ -240,7 +223,7 @@ export class TIFFImageryProvider {
       width: tileSize,
       height: tileSize,
       fillValue: this.noData,
-      pool: pool,
+      pool: this._pool,
     })
 
     return promise
@@ -251,27 +234,6 @@ export class TIFFImageryProvider {
         this._error.raiseEvent(error);
         throw error;
       });
-  }
-
-  private _ifNoData(...vals: number[]) {
-    for (let i = 0; i < vals.length; i++) {
-      const val = vals[i]
-      if (isNaN(val) || val === this.noData) {
-        return true
-      }
-    }
-    return false
-  }
-
-  private _getRange(opts: {
-      min?: number,
-      max?: number,
-      band?: number
-    } | undefined) {
-    const min = opts?.min ?? +this.bands[(opts?.band ?? 1) - 1].min;
-    const max = opts?.max ?? +this.bands[(opts?.band ?? 1) - 1].max;
-    const range = max - min;
-    return { min, max, range };
   }
 
   async requestImage(
@@ -291,70 +253,23 @@ export class TIFFImageryProvider {
     const width = this.tileSize;
     const height = this.tileSize;
     const { renderOptions } = this.options;
-    const { r, g, b, fill } = renderOptions ?? {};
 
     try {
       const data = await this._loadTile(x, y, z);
-      const redData = data[(r?.band ?? 1) - 1];
-      const greenData = data[(g?.band ?? 1) - 1];
-      const blueData = data[(b?.band ?? 1) - 1];
-      const ranges = [r, g, b].map(item => this._getRange(item));
-      const imageData = new Uint8ClampedArray(width * height * 4);
-      if (fill) {
-        const { min, max, range } = ranges[0];
-        const { type = 'continuous', colors, mode = 'rgb' } = fill;
-        let stops: [number, string][];
-        if (typeof colors[0] === 'string') {
-          const step = range / colors.length;
-          stops = (colors as string[]).map((color, index) => {
-            return [min + index * step, color]
-          })
-        } else {
-          stops = (colors as [number, string][]).sort((a, b) => a[0] - b[0])
-          if (stops[0][0] > min) {
-            stops[0][0] = min;
-          }
-          if (stops[stops.length - 1][0] < max) {
-            stops[stops.length] = [max, stops[stops.length - 1][1]];
-          }
-        }
-        for (let i = 0; i < data[0].length; i += 1) {
-          const val = redData[i];
-          let color = 'transparent';
-          const ifNoData = this._ifNoData(val)
-          if (!ifNoData) {
-            for (let j = 0; j < stops.length; j += 1) {
-              if ((val >= stops[j][0] && (!stops[j + 1] || (val < stops[j + 1][0])))) {
-                if (type === 'continuous') {
-                  color = scaleLinear<string>()
-                    .domain(stops.map(item => (item[0] - min) / range))
-                    .range(stops.map(item => item[1]))
-                    .interpolate(interpolateFactorys[mode])((val - min) / range)
-                } else {
-                  color = stops[j][1];
-                }
-                break;
-              }
-            }
-          }
-          const { red, green, blue, alpha } = Color.fromCssColorString(color)
-          imageData[i * 4] = decimal2rgb(red);
-          imageData[i * 4 + 1] = decimal2rgb(green);
-          imageData[i * 4 + 2] = decimal2rgb(blue);
-          imageData[i * 4 + 3] = ifNoData ? 0 : decimal2rgb(alpha);
-        }
-      } else {
-        for (let i = 0; i < data[0].length; i++) {
-          const red = redData[i];
-          const green = greenData[i];
-          const blue = blueData[i];
-          imageData[i * 4] = decimal2rgb((red - ranges[0].min) / ranges[0].range);
-          imageData[i * 4 + 1] = decimal2rgb((green - ranges[1].min) / ranges[1].range);
-          imageData[i * 4 + 2] = decimal2rgb((blue - ranges[2].min) / ranges[2].range);
-          imageData[i * 4 + 3] = this._ifNoData(red, green, blue) ? 0 : 255;
-        }
+      const opts = {
+        width,
+        height,
+        renderOptions,
+        bands: this.bands,
+        noData: this.noData
       }
-      const result = new ImageData(imageData, width, height);
+      let result;
+      if (this._workerFarm?.worker) {
+        result = await this._workerFarm.scheduleTask(data, opts);
+      } else {
+        result = undefined
+      }
+      
       this._imagesCache[`${x}_${y}_${z}`] = result;
       return result;
     } catch (e) {
@@ -384,12 +299,11 @@ export class TIFFImageryProvider {
     const posX = ~~(Math.abs(lonGap / lonWidth) * width);
     const posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
 
-    const pool = getWorkerPool();
     const res = await image.readRasters({
       window: [posX, posY, posX + 1, posY + 1],
       height: 1,
       width: 1,
-      pool: pool,
+      pool: this._pool,
     })
     const featureInfo = new ImageryLayerFeatureInfo()
     featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
@@ -403,6 +317,7 @@ export class TIFFImageryProvider {
   destroy() {
     this._images = undefined;
     this._imagesCache = undefined;
+    this._workerFarm?.destory();
     this._destroyed = true;
   }
 }

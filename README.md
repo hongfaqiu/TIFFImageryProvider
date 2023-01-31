@@ -10,6 +10,7 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 - Multi mode color rendering.
 - Support identify TIFF value with cartographic position.
 - Support any projected TIFF.
+- Web Workers speed up.
 
 ## Install
 
@@ -140,7 +141,8 @@ pnpm start
 
 ## Plans
 
-- GPU speed up calculation
+- [x] Use Web Workers to generate tile image
+- [ ] GPU speed up calculation
 
 ## Credits
 

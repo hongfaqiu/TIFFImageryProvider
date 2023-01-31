@@ -34,6 +34,7 @@
     "react-color": "^2.19.3",
     "react-dom": "18.2.0",
     "react-sortable-hoc": "^2.0.0",
+    "sass": "^1.57.1",
     "tiff-imagery-provider": "workspace:^1.0.1",
     "typescript": "4.8.4"
   },

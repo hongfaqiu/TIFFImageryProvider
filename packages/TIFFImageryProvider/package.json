@@ -1,5 +1,6 @@
 {
   "name": "tiff-imagery-provider",
+  "type": "module",
   "version": "1.4.3",
   "description": "Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium",
   "keywords": [
@@ -16,8 +17,8 @@
     }
   },
   "scripts": {
-    "dev": "tsc --watch",
-    "build": "tsc"
+    "dev": "rollup -c -w",
+    "build": "rollup -c"
   },
   "author": "hongfaqiu",
   "license": "MIT",
@@ -29,14 +30,22 @@
     "cesium": "*"
   },
   "dependencies": {
-    "d3-interpolate": "^3.0.1",
-    "d3-scale": "^4.0.2",
     "geotiff": "^2.0.7"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@types/d3-color": "^3.1.0",
     "@types/d3-interpolate": "^3.0.1",
     "@types/d3-scale": "^4.0.2",
     "cesium": "^1.99.0",
+    "d3-color": "^3.1.0",
+    "d3-interpolate": "^3.0.1",
+    "d3-scale": "^4.0.2",
+    "rollup": "^3.12.0",
+    "rollup-plugin-web-worker-loader": "^1.6.1",
+    "tslib": "^2.5.0",
     "typescript": "4.8.4"
   },
   "gitHead": "d8e3c03bd4dc41e1e11abcefb7fd3f1611c2f31e"

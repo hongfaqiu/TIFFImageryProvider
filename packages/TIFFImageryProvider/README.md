@@ -140,7 +140,8 @@ pnpm start
 
 ## Plans
 
-- GPU speed up calculation
+- [x] Use web-worker to generate tile image
+- [ ] GPU speed up calculation
 
 ## Credits
 
