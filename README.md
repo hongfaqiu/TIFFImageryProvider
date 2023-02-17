@@ -134,11 +134,11 @@ cd example
 pnpm start
 ```
 
-![zOP7o6.md.png](https://s1.ax1x.com/2022/12/20/zOP7o6.md.png)
+![screenshot.png](/pictures/screenshot.png)
 
 ## Bugs
 
-- Aliyun OSS has a broken API for HTTP Range requests, so will resposed with full file.
+- Aliyun OSS has a broken API for HTTP Range requests, so sometimes will resposed with full file.
 - Cesium@1.101 misplacement
 
 ## Plans
