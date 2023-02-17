@@ -32,7 +32,7 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 const cesiumViewer = new Cesium.Viewer("cesiumContainer");
 
 const provider = new TIFFImageryProvider({
-  url: 'https://data-of-vrexp.oss-cn-hangzhou.aliyuncs.com/cog/SIO_MERGE_MERGE_20000101TO20000131_L3B_EAMS_1KM_ACP_CT2017_.tif',
+  url: '/cogtif.tif',
 });
 provider.readyPromise().then(() => {
   cesiumViewer.imageryLayers.addImageryProvider(provider);
