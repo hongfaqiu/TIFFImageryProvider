@@ -46,8 +46,8 @@ export async function generateImage(data: (string | any[])[], opts: GenerateImag
   const ranges = [r, g, b].map(item => getRange(bands, item));
 
   const redData = data[(r?.band ?? 1) - 1];
-  const greenData = data[(g?.band ?? 1) - 1];
-  const blueData = data[(b?.band ?? 1) - 1];
+  const greenData = data[(g?.band ?? 2) - 1] ?? data[0];
+  const blueData = data[(b?.band ?? 3) - 1] ?? data[0];
 
   function ifNoDataFunc(...vals: number[]) {
     for (let i = 0; i < vals.length; i++) {

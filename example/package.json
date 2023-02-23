@@ -35,7 +35,7 @@
     "react-dom": "18.2.0",
     "react-sortable-hoc": "^2.0.0",
     "sass": "^1.57.1",
-    "tiff-imagery-provider": "workspace:^1.0.1",
+    "tiff-imagery-provider": "workspace:^*",
     "typescript": "4.8.4"
   },
   "devDependencies": {

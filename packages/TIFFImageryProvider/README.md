@@ -32,7 +32,7 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 const cesiumViewer = new Viewer("cesiumContainer");
 
 const provider = new TIFFImageryProvider({
-  url: '/cogtif.tif',
+  url: 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/36/Q/WD/2020/7/S2A_36QWD_20200701_0_L2A/TCI.tif',
 });
 provider.readyPromise().then(() => {
   cesiumViewer.imageryLayers.addImageryProvider(provider);
@@ -134,8 +134,8 @@ cd example
 pnpm start
 ```
 
-![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png)
-| ------- | ------- |
+![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)
+| ------- | ------- | -------- |
 
 ## Bugs
 

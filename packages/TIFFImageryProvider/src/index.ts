@@ -124,24 +124,35 @@ export class TIFFImageryProvider {
       const noData = image.getGDALNoData();
       this.noData = options.renderOptions.nodata ?? noData;
 
-      const bands = [];
+      const bands: {
+        min: number;
+        max: number;
+      }[] = [];
       // 获取波段数
       const samples = image.getSamplesPerPixel();
       for (let i = 0; i < samples; i++) {
-        // 获取该波段最大最小值信息
-        const element = image.getGDALMetadata(i);
-        if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
+        if (samples > 1) {
           bands.push({
-            min: element.STATISTICS_MINIMUM,
-            max: element.STATISTICS_MAXIMUM,
+            min: 0,
+            max: 255
           })
         } else {
-          const previewImage = await res.getImage()
-          const data = (await previewImage.readRasters({
-            samples: [i],
-            pool: this._pool,
-          }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
-          bands.push(getMinMax(data, noData))
+          // 获取该波段最大最小值信息
+          const element = image.getGDALMetadata(i);
+          if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
+            bands.push({
+              min: element.STATISTICS_MINIMUM,
+              max: element.STATISTICS_MAXIMUM,
+            })
+          } else {
+            // 尝试强制获取波段最大最小值
+            const previewImage = await res.getImage()
+            const data = (await previewImage.readRasters({
+              samples: [i],
+              pool: this._pool,
+            }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
+            bands.push(getMinMax(data, noData))
+          }
         }
       }
       this.bands = bands;
@@ -326,9 +337,13 @@ export class TIFFImageryProvider {
     })
     const featureInfo = new ImageryLayerFeatureInfo()
     featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
-    featureInfo.data = res[0]
+    const data = {};
+    res?.forEach((item: any, index: number) => {
+      data[index] = item?.[0];
+    })
+    featureInfo.data = data
     if (res) {
-      featureInfo.configureDescriptionFromProperties(res[0])
+      featureInfo.configureDescriptionFromProperties(data)
     }
     return [featureInfo];
   }

@@ -41,7 +41,7 @@ const EarthViewer: React.FC<ViewerProps> = ({
       initialMapConfig();
       addLayer({
         layerName: 'cogtest',
-        id: '1',
+        id: '2',
         method: 'cog',
         url: '/cogtif.tif',
         renderOptions: {
