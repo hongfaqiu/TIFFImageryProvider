@@ -360,7 +360,6 @@ class TIFFImageryProvider {
         if (res) {
             featureInfo.configureDescriptionFromProperties(data);
         }
-        console.log(data, featureInfo);
         return [featureInfo];
     }
     destroy() {
