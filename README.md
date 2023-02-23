@@ -26,10 +26,10 @@ pnpm add tiff-imagery-provider
 Basic
 
 ```ts
-import * as Cesium from "cesium";
+import { Viewer } from "cesium";
 import TIFFImageryProvider from 'tiff-imagery-provider';
 
-const cesiumViewer = new Cesium.Viewer("cesiumContainer");
+const cesiumViewer = new Viewer("cesiumContainer");
 
 const provider = new TIFFImageryProvider({
   url: '/cogtif.tif',
@@ -109,12 +109,12 @@ interface TIFFImageryProviderOptions {
        *  refer to https://observablehq.com/@d3/working-with-color
        */
       mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab';
-      /** cache survival time, defaults to 60 * 3000 ms */
-      cache?: number;
     };
   }
   /** projection function, convert [lon, lat] position to EPSG:4326 */
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+  /** cache survival time, defaults to 60 * 3000 ms */
+  cache?: number;
 }
 ```
 
@@ -134,11 +134,11 @@ cd example
 pnpm start
 ```
 
-![screenshot.png](/pictures/screenshot.png)
+![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png)
+| ------- | ------- |
 
 ## Bugs
 
-- Aliyun OSS has a broken API for HTTP Range requests, so sometimes will resposed with full file.
 - Cesium@1.101 misplacement
 
 ## Plans
