@@ -93,6 +93,7 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
           />
           <MultiColorInputItem
             field='fill.colors'
+            initialValue={value?.fill?.colors as any}
             noLabel
           />
           <Form.RadioGroup

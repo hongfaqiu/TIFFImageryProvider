@@ -93,7 +93,7 @@ const MultiColorInput: React.FC<MultiColorInputProps> = ({
   initialValue,
   locales,
 }) => {
-  const [colorNum, setColorNum] = useState(number ?? 3);
+  const [colorNum, setColorNum] = useState(number ?? 2);
   const [selectedIndex, setselectedIndex] = useState(0);
   const [colorBars, setColorBars] = useState<string[][]>([]);
   const [opacity, setOpacity] = useState(100);
@@ -115,7 +115,7 @@ const MultiColorInput: React.FC<MultiColorInputProps> = ({
     let newColorBars = colorBars;
     // 根据颜色数量更新色带
     if (colorBars.length === 0) {
-      newColorBars = getColorBars(number ?? 3, initialValue, reverse);
+      newColorBars = getColorBars(number ?? 2, initialValue, reverse);
       setColorBars(newColorBars);
     } else if (num) {
       newColorBars = getColorBars(num, undefined, reverse);
@@ -165,7 +165,7 @@ const MultiColorInput: React.FC<MultiColorInputProps> = ({
         <NumberInput
           item={{
             label: locales?.numberControl ?? '数量',
-            min: 3,
+            min: 2,
             max: 20,
             step: 1,
           }}
