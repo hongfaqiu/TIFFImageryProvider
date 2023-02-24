@@ -1,13 +1,17 @@
-import { NumberInput } from '@/components/FormComponents';
-import styles from '../index.module.scss';
+import { NumberInputItem } from '@/components/FormComponents';
+import { Form } from '@douyinfe/semi-ui';
+import { FormApi, withField } from '@douyinfe/semi-ui/lib/es/form';
+import { useEffect, useRef } from 'react';
 
 interface RasterRenderMethodsProps {
   value?: Layer.RasterOptions;
-  onOptionsChange?: (options: Layer.RasterOptions) => void;
+  onChange?: (options: Layer.RasterOptions) => void;
 }
 
-const RasterRenderMethods = (props: RasterRenderMethodsProps) => {
-  const { value, onOptionsChange } = props;
+const RasterRenderMethods = ({
+  value, onChange
+}: RasterRenderMethodsProps) => {
+  const $form = useRef<FormApi>();
 
   const formItems = [
     {
@@ -53,27 +57,31 @@ const RasterRenderMethods = (props: RasterRenderMethodsProps) => {
       step: 0.01,
     },
   ];
-
-  const onValueChange = (val: number | string[] | boolean, field: string) => {
-    const newOptions = {
-      ...value,
-      [field]: val,
-    };
-    if (onOptionsChange !== undefined) onOptionsChange(newOptions);
-  };
+  
+  useEffect(() => {
+    $form.current?.setValues(value ?? {});
+  }, [value]);
 
   return (
-    <div className={styles.formItemsContainer}>
+    <Form<Layer.RasterOptions>
+      getFormApi={(formApi) => ($form.current = formApi)}
+      onValueChange={onChange}
+    >
       {formItems.map((item) => (
-        <NumberInput
+        <NumberInputItem
+          field={item.field}
           item={item}
           key={item.label}
-          value={value?.[item.field as keyof Layer.RasterOptions]}
-          onChange={(val) => onValueChange(val, item.field)}
+          noLabel
         />
       ))}
-    </div>
+    </Form>
   );
 };
 
 export default RasterRenderMethods;
+
+export const RasterRenderFormItem = withField((props: RasterRenderMethodsProps) => {
+  const { validateStatus, ...rest } = props as any;
+  return <RasterRenderMethods {...rest} />
+})

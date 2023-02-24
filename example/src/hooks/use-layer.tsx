@@ -147,6 +147,7 @@ const useLayerHook = () => {
       
       // 添加到地图
       const lay = await MainMapObj.addLayerByMethod(layerPro, zoom);
+      console.log(lay?.imageryProvider);
       if (lay) {
         const show = options?.show ?? true;
         const layerItem: Layer.layerManageItem = {
@@ -338,7 +339,7 @@ const useLayerHook = () => {
     const newLayer: Layer.LayerItem = {
       ...layerItem.layer,
       method: (forceMethod ?? layerItem.layer.method) as any,
-      renderOptions: { ...layerItem.layer.renderOptions, ...options } as any,
+      renderOptions: options,
     };
 
     const { method, renderOptions: newRenderOptions } = newLayer;
@@ -352,6 +353,7 @@ const useLayerHook = () => {
           layerItem.layerObj as ImageryLayer,
           newLayer,
         );
+        console.log(newRenderOptions);
         layerItem.layerObj = newLayerObj;
         break;
       default:

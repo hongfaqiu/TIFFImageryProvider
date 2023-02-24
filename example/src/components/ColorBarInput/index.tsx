@@ -2,7 +2,7 @@
 import { SwapIcon } from '@/components/SVGIcons';
 import { Tooltip } from '@/components/tooltip';
 import { IconRedoStroked } from '@douyinfe/semi-icons';
-import { Button, Col, Row, Select } from '@douyinfe/semi-ui';
+import { Button, Col, Row, Select, withField } from '@douyinfe/semi-ui';
 import { useEffect, useState } from 'react';
 
 import { NumberInput } from '../FormComponents';
@@ -54,7 +54,6 @@ const getDefaultColorBars = (num: number) => {
 
 // 色带输入组件
 export type MultiColorInputProps = {
-  label: string;
   opacityControl?: boolean;
   numberControl?: boolean;
   onChange?: (values: string[]) => void;
@@ -87,7 +86,6 @@ const getColorBars = (
 };
 
 const MultiColorInput: React.FC<MultiColorInputProps> = ({
-  label,
   opacityControl,
   numberControl = true,
   onChange,
@@ -176,10 +174,10 @@ const MultiColorInput: React.FC<MultiColorInputProps> = ({
         />
       )}
       <Row className={style.formItem}>
-        <Col span={6} className={style.label}>
-          {label}:
+        <Col span={4} className={style.label}>
+          颜色:
         </Col>
-        <Col span={16} className={style.input}>
+        <Col span={18} className={style.input}>
           <Select
             value={selectedIndex}
             onChange={(val) => setselectedIndex(val as number)}
@@ -237,3 +235,9 @@ const MultiColorInput: React.FC<MultiColorInputProps> = ({
 };
 
 export default MultiColorInput;
+
+export const MultiColorInputItem = withField((props: MultiColorInputProps) => {
+  const { validateStatus, ...rest } = props as any;
+  return <MultiColorInput {...rest} />
+})
+

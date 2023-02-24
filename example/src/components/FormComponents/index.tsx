@@ -1,6 +1,6 @@
 import React from 'react';
 import { SketchPicker } from 'react-color';
-import { Row, Col, Slider, InputNumber, Select, Popover } from '@douyinfe/semi-ui';
+import { Row, Col, Slider, InputNumber, Select, Popover, withField } from '@douyinfe/semi-ui';
 import { InputNumberProps } from '@douyinfe/semi-ui/lib/es/inputNumber';
 import { SliderProps } from '@douyinfe/semi-ui/lib/es/slider';
 
@@ -38,10 +38,10 @@ export const FormItem = (props: FormItemProps) => {
 
 // 数字输入组件
 export type NumberInputItem = {
-  label?: string;
-  min: number;
-  max: number;
-  step: number;
+  label?: string | React.ReactNode;
+  min?: number;
+  max?: number;
+  step?: number;
 };
 
 type NumberInputProps = {
@@ -71,8 +71,8 @@ export const NumberInput = (props: NumberInputProps) => {
   } = props;
 
   const span = {
-    label: 6,
-    slider: 11,
+    label: 4,
+    slider: 13,
     number: 6,
     ...props.span,
   }
@@ -114,6 +114,13 @@ export const NumberInput = (props: NumberInputProps) => {
     </Row>
   );
 };
+
+
+export const NumberInputItem = withField((props: NumberInputProps) => {
+  const { validateStatus, ...rest } = props as any;
+  return <NumberInput {...rest} />
+})
+
 
 // 选择输入组件
 export type SelectInputItem = {

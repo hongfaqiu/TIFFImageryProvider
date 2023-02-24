@@ -28,7 +28,7 @@ const EarthViewer: React.FC<ViewerProps> = ({
   const { resetLayerState, addLayer } = LayerHook.useHook();
 
   useEffect(() => {
-    setTimeout(() => {
+    setTimeout(async () => {
       // 初始化地图
       const mapObj = new CesiumMap('cesiumContainer');
   
@@ -39,9 +39,9 @@ const EarthViewer: React.FC<ViewerProps> = ({
         obj: mapObj,
       });
       initialMapConfig();
-      addLayer({
-        layerName: 'cogtest',
-        id: '2',
+      await addLayer({
+        layerName: 'singleBand',
+        id: '1',
         method: 'cog',
         url: '/cogtif.tif',
         renderOptions: {
@@ -50,6 +50,12 @@ const EarthViewer: React.FC<ViewerProps> = ({
             mode: 'hslLong'
           }
         }
+      })
+      await addLayer({
+        layerName: 'landsat',
+        id: '2',
+        method: 'cog',
+        url: 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/36/Q/WD/2020/7/S2A_36QWD_20200701_0_L2A/TCI.tif',
       }, {
         zoom: true
       })

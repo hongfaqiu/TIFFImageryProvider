@@ -1,12 +1,11 @@
 import { LayerHook } from '@/hooks/use-layer';
-import { Spin, Toast } from '@douyinfe/semi-ui';
-import { ImageryLayer } from 'cesium';
-import TIFFImageryProvider from 'tiff-imagery-provider';
-import { useEffect, useMemo, useState } from 'react';
+import { Form, Spin, Toast } from '@douyinfe/semi-ui';
+import { useState } from 'react';
+import { TIFFImageryProviderRenderOptions } from 'tiff-imagery-provider';
 
 import styles from '../index.module.scss';
-import COGRenderMethods from './COGRenderMethods';
-import RasterRenderMethods from './RasterRenderMethods';
+import { COGRenderFormItem } from './COGRenderMethods';
+import { RasterRenderFormItem } from './RasterRenderMethods';
 
 type RenderMethodProps = {
   layerItem: Layer.layerManageItem;
@@ -16,8 +15,9 @@ type RenderMethodProps = {
  * 根据数据类型生成渲染方案
  * @param props
  */
-const LayerRenderMethod = (props: RenderMethodProps) => {
-  const { layerItem } = props;
+const LayerRenderMethod = ({
+  layerItem
+}: RenderMethodProps) => {
   const { renderLayer } = LayerHook.useHook();
   const [rendering, setRendering] = useState(false);
 
@@ -42,18 +42,31 @@ const LayerRenderMethod = (props: RenderMethodProps) => {
   return (
     <Spin spinning={rendering}>
       <div className={styles.paramsSetting}>
-        {
-          method === 'cog' && 
-          <COGRenderMethods
-            value={renderOptions}
-            onChange={(val) => onValuesChange(val)}
+        <Form<{
+          cog?: TIFFImageryProviderRenderOptions,
+          raster: Layer.RasterOptions
+        }>
+          onValueChange={(values, changedValue) => {
+            onValuesChange({
+              ...values.cog,
+              ...values.raster
+            }, Object.keys(changedValue)[0] as any)
+          }}
+        >
+          {
+            method === 'cog' && 
+            <COGRenderFormItem
+              initValue={renderOptions}
+              field='cog'
+              noLabel
+            />
+          }
+          <RasterRenderFormItem
+            initValue={renderOptions}
+            field='raster'
+            noLabel
           />
-        }
-
-        <RasterRenderMethods
-          value={renderOptions as Layer.RasterOptions}
-          onOptionsChange={(val) => onValuesChange(val, 'wms')}
-        />
+        </Form>
       </div>
     </Spin>
   );

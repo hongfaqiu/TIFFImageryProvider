@@ -123,7 +123,6 @@ export default class CesiumMap extends BaseMap {
             }
           }
         });
-        console.log(imageryProvider);
         break;
       case 'pic':
         imageryProvider = new Cesium.SingleTileImageryProvider({
