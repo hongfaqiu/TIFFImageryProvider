@@ -85,19 +85,16 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
           }}
           labelWidth={'22%'}
         >
+          
           <Form.InputNumber
             label={'波段:'}
             field={'r.band'}
             step={1}
             min={1}
           />
-          <MultiColorInputItem
-            field='fill.colors'
-            initialValue={value?.fill?.colors as any}
-            noLabel
-          />
+          
           <Form.RadioGroup
-            label={'类型'}
+            label={'模式:'}
             field={'fill.type'}
           >
             {
@@ -106,8 +103,15 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
               ))
             }
           </Form.RadioGroup>
+
+          <MultiColorInputItem
+            field='fill.colors'
+            initialValue={value?.fill?.colors as any}
+            noLabel
+          />
+
           <Form.RadioGroup
-            label={'模式:'}
+            label={'色域:'}
             field={'fill.mode'}
           >
             {

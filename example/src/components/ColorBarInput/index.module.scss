@@ -1,10 +1,8 @@
 .formItem {
   display: flex;
   align-items: center;
-  margin: 10px;
   font-size: 13px;
   .label {
-    padding-right: 5px;
     text-align: right;
     color: var(--semi-color-text-0);
   }

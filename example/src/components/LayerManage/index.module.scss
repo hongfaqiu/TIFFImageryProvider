@@ -63,7 +63,6 @@
     transition: all 0.3s cubic-bezier(0, 0, 0.2, 1);
     &.open {
       max-height: 1000px;
-      padding-bottom: 10px;
       transition-timing-function: ease-in;
     }
   }
@@ -151,8 +150,12 @@
 
 .paramsSetting {
   :global {
+    .semi-form-field-label {
+      font-weight: normal;
+    }
     .semi-form-vertical .semi-form-field {
       padding: 0; 
+      margin-bottom: 10px;
     }
   }
 }

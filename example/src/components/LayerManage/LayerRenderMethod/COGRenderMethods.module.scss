@@ -5,8 +5,9 @@
   }
   :global {
     .semi-form-horizontal .semi-form-field {
-      margin-right: 10px;
+      margin-right: 0;
       padding-right: 0;
+      padding-left: 10px;
     }
   }
 }
