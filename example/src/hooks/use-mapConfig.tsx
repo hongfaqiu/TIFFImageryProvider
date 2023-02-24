@@ -136,7 +136,7 @@ const useMapConfigHook = () => {
    * 初始化地图,从url中读取默认加载的内容
    */
   const initialMapConfig = () => {
-    updateMapConfig({ ...defaultMapConfig });
+    return updateMapConfig({ ...defaultMapConfig });
   };
 
   /**

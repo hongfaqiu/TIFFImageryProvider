@@ -28,17 +28,16 @@ const EarthViewer: React.FC<ViewerProps> = ({
   const { resetLayerState, addLayer } = LayerHook.useHook();
 
   useEffect(() => {
-    setTimeout(async () => {
-      // 初始化地图
-      const mapObj = new CesiumMap('cesiumContainer');
-  
-      setViewer(mapObj.viewer);
-      addMapObj({
-        name: 'cesiumContainer',
-        type: 'main',
-        obj: mapObj,
-      });
-      initialMapConfig();
+    // 初始化地图
+    const mapObj = new CesiumMap('cesiumContainer');
+
+    setViewer(mapObj.viewer);
+    addMapObj({
+      name: 'cesiumContainer',
+      type: 'main',
+      obj: mapObj,
+    });
+    initialMapConfig().then(async () => {
       await addLayer({
         layerName: 'singleBand',
         id: '1',
@@ -59,7 +58,7 @@ const EarthViewer: React.FC<ViewerProps> = ({
       }, {
         zoom: true
       })
-    }, 0)
+    })
     
     return () => {
       removeMapObj('cesiumContainer');
