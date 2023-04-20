@@ -1,3 +1,5 @@
+import type { TIFFImageryProviderRenderOptions } from 'tiff-imagery-provider';
+
 declare namespace Layer {
   /**
    * 图层元数据
@@ -57,37 +59,7 @@ declare namespace Layer {
   export type COGLayerItem = {
     method: 'cog';
     loaderinfo?: LoaderInfo;
-    renderOptions?: {
-      /** nodata value, default read from tiff meta */
-      nodata?: number;
-      /** Band value starts from 1 */
-      r?: {
-        band?: number;
-        min?: number;
-        max?: number;
-      };
-      g?: {
-        band?: number;
-        min?: number;
-        max?: number;
-      };
-      b?: {
-        band?: number;
-        min?: number;
-        max?: number;
-      };
-      fill?: {
-        /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
-        colors: [number, string][] | string[];
-        /** defaults to continuous */
-        type?: 'continuous' | 'discrete';
-        /** interpolate mode, defaults to 'rgb'
-         * 
-         *  refer to https://observablehq.com/@d3/working-with-color
-         */
-        mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab'
-      };
-    } & RasterOptions;
+    renderOptions?: TIFFImageryProviderRenderOptions & RasterOptions;
   } & BasicLayer;
 
   export type LayerItem =

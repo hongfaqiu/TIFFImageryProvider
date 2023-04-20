@@ -4,6 +4,8 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
+[中文readme](./README_CN.md)
+
 ## Features
 
 - Three band rendering.
@@ -11,6 +13,8 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 - Support identify TIFF value with cartographic position.
 - Support any projected TIFF.
 - Web Workers speed up.
+- WebGL accelerated rendering.
+- Band calculation.
 
 ## Install
 
@@ -100,22 +104,29 @@ interface TIFFImageryProviderOptions {
       max?: number;
     };
     fill?: {
-      /** interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
-      colors: [number, string][] | string[];
+      /** inset colorsclaes */
+      colorScale?: ColorScaleNames;
+      /** custom interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
+      colors?: [number, string][] | string[];
       /** defaults to continuous */
       type?: 'continuous' | 'discrete';
-      /** interpolate mode, defaults to 'rgb'
-       * 
-       *  refer to https://observablehq.com/@d3/working-with-color
-       */
-      mode?: 'hsl' | 'rgb' | 'hslLong' | 'lab';
     };
+    /**
+     * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
+     * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
+     * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
+     * @param {string} expression Mathematical expression. Example: '-2 * sin(3.1415 - band1) ** 2'
+     */
+    expression?: string;
   }
   /** projection function, convert [lon, lat] position to EPSG:4326 */
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
   /** cache survival time, defaults to 60 * 3000 ms */
   cache?: number;
 }
+
+/** see https://observablehq.com/@d3/color-schemes */
+type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' | 'summer' | 'autumn' | 'winter' | 'bone' | 'copper' | 'greys' | 'ylgnbu' | 'greens' | 'ylorrd' | 'bluered' | 'rdbu' | 'picnic' | 'portland' | 'blackbody' | 'earth' | 'electric' | 'magma' | 'plasma';
 ```
 
 ## Demo
@@ -144,8 +155,9 @@ pnpm start
 ## Plans
 
 - [x] Use Web Workers to generate tile image
-- [ ] GPU speed up calculation
+- [x] GPU speed up calculation
 
 ## Credits
 
 <https://github.com/geotiffjs/geotiff.js>
+<https://github.com/santilland/plotty>

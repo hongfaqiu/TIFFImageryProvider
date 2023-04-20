@@ -8,6 +8,7 @@ import { MainMapObj } from '@/utils/map';
 import styles from './index.module.scss';
 import LayerRenderMethod from './LayerRenderMethod';
 import { LayerHook } from '@/hooks/use-layer';
+import type { Layer } from '@/typings/layer';
 
 const { Text } = Typography;
 

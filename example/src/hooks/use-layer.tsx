@@ -6,6 +6,7 @@ import preHandleLayer from '@/utils/preHandleLayer';
 import createGlobalHook from './create-global-hook';
 
 import type { ImageryLayer } from 'cesium';
+import type { Layer } from '@/typings/layer';
 
 type layerType = 'raster' | 'vector' | 'tdtiles' | 'nc';
 

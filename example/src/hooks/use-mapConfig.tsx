@@ -4,6 +4,8 @@ import { MainMapObj } from '@/utils/map';
 import preHandleLayer from '@/utils/preHandleLayer';
 import createGlobalHook from './create-global-hook';
 
+import type { Layer } from '@/typings/layer';
+
 export type CartographyContainerParams = {
   width?: string | number | undefined;
   height?: string | number | undefined;

@@ -2,6 +2,8 @@ import { getViewPort } from './handle-utils';
 
 import { boundary4326 } from '../usefulFunc';
 
+import type { Layer } from '@/typings/layer';
+
 /** 预处理所有图层 */
 function handleAllLayer(layer: Layer.LayerItem): Layer.LayerItem {
   const boundary = boundary4326(layer?.boundary ?? '')

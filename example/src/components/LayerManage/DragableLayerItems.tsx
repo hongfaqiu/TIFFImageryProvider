@@ -1,6 +1,7 @@
 import { SortableItem, DragHandle, SortableListComp } from '@/components/SortableList';
 import React, { useRef } from 'react';
 import LayerItemControl from './LayerItemControl';
+import { Layer } from '@/typings/layer';
 
 type DragableLayerItemsProps = {
   layers: Layer.layerManageItem[];

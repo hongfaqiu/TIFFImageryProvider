@@ -1,22 +1,20 @@
 # TIFFImageryProvider
 
-Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
+在Cesium上加载GeoTIFF / COG（优化的云存储GeoTIFF）
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
-[中文readme](./README_CN.md)
+## 特点
 
-## Features
+- 三波段渲染。
+- 多模式颜色渲染。
+- 支持使用地理位置识别TIFF值。
+- 支持任何投影的TIFF。
+- Web Workers 加速。
+- WebGL 加速渲染。
+- 波段计算。
 
-- Three band rendering.
-- Multi mode color rendering.
-- Support identify TIFF value with cartographic position.
-- Support any projected TIFF.
-- Web Workers speed up.
-- WebGL accelerated rendering.
-- Band calculation.
-
-## Install
+## 安装
 
 ```bash
 #npm
@@ -25,9 +23,9 @@ npm install --save tiff-imagery-provider
 pnpm add tiff-imagery-provider
 ```
 
-## Usage
+## 用法
 
-Basic
+基本用法
 
 ```ts
 import { Viewer } from "cesium";
@@ -44,7 +42,7 @@ provider.readyPromise().then(() => {
 
 ```
 
-If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
+如果TIFF的投影不是EPSG：4326或EPSG：3857，则可以传递 ``projFunc`` 来处理投影
 
 ```ts
 import proj4 from 'proj4';
@@ -85,9 +83,9 @@ interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: {
-    /** nodata value, default read from tiff meta */
+    /** nodata 值，默认从 tiff meta 中读取 */
     nodata?: number;
-    /** Band value starts from 1 */
+    /** 波段值从1开始 */
     r?: {
       band?: number;
       min?: number;
@@ -104,40 +102,40 @@ interface TIFFImageryProviderOptions {
       max?: number;
     };
     fill?: {
-      /** inset colorsclaes */
+      /** 色带名称 */
       colorScale?: ColorScaleNames;
-      /** custom interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
+      /** 自定义色带，[stopValue, color] 或 [color]，如果是后者，意味着均匀分布 */
       colors?: [number, string][] | string[];
-      /** defaults to continuous */
+      /** 默认为连续 */
       type?: 'continuous' | 'discrete';
     };
     /**
-     * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
-     * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
-     * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
-     * @param {string} expression Mathematical expression. Example: '-2 * sin(3.1415 - band1) ** 2'
+     * 设置要在图上评估的数学表达式。表达式可以包含具有整数/浮点值的数学运算、波段标识符或具有单个参数的 GLSL 支持函数。
+     * 支持的数学运算有：加“+”、减“-”、乘“*”、除“/”、幂“**”、一元加“+a”、一元减“-a”。
+     * 有用的 GLSL 函数例如：弧度、度数、sin、asin、cos、acos、tan、atan、log2、log、sqrt、exp2、exp、abs、sign、floor、ceil、fract。
+     * @param {string} expression 数学表达式。示例：'-2 *sin(3.1415 -band1) **2'
      */
     expression?: string;
   }
-  /** projection function, convert [lon, lat] position to EPSG:4326 */
-  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
-  /** cache survival time, defaults to 60 * 3000 ms */
+  /** 投影函数，将 [lon, lat] 位置转换为 EPSG:4326 */
+  projFunc?: (code:number) => (((pos: number[]) => number[]) | void);
+  /** 缓存生存时间，默认为 60 *3000 ms */
   cache?: number;
 }
 
-/** see https://observablehq.com/@d3/color-schemes */
+/** 参考 https://observablehq.com/@d3/color-schemes */
 type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' | 'summer' | 'autumn' | 'winter' | 'bone' | 'copper' | 'greys' | 'ylgnbu' | 'greens' | 'ylorrd' | 'bluered' | 'rdbu' | 'picnic' | 'portland' | 'blackbody' | 'earth' | 'electric' | 'magma' | 'plasma';
 ```
 
-## Demo
+## 示例
 
-[online Demo](https://tiff-imagery-provider-example.vercel.app/)
+[在线演示](https://tiff-imagery-provider-example.vercel.app/)
 
-- Powered by [Next.js](https://github.com/vercel/next.js).
-- Dark mode with [Semi-UI](<https://github.com/DouyinFE/semi-design>).
-- Simple cog custom render method.
+- 由 [Next.js](https://github.com/vercel/next.js) 支持。
+- 带有 [Semi-UI](<https://github.com/DouyinFE/semi-design>) 的暗色模式。
+- 简单的自定义渲染方法。
 
-Launch the app in the demo folder, and then visit <http://localhost:3000/>
+在示例文件夹中启动应用程序，然后访问 <http://localhost:3000/>
 
 ```node
 pnpm install
@@ -148,16 +146,16 @@ pnpm start
 ![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)
 | ------- | ------- | -------- |
 
-## Bugs
+## 已知问题
 
-- Cesium@1.101 misplacement
+- Cesium@1.101 错位
 
-## Plans
+## 计划
 
-- [x] Use Web Workers to generate tile image
-- [x] GPU speed up calculation
+- [x] 使用Web Workers生成图块图像
+- [x] GPU 加速计算
 
-## Credits
+## 鸣谢
 
 <https://github.com/geotiffjs/geotiff.js>
 <https://github.com/santilland/plotty>

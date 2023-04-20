@@ -43,12 +43,6 @@ const EarthViewer: React.FC<ViewerProps> = ({
         id: '1',
         method: 'cog',
         url: '/cogtif.tif',
-        renderOptions: {
-          fill: {
-            colors: ['red', 'blue'],
-            mode: 'hslLong'
-          }
-        }
       }, {
         zoom: true
       })

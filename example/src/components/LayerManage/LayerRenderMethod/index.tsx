@@ -7,6 +7,8 @@ import styles from '../index.module.scss';
 import { COGRenderFormItem } from './COGRenderMethods';
 import { RasterRenderFormItem } from './RasterRenderMethods';
 
+import type { Layer } from '@/typings/layer';
+
 type RenderMethodProps = {
   layerItem: Layer.layerManageItem;
 };

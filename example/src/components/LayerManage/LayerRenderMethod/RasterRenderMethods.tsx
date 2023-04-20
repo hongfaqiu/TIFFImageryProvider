@@ -3,6 +3,8 @@ import { Form } from '@douyinfe/semi-ui';
 import { FormApi, withField } from '@douyinfe/semi-ui/lib/es/form';
 import { useEffect, useRef } from 'react';
 
+import type { Layer } from '@/typings/layer';
+
 interface RasterRenderMethodsProps {
   value?: Layer.RasterOptions;
   onChange?: (options: Layer.RasterOptions) => void;

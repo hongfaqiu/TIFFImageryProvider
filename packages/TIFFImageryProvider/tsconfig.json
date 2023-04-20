@@ -2,7 +2,7 @@
   "compilerOptions": {
     "outDir": "lib",
     "module": "esnext",
-    "target": "esnext",
+    "target": "ES2015",
     "lib": ["esnext", "dom"],
     "sourceMap": true,
     "baseUrl": ".",
@@ -11,7 +11,6 @@
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
-    "suppressImplicitAnyIndexErrors": true,
     "allowJs": true,
     "declaration": true,
     "esModuleInterop": true,

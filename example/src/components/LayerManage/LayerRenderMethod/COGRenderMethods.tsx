@@ -26,7 +26,6 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
     fill: {
       colors: [],
       type: 'continuous',
-      mode: 'rgb',
       ...value?.fill
     }
   })
@@ -110,16 +109,6 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
             noLabel
           />
 
-          <Form.RadioGroup
-            label={'色域:'}
-            field={'fill.mode'}
-          >
-            {
-              ["hsl", "rgb", "hslLong", "lab"].map(item => (
-                <Form.Radio key={item} value={item} >{item}</Form.Radio>
-              ))
-            }
-          </Form.RadioGroup>
         </Form>
       </div>
       

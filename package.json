@@ -5,6 +5,10 @@
   "workspaces": [
     "packages/*"
   ],
+  "scripts": {
+    "postinstall": "pnpm run build:lib",
+    "build:lib": "pnpm -r --filter \"./packages/**\" run build"
+  },
   "devDependencies": {
     "conventional-changelog-cli": "^2.2.2",
     "lerna": "^6.1.0"

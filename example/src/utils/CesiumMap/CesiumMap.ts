@@ -7,7 +7,8 @@ import proj4 from 'proj4-fully-loaded';
 import { boundary2Coors, calculateRange } from '../usefulFunc';
 import BaseMap from './BaseMap';
 
-import { ImageryLayer, ImageryProvider , Rectangle} from 'cesium';
+import { ImageryLayer, ImageryProvider, Rectangle } from 'cesium';
+import type { Layer } from '@/typings/layer';
 
 export default class CesiumMap extends BaseMap {
   protected getResource(options: { url: string; headers?: any; queryParameters?: any }) {
