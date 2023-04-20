@@ -186,13 +186,13 @@ export class TIFFImageryProvider {
       this.plot.setNoDataValue(this.noData);
       const { expression, fill, r } = options.renderOptions ?? {};
       this.plot.setExpression(expression);
-      if (fill && fill.colors) {
+      if (fill?.colors) {
         const { stops, colorScale } = generateColorScale(fill.colors, bands, r)
         addColorScale('temp', colorScale.colors, colorScale.positions);
         this.plot.setColorScale('temp' as any);
         this.options.renderOptions.fill.colors = stops;
       } else {
-        this.plot.setColorScale(fill.colorScale ?? 'blackwhite');
+        this.plot.setColorScale(fill?.colorScale ?? 'blackwhite');
       }
 
       this.ready = true;
