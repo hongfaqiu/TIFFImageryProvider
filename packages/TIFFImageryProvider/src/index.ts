@@ -131,22 +131,27 @@ export class TIFFImageryProvider {
       // 获取波段数
       const samples = image.getSamplesPerPixel();
       for (let i = 0; i < samples; i++) {
-        if (samples > 1) {
+        // 获取该波段最大最小值信息
+        const element = image.getGDALMetadata(i);
+        
+        if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
           bands.push({
-            min: 0,
-            max: 255
+            min: element.STATISTICS_MINIMUM,
+            max: element.STATISTICS_MAXIMUM,
           })
         } else {
-          // 获取该波段最大最小值信息
-          const element = image.getGDALMetadata(i);
-          if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
+          const { r, g, b } = options.renderOptions;
+          const inputBand = [r, g, b].find(item => item?.band === i + 1)
+          if (inputBand?.min !== undefined && inputBand?.max !== undefined) {
+            const { min, max } = inputBand
             bands.push({
-              min: element.STATISTICS_MINIMUM,
-              max: element.STATISTICS_MAXIMUM,
+              min, max
             })
           } else {
             // 尝试强制获取波段最大最小值
-            const previewImage = await res.getImage()
+            console.warn(`Can not get band${i + 1} min/max, try to calculate min/max values, or setting in renderOptions`)
+
+            const previewImage = await res.getImage(this._imageCount - 1)
             const data = (await previewImage.readRasters({
               samples: [i],
               pool: this._pool,
@@ -287,9 +292,14 @@ export class TIFFImageryProvider {
         throw new Error('web workers bootstrap error');
       }
 
-      const result = await this._workerFarm.scheduleTask(data, opts);
+      let result: ImageData | undefined;
+      try {
+        result = await this._workerFarm.scheduleTask(data, opts);
+      } catch (e) {
+        console.error(e);
+      }
 
-      if (this._cacheTime) {
+      if (result && this._cacheTime) {
         const now = new Date().getTime()
         this._imagesCache[`${x}_${y}_${z}`] = {
           time: now,
