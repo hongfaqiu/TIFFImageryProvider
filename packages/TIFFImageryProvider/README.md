@@ -4,8 +4,6 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
-[中文readme](./README_CN.md)
-
 ## Features
 
 - Three band rendering.
@@ -66,10 +64,10 @@ new TIFFImageryProvider({
 class TIFFImageryProvider {
   ready: boolean;
   readyPromise: Promise<void>
-  bands: {
-      min: number;
-      max: number;
-  }[];
+  bands: Record<number, {
+    min: number;
+    max: number;
+  }>;
   constructor(options: TIFFImageryProviderOptions);
 
   get isDestroyed(): boolean;
@@ -84,49 +82,100 @@ interface TIFFImageryProviderOptions {
   minimumLevel?: number;
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
-  renderOptions?: {
-    /** nodata value, default read from tiff meta */
-    nodata?: number;
-    /** Band value starts from 1 */
-    r?: {
-      band?: number;
-      min?: number;
-      max?: number;
-    };
-    g?: {
-      band?: number;
-      min?: number;
-      max?: number;
-    };
-    b?: {
-      band?: number;
-      min?: number;
-      max?: number;
-    };
-    fill?: {
-      /** inset colorsclaes */
-      colorScale?: ColorScaleNames;
-      /** custom interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
-      colors?: [number, string][] | string[];
-      /** defaults to continuous */
-      type?: 'continuous' | 'discrete';
-    };
-    /**
-     * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
-     * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
-     * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
-     * @param {string} expression Mathematical expression. Example: '-2 * sin(3.1415 - band1) ** 2'
-     */
-    expression?: string;
-  }
+  renderOptions?: TIFFImageryProviderRenderOptions;
   /** projection function, convert [lon, lat] position to EPSG:4326 */
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
   /** cache survival time, defaults to 60 * 3000 ms */
   cache?: number;
 }
 
+type TIFFImageryProviderRenderOptions = {
+  /** nodata value, default read from tiff meta */
+  nodata?: number;
+  single?: SingleBandRenderOptions;
+  /** priority rendering */
+  multi?: MultiBandRenderOptions;
+}
+
+interface SingleBandRenderOptions {
+  /** band index start from 1, defaults to 1 */
+  band?: number;
+
+  /**
+   * The color scale image to use.
+   */
+  colorScaleImage?: HTMLCanvasElement | HTMLImageElement;
+
+  /**
+   * The name of a named color scale to use.
+   */
+  colorScale?: ColorScaleNames;
+
+  /** custom interpolate colors, [stopValue(0 - 1), color] or [color], if the latter, means equal distribution 
+   * @example
+   * [[0, 'red'], [0.6, 'green'], [1, 'blue']]
+  */
+  colors?: [number, string][] | string[];
+
+  /** defaults to continuous */
+  type?: 'continuous' | 'discrete';
+
+  /**
+   * The value domain to scale the color.
+   */
+  domain?: [number, number];
+
+  /**
+   * Range of values that will be rendered, values outside of the range will be transparent.
+   */
+  displayRange?: [number, number];
+
+  /**
+   * Set if displayRange should be used.
+   */
+  applyDisplayRange?: boolean;
+
+  /**
+   * Whether or not values below the domain shall be clamped.
+   */
+  clampLow?: boolean;
+
+  /**
+   * Whether or not values above the domain shall be clamped (if not defined defaults to clampLow value).
+   */
+  clampHigh?: boolean;
+  
+  /**
+   * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
+   * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
+   * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
+   * @param {string} expression Mathematical expression. Example: '-2 * sin(3.1415 - band1) ** 2'
+   */
+  expression?: string;
+}
+
+interface MultiBandRenderOptions {
+  /** Band value starts from 1 */
+  r?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+  g?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+  b?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+}
+
+
 /** see https://observablehq.com/@d3/color-schemes */
-type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' | 'summer' | 'autumn' | 'winter' | 'bone' | 'copper' | 'greys' | 'ylgnbu' | 'greens' | 'ylorrd' | 'bluered' | 'rdbu' | 'picnic' | 'portland' | 'blackbody' | 'earth' | 'electric' | 'magma' | 'plasma';
+type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' | 'summer' | 'autumn' | 'winter' | 'bone' | 'copper' | 'greys' | 'ylgnbu' | 'greens' | 'ylorrd' | 'bluered' | 'rdbu' | 'picnic' | 'portland' | 'blackbody' | 'earth' | 'electric' | 'magma' | 'plasma' | 'redblue' | 'coolwarm' | 'diverging_1' | 'diverging_2' | 'blackwhite' | 'twilight' | 'twilight_shifted';
 ```
 
 ## Demo
@@ -156,8 +205,10 @@ pnpm start
 
 - [x] Use Web Workers to generate tile image
 - [x] GPU speed up calculation
+- [ ] Web Workers Offscreen WebGL rendering
 
 ## Credits
 
 <https://github.com/geotiffjs/geotiff.js>
+
 <https://github.com/santilland/plotty>

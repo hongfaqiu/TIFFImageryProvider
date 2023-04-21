@@ -66,3 +66,13 @@ export function generateColorScale(colors: [number, string][] | string[]) {
 
   return colorScale;
 }
+
+export function findAndSortBandNumbers(str: string) {
+  const regex = /band(\d+)/g;
+  const bandNumbers = new Set<number>();
+  let match: string[];
+  while ((match = regex.exec(str)) !== null) {
+    bandNumbers.add(parseInt(match[1]) - 1);
+  }
+  return Array.from(bandNumbers).sort((a, b) => a - b);
+}

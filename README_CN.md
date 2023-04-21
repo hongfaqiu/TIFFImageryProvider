@@ -94,8 +94,12 @@ interface TIFFImageryProviderOptions {
 type TIFFImageryProviderRenderOptions = {
   /** 无效值，默认从tiff meta读取 */
   nodata?: number;
-  single?: SingleBandRenderOptions;
+  /** 尝试将多波段cog渲染为rgb，优先级 1 */
+  convertToRGB?: boolean;
+  /** 优先级 2 */
   multi?: MultiBandRenderOptions;
+  /** 优先级 3 */
+  single?: SingleBandRenderOptions;
 }
 
 interface SingleBandRenderOptions {

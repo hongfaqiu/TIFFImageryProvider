@@ -14,14 +14,7 @@ export type GenerateImageOptions = {
 
 export async function generateImage(data: Float32Array[], opts: GenerateImageOptions) {
   const { width, height, renderOptions, bands, noData } = opts;
-  
   const imageData = new Uint8ClampedArray(width * height * 4);
-  const { r, g, b } = renderOptions ?? {};
-  const ranges = [r, g, b].map(item => getRange(bands, item));
-
-  const redData = data[r.band - 1];
-  const greenData = data[g.band] ?? data[0];
-  const blueData = data[b.band] ?? data[0];
 
   function ifNoDataFunc(...vals: number[]) {
     for (let i = 0; i < vals.length; i++) {
@@ -32,6 +25,13 @@ export async function generateImage(data: Float32Array[], opts: GenerateImageOpt
     }
     return false
   }
+
+  const { r, g, b } = renderOptions ?? {};
+  const ranges = [r, g, b].map(item => getRange(bands, item));
+
+  const redData = data[0];
+  const greenData = data[1];
+  const blueData = data[2];
 
   for (let i = 0; i < data[0].length; i++) {
     const red = redData[i];

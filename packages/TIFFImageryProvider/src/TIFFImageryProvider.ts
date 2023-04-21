@@ -3,8 +3,8 @@ import GeoTIFF, { Pool, fromUrl as tiffFromUrl, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
 import WorkerFarm from "./worker-farm";
-import { getMinMax, generateColorScale, getRange } from "./utils";
-import { ColorScaleNames } from "./plotty/typing";
+import { getMinMax, generateColorScale, findAndSortBandNumbers } from "./utils";
+import { ColorScaleNames, TypedArray } from "./plotty/typing";
 
 export interface SingleBandRenderOptions {
   /** band index start from 1, defaults to 1 */
@@ -85,8 +85,12 @@ export interface MultiBandRenderOptions {
 export type TIFFImageryProviderRenderOptions = {
   /** nodata value, default read from tiff meta */
   nodata?: number;
-  single?: SingleBandRenderOptions;
+  /** try to render multi band cog to RGB, priority 1 */
+  convertToRGB?: boolean;
+  /** priority 2 */
   multi?: MultiBandRenderOptions;
+  /** priority 3 */
+  single?: SingleBandRenderOptions;
 }
 
 export interface TIFFImageryProviderOptions {
@@ -133,8 +137,9 @@ export class TIFFImageryProvider {
   private _pool: Pool;
   private _workerFarm: WorkerFarm | null;
   private _cacheTime: number;
-  canvas: HTMLCanvasElement;
   plot: plot;
+  renderOptions: TIFFImageryProviderRenderOptions;
+  readSamples: number[];
   constructor(private readonly options: TIFFImageryProviderOptions) {
     this.ready = false;
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
@@ -159,25 +164,62 @@ export class TIFFImageryProvider {
       // 获取nodata值
       const noData = image.getGDALNoData();
       this.noData = options.renderOptions.nodata ?? noData;
-
+      // 获取波段数
+      const samples = image.getSamplesPerPixel();
+      
+      // 赋初值
+      this.renderOptions = options.renderOptions ?? {}
+      if (samples < 3 && this.renderOptions.convertToRGB) {
+        const error = new Error('Can not render the image as RGB, please check the convertToRGB parameter')
+        throw error;
+      }
+      if (!this.renderOptions.single && !this.renderOptions.multi && !this.renderOptions.convertToRGB) {
+        if (samples > 1) {
+          this.renderOptions = {
+            convertToRGB: true,
+            ...this.renderOptions
+          }
+        } else {
+          this.renderOptions = {
+            single: {
+              band: 1
+            },
+            ...this.renderOptions
+          }
+        }
+      }
+      if (this.renderOptions.single) {
+        this.renderOptions.single.band = this.renderOptions.single.band ?? 1;
+      }
+      
+      const { single, multi, convertToRGB } = this.renderOptions;
+      this.readSamples = multi ? [multi.r.band - 1, multi.g.band - 1, multi.b.band - 1] : convertToRGB ? [0, 1, 2] : [0]
+      if (single?.expression) {
+        this.readSamples = findAndSortBandNumbers(single.expression);
+      }
+      
+      // 获取波段最大最小值信息
       const bands: Record<number, {
         min: number;
         max: number;
       }> = {};
-      // 获取波段数
-      const samples = image.getSamplesPerPixel();
-      for (let i = 0; i < samples; i++) {
-        // 获取该波段最大最小值信息
+      this.readSamples.forEach(async (i) => {
         const element = image.getGDALMetadata(i);
         const bandNum = i + 1;
-
+        
         if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
           bands[bandNum] = {
             min: +element.STATISTICS_MINIMUM,
             max: +element.STATISTICS_MAXIMUM,
           }
         } else {
-          const { single, multi } = options.renderOptions ?? {};
+          if (convertToRGB) {
+            bands[bandNum] = {
+              min: 0,
+              max: 255,
+            }
+          };
+  
           if (multi) {
             const inputBand = multi[Object.keys(multi).find(key => multi[key]?.band === bandNum)]
             if (inputBand?.min !== undefined && inputBand?.max !== undefined) {
@@ -187,14 +229,14 @@ export class TIFFImageryProvider {
               }
             }
           }
-
+  
           if (single && single.band === bandNum && single.domain) {
             bands[bandNum] = {
               min: single.domain[0],
               max: single.domain[1],
             }
           }
-
+  
           if (!bands[bandNum]) {
             // 尝试获取波段最大最小值
             console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
@@ -207,9 +249,9 @@ export class TIFFImageryProvider {
             bands[bandNum] = getMinMax(data, noData)
           }
         }
-      }
+      })
       this.bands = bands;
-
+      
       // 获取空间范围
       const bbox = image.getBoundingBox();
       const [west, south, east, north] = bbox;
@@ -241,12 +283,11 @@ export class TIFFImageryProvider {
       });
       this.maximumLevel = this.maximumLevel >= this._imageCount ? this._imageCount - 1 : this.maximumLevel;
       this._images = new Array(this._imageCount).fill(null);
-      
+
       // 如果是单通道渲染, 则构建plot对象
       try {
-        if (options.renderOptions?.single) {
-          const single = options.renderOptions.single;
-          const band = this.bands[single.band ?? 1];
+        if (this.renderOptions.single) {
+          const band = this.bands[single.band];
           if (!band) {
             throw new Error(`Invalid band${single.band}`);
           }
@@ -322,27 +363,27 @@ export class TIFFImageryProvider {
       Math.round((x + 1) * tilePixel.xWidth),
       Math.round((y + 1) * tilePixel.yWidth),
     ];
-    
-    const promise = image.readRasters({
+
+    const options = {
       window: pixelBounds,
       width: this.tileWidth,
       height: this.tileHeight,
-      fillValue: this.noData,
       pool: this._pool,
-    })
-
-    return promise
-      .then((res) => {
-        return {
-          data: res as unknown as Float32Array[],
-          width: this.tileWidth,
-          height: this.tileHeight,
-        }
-      })
-      .catch((error) => {
-        this._error.raiseEvent(error);
-        throw error;
-      });
+      samples: this.readSamples,
+      interleave: false,
+    }
+    let res: TypedArray[];
+    try {
+      if (this.renderOptions.convertToRGB) {
+        res = await image.readRGB(options) as TypedArray[];
+      } else {
+        res = await image.readRasters(options) as TypedArray[];
+      }
+      return res;
+    } catch(error) {
+      this._error.raiseEvent(error);
+      throw error;
+    }
   }
 
   async requestImage(
@@ -359,19 +400,38 @@ export class TIFFImageryProvider {
     if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount) return undefined
     if (this._cacheTime && this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`].data;
 
-    const { renderOptions } = this.options;
-    const { single, multi } = renderOptions;
+    const { single, multi, convertToRGB } = this.renderOptions;
 
     try {
-      const { data, width, height } = await this._loadTile(x, y, z);
-
+      const data = await this._loadTile(x, y, z);
+      
       let result: ImageData | HTMLImageElement
+      
+      if (multi || convertToRGB) {
+        const opts = {
+          width: this.tileSize,
+          height: this.tileSize,
+          renderOptions: multi ?? ['r', 'g', 'b'].reduce((pre, val, index) => ({
+            ...pre,
+            [val]: {
+              band: index + 1,
+              min: 0,
+              max: 255
+            }
+          }), {}),
+          bands: this.bands,
+          noData: this.noData,
+        }
+        if (!this._workerFarm?.worker) {
+          throw new Error('web workers bootstrap error');
+        }
 
-      if (single) {
+        result = await this._workerFarm.scheduleTask(data, opts);
+      } else if (single) {
         const { band = 1 } = single;
         this.plot.removeAllDataset();
-        data.forEach((dt, index) => {
-          this.plot.addDataset(`band${index + 1}`, dt, width, height);
+        this.readSamples.forEach((sample, index) => {
+          this.plot.addDataset(`band${sample + 1}`, data[index], this.tileSize, this.tileSize);
         })
         
         this.plot.renderDataset(`band${band}`)
@@ -382,19 +442,6 @@ export class TIFFImageryProvider {
         image.src = this.plot.canvas.toDataURL();
 
         result = image;
-      } else if (multi) {
-        const opts = {
-          width,
-          height,
-          renderOptions: multi,
-          bands: this.bands,
-          noData: this.noData
-        }
-        if (!this._workerFarm?.worker) {
-          throw new Error('web workers bootstrap error');
-        }
-
-        result = await this._workerFarm.scheduleTask(data, opts);
       }
 
       if (result && this._cacheTime) {
@@ -438,12 +485,20 @@ export class TIFFImageryProvider {
     const posX = ~~(Math.abs(lonGap / lonWidth) * width);
     const posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
 
-    const res = await image.readRasters({
+    const options = {
       window: [posX, posY, posX + 1, posY + 1],
       height: 1,
       width: 1,
       pool: this._pool,
-    })
+      interleave: false,
+    }
+    let res: TypedArray[];
+    if (this.renderOptions.convertToRGB) {
+      res = await image.readRGB(options) as TypedArray[];
+    } else {
+      res = await image.readRasters(options) as TypedArray[];
+    }
+
     const featureInfo = new ImageryLayerFeatureInfo()
     featureInfo.name = `lon:${(longitude / Math.PI * 180).toFixed(6)}, lat:${(latitude / Math.PI * 180).toFixed(6)}`;
     const data = {};

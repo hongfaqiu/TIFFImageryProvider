@@ -51,6 +51,12 @@ const EarthViewer: React.FC<ViewerProps> = ({
       }, {
         zoom: true
       })
+      await addLayer({
+        layerName: 'rgbBand',
+        id: '2',
+        method: 'cog',
+        url: 'https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif',
+      })
     })
     
     return () => {

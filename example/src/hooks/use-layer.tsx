@@ -177,8 +177,9 @@ const useLayerHook = () => {
       if (showMessage) {
         showMsg(layer.layerName, '添加', false);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      Toast.error(e.message);
       if (showMessage) {
         showMsg(layer.layerName, '添加', false);
       }

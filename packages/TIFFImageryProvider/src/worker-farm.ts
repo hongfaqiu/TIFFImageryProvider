@@ -1,12 +1,13 @@
 // @ts-ignore
 import GenerateImageWorker from "web-worker:./worker";
 import { GenerateImageOptions } from "./generateImage";
+import { TypedArray } from "./plotty/typing";
 
 const resolves = {};
 const rejects = {};
 let globalMsgId = 0; // Activate calculation in the worker, returning a promise
 
-async function sendMessage(worker: Worker, payload: { data: Float32Array[], opts: GenerateImageOptions }) {
+async function sendMessage(worker: Worker, payload: { data: TypedArray[], opts: GenerateImageOptions }) {
   const msgId = globalMsgId++;
   const msg = {
     id: msgId,
@@ -51,12 +52,12 @@ class WorkerFarm {
     this.worker.onmessage = handleMessage;
   }
 
-  async scheduleTask(data: Float32Array[], opts: GenerateImageOptions) {
+  async scheduleTask(data: TypedArray[], opts: GenerateImageOptions) {
     return await sendMessage(this.worker, { data, opts });
   }
 
   destory() {
-    this.worker.terminate();
+    this.worker?.terminate();
     this.worker = undefined;
   }
 }

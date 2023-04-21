@@ -17,7 +17,7 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
   value,
   onChange
 }) => {
-  const [mode, setMode] = useState<'default' | 'single' | 'multi'>('default')
+  const [mode, setMode] = useState<'default' | 'single' | 'multi' | 'rgb'>('default')
   const [single, setSingle] = useState<SingleBandRenderOptions>({
     band: 1,
     colors: [],
@@ -27,14 +27,16 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
   const [multi, setMulti] = useState<MultiBandRenderOptions>({
     r: {
       band: 1,
+      ...value?.multi?.r
     },
     g: {
       band: 2,
+      ...value?.multi?.g
     },
     b: {
       band: 3,
+      ...value?.multi?.b
     },
-    ...value?.multi
   })
   const [noData, setNoData] = useState(value?.nodata)
   
@@ -49,6 +51,8 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
       onChange(defaultStyle)
     } else if (mode === 'multi') {
       onChange({ multi })
+    } if (mode === 'rgb') {
+      onChange({ convertToRGB: true})
     }
   }, [mode, single, noData, defaultStyle, multi])
 
@@ -59,6 +63,7 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
           <Radio value={'default'}>默认样式</Radio>
           <Radio value={'single'}>单波段</Radio>
           <Radio value={'multi'}>多波段</Radio>
+          <Radio value={'rgb'}>RGB</Radio>
         </Radio.Group>
       </div>
 
@@ -122,11 +127,12 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
           style={{
             margin: '10px 0'
           }}
+          labelWidth={30}
         >
-          <Row>
-            {
-              ['r', 'g', 'b'].map(band => (
-                <Col key={band} span={8}>
+          {
+            ['r', 'g', 'b'].map(band => (
+              <Row key={band}>
+                <Col span={8}>
                   <Form.InputNumber
                     label={band}
                     field={`${band}.band`}
@@ -134,9 +140,21 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
                     min={1}
                   />
                 </Col>
-              ))
-            }
-          </Row>
+                <Col span={8}>
+                  <Form.InputNumber
+                    label={'min'}
+                    field={`${band}.min`}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Form.InputNumber
+                    label={'max'}
+                    field={`${band}.max`}
+                  />
+                </Col>
+              </Row>
+            ))
+          }
         </Form>
       </div>
       

@@ -122,7 +122,7 @@ export default class CesiumMap extends BaseMap {
             if (![4326, 3857, 900913].includes(code)) {
               return proj4(`EPSG:${code}`, "EPSG:4326").forward
             }
-          }
+          },
         });
         break;
       case 'pic':

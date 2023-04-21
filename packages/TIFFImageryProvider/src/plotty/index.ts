@@ -852,7 +852,7 @@ class plot {
 
   destroy() {
     // 在使用完WebGL上下文后，释放资源
-    this.gl.deleteProgram(this.program);
+    this.gl?.deleteProgram(this.program);
     this.removeAllDataset();
   }
 }

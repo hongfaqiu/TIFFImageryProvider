@@ -94,8 +94,12 @@ interface TIFFImageryProviderOptions {
 type TIFFImageryProviderRenderOptions = {
   /** nodata value, default read from tiff meta */
   nodata?: number;
-  single?: SingleBandRenderOptions;
+  /** try to render multi band cog to RGB, priority 1 */
+  convertToRGB?: boolean;
+  /** priority 2 */
   multi?: MultiBandRenderOptions;
+  /** priority 3 */
+  single?: SingleBandRenderOptions;
 }
 
 interface SingleBandRenderOptions {
