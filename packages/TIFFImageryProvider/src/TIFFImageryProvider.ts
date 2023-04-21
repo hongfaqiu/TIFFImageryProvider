@@ -322,8 +322,11 @@ export class TIFFImageryProvider {
       Math.round((x + 1) * tilePixel.xWidth),
       Math.round((y + 1) * tilePixel.yWidth),
     ];
+    
     const promise = image.readRasters({
       window: pixelBounds,
+      width: this.tileWidth,
+      height: this.tileHeight,
       fillValue: this.noData,
       pool: this._pool,
     })
@@ -332,8 +335,8 @@ export class TIFFImageryProvider {
       .then((res) => {
         return {
           data: res as unknown as Float32Array[],
-          width: tilePixel.xWidth,
-          height: tilePixel.yWidth,
+          width: this.tileWidth,
+          height: this.tileHeight,
         }
       })
       .catch((error) => {
