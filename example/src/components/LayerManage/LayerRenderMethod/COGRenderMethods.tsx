@@ -1,5 +1,5 @@
 import { Col, Divider, Form, Radio, Row, withField } from '@douyinfe/semi-ui';
-import { TIFFImageryProviderRenderOptions } from 'tiff-imagery-provider';
+import { MultiBandRenderOptions, SingleBandRenderOptions, TIFFImageryProviderRenderOptions } from 'tiff-imagery-provider';
 import { useEffect, useMemo, useState } from 'react';
 import { MultiColorInputItem } from '../../ColorBarInput';
 import styles from './COGRenderMethods.module.scss';
@@ -18,18 +18,13 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
   onChange
 }) => {
   const [mode, setMode] = useState<'default' | 'single' | 'multi'>('default')
-  const [single, setSingle] = useState<TIFFImageryProviderRenderOptions>({
-    r: {
-      band: 1,
-    },
-    ...value,
-    fill: {
-      colors: [],
-      type: 'continuous',
-      ...value?.fill
-    }
+  const [single, setSingle] = useState<SingleBandRenderOptions>({
+    band: 1,
+    colors: [],
+    type: 'continuous',
+    ...value?.single
   })
-  const [multi, setMulti] = useState<TIFFImageryProviderRenderOptions>({
+  const [multi, setMulti] = useState<MultiBandRenderOptions>({
     r: {
       band: 1,
     },
@@ -39,8 +34,7 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
     b: {
       band: 3,
     },
-    ...value,
-    fill: undefined
+    ...value?.multi
   })
   const [noData, setNoData] = useState(value?.nodata)
   
@@ -50,11 +44,11 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
     if (!onChange) return;
 
     if (mode === 'single') {
-      onChange(single)
+      onChange({ single })
     } else if (mode === 'default') {
       onChange(defaultStyle)
     } else if (mode === 'multi') {
-      onChange(multi)
+      onChange({ multi })
     }
   }, [mode, single, noData, defaultStyle, multi])
 
@@ -69,14 +63,14 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
       </div>
 
       <div className={mode === 'single' ? styles.show : styles.hide}>
-        <Form<TIFFImageryProviderRenderOptions>
+        <Form<SingleBandRenderOptions>
           labelPosition='left'
           labelAlign='right'
-          onValueChange={(values) => {
+          onValueChange={(single) => {
             if (mode === 'single') {
-              onChange?.(values)
+              onChange?.({ single });
             }
-            setSingle(values)
+            setSingle(single)
           }}
           initValues={single}
           style={{
@@ -87,14 +81,14 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
           
           <Form.InputNumber
             label={'波段:'}
-            field={'r.band'}
+            field={'band'}
             step={1}
             min={1}
           />
           
           <Form.RadioGroup
             label={'模式:'}
-            field={'fill.type'}
+            field={'type'}
           >
             {
               ["continuous", "discrete"].map(item => (
@@ -104,8 +98,8 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
           </Form.RadioGroup>
 
           <MultiColorInputItem
-            field='fill.colors'
-            initialValue={value?.fill?.colors as any}
+            field='colors'
+            initialValue={value?.single?.colors as any}
             noLabel
           />
 
@@ -113,17 +107,16 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
       </div>
       
       <div className={mode === 'multi' ? styles.show : styles.hide}>
-        <Form<TIFFImageryProviderRenderOptions>
+        <Form<MultiBandRenderOptions>
           layout='horizontal'
           labelPosition='left'
           labelAlign='right'
-          onValueChange={(values) => {
+          onValueChange={(multi) => {
             if (mode === 'multi') 
               onChange?.({
-                ...values,
-                fill: undefined
+                multi
               })
-            setMulti(values)
+            setMulti(multi)
           }}
           initValues={multi}
           style={{

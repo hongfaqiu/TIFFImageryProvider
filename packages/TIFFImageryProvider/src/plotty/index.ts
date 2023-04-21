@@ -10,7 +10,7 @@
  */
 import { colorscales } from './colorscales';
 import { parse as parseArithmetics } from './arithmetics-parser';
-import { ColorScaleNames, DataSet, PlotOptions, TypedArray } from './typing';
+import { ColorScaleNames, DataSet, PlotOptions, RenderColorType, TypedArray } from './typing';
 
 function hasOwnProperty(obj, prop) {
   return Object.prototype.hasOwnProperty.call(obj, prop);
@@ -72,8 +72,8 @@ function setRectangle(gl, x, y, width, height) {
     x2, y2]), gl.STATIC_DRAW);
 }
 
-function createDataset(gl, id, data, width, height) {
-  let textureData;
+function createDataset(gl: WebGLRenderingContext, id: string, data: TypedArray, width: number, height: number) {
+  let textureData: WebGLTexture;
   if (gl) {
     gl.viewport(0, 0, width, height);
     textureData = gl.createTexture();
@@ -95,7 +95,7 @@ function createDataset(gl, id, data, width, height) {
   return { textureData, width, height, data, id };
 }
 
-function destroyDataset(gl, dataset) {
+function destroyDataset(gl: WebGLRenderingContext, dataset: DataSet) {
   if (gl) {
     gl.deleteTexture(dataset.textureData);
   }
@@ -121,8 +121,9 @@ function addColorScale(name: string, colors: string[], positions: number[]) {
  * @memberof module:plotty
  * @param {String} name the name of the color scale to render
  * @param {HTMLCanvasElement} canvas the canvas to render to
+ * @param {RenderColorType} type the type of color scale to render, either "continuous" or "discrete"
  */
-function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement) {
+function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement, type: RenderColorType = 'continuous') {
   /* eslint-disable no-param-reassign */
   const csDef = colorscales[name];
   canvas.height = 1;
@@ -132,9 +133,20 @@ function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement) {
     canvas.width = 256;
     const gradient = ctx.createLinearGradient(0, 0, 256, 1);
 
-    for (let i = 0; i < csDef.colors.length; ++i) {
-      gradient.addColorStop(csDef.positions[i], csDef.colors[i]);
+    if (type === 'continuous') {
+      for (let i = 0; i < csDef.colors.length; ++i) {
+        gradient.addColorStop(csDef.positions[i], csDef.colors[i]);
+      }
+    } else if (type === 'discrete') {
+      for (let i = 0; i < csDef.colors.length - 1; ++i) {
+        gradient.addColorStop(csDef.positions[i], csDef.colors[i]);
+        gradient.addColorStop(csDef.positions[i + 1] - 0.001, csDef.colors[i]);
+      }
+      gradient.addColorStop(1, csDef.colors[csDef.colors.length - 1]);
+    } else {
+      throw new Error('Invalid color scale type.');
     }
+
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 256, 1);
   } else if (Object.prototype.toString.call(csDef) === '[object Uint8Array]') {
@@ -258,11 +270,13 @@ class plot {
   textureScale: WebGLTexture;
   noDataValue: number;
   expressionAst: string;
+  colorType: RenderColorType = 'continuous';
   constructor(options: PlotOptions) {
     this.datasetCollection = {};
     this.currentDataset = null;
 
     this.setCanvas(options.canvas);
+    this.setColorType(options.type);
     // check if a webgl context is requested and available and set up the shaders
 
     if (defaultFor(options.useWebGL, true)) {
@@ -427,6 +441,10 @@ class plot {
     delete this.datasetCollection[id];
   }
 
+  removeAllDataset() {
+    Object.keys(this.datasetCollection).forEach(id => this.removeDataset(id));
+  }
+
   /**
    * Check if the dataset is available.
    * @param {string} id the identifier of the dataset to check.
@@ -452,6 +470,10 @@ class plot {
    */
   setCanvas(canvas: HTMLCanvasElement) {
     this.canvas = canvas || document.createElement('canvas');
+  }
+
+  setColorType(type: RenderColorType) {
+    this.colorType = type ?? 'continuous';
   }
 
   /**
@@ -501,7 +523,7 @@ class plot {
       this.colorScaleCanvas.width = 256;
       this.colorScaleCanvas.height = 1;
     }
-    renderColorScaleToCanvas(name, this.colorScaleCanvas);
+    renderColorScaleToCanvas(name, this.colorScaleCanvas, this.colorType);
     this.name = name;
     this.setColorScaleImage(this.colorScaleCanvas);
   }
@@ -594,25 +616,25 @@ class plot {
 
       if (this.expressionAst) {
         const vertexShaderSourceExpressionTemplate = `
-        attribute vec2 a_position;
-        attribute vec2 a_texCoord;
-        uniform mat3 u_matrix;
-        uniform vec2 u_resolution;
-        varying vec2 v_texCoord;
-        void main() {
-          // apply transformation matrix
-          vec2 position = (u_matrix * vec3(a_position, 1)).xy;
-          // convert the rectangle from pixels to 0.0 to 1.0
-          vec2 zeroToOne = position / u_resolution;
-          // convert from 0->1 to 0->2
-          vec2 zeroToTwo = zeroToOne * 2.0;
-          // convert from 0->2 to -1->+1 (clipspace)
-          vec2 clipSpace = zeroToTwo - 1.0;
-          gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
-          // pass the texCoord to the fragment shader
-          // The GPU will interpolate this value between points.
-          v_texCoord = a_texCoord;
-        }`;
+          attribute vec2 a_position;
+          attribute vec2 a_texCoord;
+          uniform mat3 u_matrix;
+          uniform vec2 u_resolution;
+          varying vec2 v_texCoord;
+          void main() {
+            // apply transformation matrix
+            vec2 position = (u_matrix * vec3(a_position, 1)).xy;
+            // convert the rectangle from pixels to 0.0 to 1.0
+            vec2 zeroToOne = position / u_resolution;
+            // convert from 0->1 to 0->2
+            vec2 zeroToTwo = zeroToOne * 2.0;
+            // convert from 0->2 to -1->+1 (clipspace)
+            vec2 clipSpace = zeroToTwo - 1.0;
+            gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+            // pass the texCoord to the fragment shader
+            // The GPU will interpolate this value between points.
+            v_texCoord = a_texCoord;
+          }`;
         const expressionReducer = (node) => {
           if (typeof node === 'object') {
             if (node.op === '**') {
@@ -633,33 +655,33 @@ class plot {
 
         // Definition of fragment shader
         const fragmentShaderSourceExpressionTemplate = `
-        precision mediump float;
-        // our texture
-        uniform sampler2D u_textureScale;
+          precision mediump float;
+          // our texture
+          uniform sampler2D u_textureScale;
 
-        // add all required textures
-${ids.map(id => `        uniform sampler2D u_texture_${id};`).join('\n')}
+          // add all required textures
+          ${ids.map(id => `uniform sampler2D u_texture_${id};`).join('\n')}
 
-        uniform vec2 u_textureSize;
-        uniform vec2 u_domain;
-        uniform float u_noDataValue;
-        uniform bool u_clampLow;
-        uniform bool u_clampHigh;
-        // the texCoords passed in from the vertex shader.
-        varying vec2 v_texCoord;
-        void main() {
-${ids.map(id => `          float ${id}_value = texture2D(u_texture_${id}, v_texCoord)[0];`).join('\n')}
-          float value = ${compiledExpression};
+          uniform vec2 u_textureSize;
+          uniform vec2 u_domain;
+          uniform float u_noDataValue;
+          uniform bool u_clampLow;
+          uniform bool u_clampHigh;
+          // the texCoords passed in from the vertex shader.
+          varying vec2 v_texCoord;
+          void main() {
+            ${ids.map(id => `float ${id}_value = texture2D(u_texture_${id}, v_texCoord)[0];`).join('\n')}
+            float value = ${compiledExpression};
 
-          if (value == u_noDataValue)
-            gl_FragColor = vec4(0.0, 0, 0, 0.0);
-          else if ((!u_clampLow && value < u_domain[0]) || (!u_clampHigh && value > u_domain[1]))
-            gl_FragColor = vec4(0, 0, 0, 0);
-          else {
-            float normalisedValue = (value - u_domain[0]) / (u_domain[1] - u_domain[0]);
-            gl_FragColor = texture2D(u_textureScale, vec2(normalisedValue, 0));
-          }
-        }`;
+            if (value == u_noDataValue)
+              gl_FragColor = vec4(0.0, 0, 0, 0.0);
+            else if ((!u_clampLow && value < u_domain[0]) || (!u_clampHigh && value > u_domain[1]))
+              gl_FragColor = vec4(0, 0, 0, 0);
+            else {
+              float normalisedValue = (value - u_domain[0]) / (u_domain[1] - u_domain[0]);
+              gl_FragColor = texture2D(u_textureScale, vec2(normalisedValue, 0));
+            }
+          }`;
         program = createProgram(gl, vertexShaderSource, fragmentShaderSourceExpressionTemplate);
         gl.useProgram(program);
 
@@ -731,7 +753,7 @@ ${ids.map(id => `          float ${id}_value = texture2D(u_texture_${id}, v_texC
       const trange = this.domain[1] - this.domain[0];
       const steps = this.colorScaleCanvas.width;
       const csImageData = this.colorScaleCanvas.getContext('2d').getImageData(0, 0, steps, 1).data;
-      let alpha;
+      let alpha: number;
 
       const data = dataset.data;
 
@@ -826,6 +848,12 @@ ${ids.map(id => `          float ${id}_value = texture2D(u_texture_${id}, v_texC
     } else {
       this.expressionAst = parseArithmetics(expression);
     }
+  }
+
+  destroy() {
+    // 在使用完WebGL上下文后，释放资源
+    this.gl.deleteProgram(this.program);
+    this.removeAllDataset();
   }
 }
 

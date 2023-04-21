@@ -6,32 +6,54 @@ import WorkerFarm from "./worker-farm";
 import { getMinMax, generateColorScale, getRange } from "./utils";
 import { ColorScaleNames } from "./plotty/typing";
 
-export interface TIFFImageryProviderRenderOptions {
-  /** nodata value, default read from tiff meta */
-  nodata?: number;
-  /** Band value starts from 1 */
-  r?: {
-    band?: number;
-    min?: number;
-    max?: number;
-  };
-  g?: {
-    band?: number;
-    min?: number;
-    max?: number;
-  };
-  b?: {
-    band?: number;
-    min?: number;
-    max?: number;
-  };
-  fill?: {
-    colorScale?: ColorScaleNames;
-    /** custom interpolate colors, [stopValue, color] or [color], if the latter, means equal distribution */
-    colors?: [number, string][] | string[];
-    /** defaults to continuous */
-    type?: 'continuous' | 'discrete';
-  };
+export interface SingleBandRenderOptions {
+  /** band index start from 1, defaults to 1 */
+  band?: number;
+
+  /**
+   * The color scale image to use.
+   */
+  colorScaleImage?: HTMLCanvasElement | HTMLImageElement;
+
+  /**
+   * The name of a named color scale to use.
+   */
+  colorScale?: ColorScaleNames;
+
+  /** custom interpolate colors, [stopValue(0 - 1), color] or [color], if the latter, means equal distribution 
+   * @example
+   * [[0, 'red'], [0.6, 'green'], [1, 'blue']]
+  */
+  colors?: [number, string][] | string[];
+
+  /** defaults to continuous */
+  type?: 'continuous' | 'discrete';
+
+  /**
+   * The value domain to scale the color.
+   */
+  domain?: [number, number];
+
+  /**
+   * Range of values that will be rendered, values outside of the range will be transparent.
+   */
+  displayRange?: [number, number];
+
+  /**
+   * Set if displayRange should be used.
+   */
+  applyDisplayRange?: boolean;
+
+  /**
+   * Whether or not values below the domain shall be clamped.
+   */
+  clampLow?: boolean;
+
+  /**
+   * Whether or not values above the domain shall be clamped (if not defined defaults to clampLow value).
+   */
+  clampHigh?: boolean;
+  
   /**
    * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
    * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
@@ -41,7 +63,31 @@ export interface TIFFImageryProviderRenderOptions {
   expression?: string;
 }
 
-const canvas = document.createElement("canvas");
+export interface MultiBandRenderOptions {
+  /** Band value starts from 1 */
+  r?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+  g?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+  b?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+}
+
+export type TIFFImageryProviderRenderOptions = {
+  /** nodata value, default read from tiff meta */
+  nodata?: number;
+  single?: SingleBandRenderOptions;
+  multi?: MultiBandRenderOptions;
+}
 
 export interface TIFFImageryProviderOptions {
   url: string;
@@ -57,7 +103,7 @@ export interface TIFFImageryProviderOptions {
   /** cache survival time, defaults to 60 * 3000 ms */
   cache?: number;
 }
-
+const canvas = document.createElement('canvas');
 export class TIFFImageryProvider {
   ready: boolean;
   tilingScheme: GeographicTilingScheme;
@@ -78,10 +124,10 @@ export class TIFFImageryProvider {
     time: number;
     data: ImageData | HTMLCanvasElement | HTMLImageElement;
   }> = {};
-  bands: {
+  bands: Record<number, {
     min: number;
     max: number;
-  }[];
+  }>;
   noData: number;
   hasAlphaChannel: boolean;
   private _pool: Pool;
@@ -114,34 +160,51 @@ export class TIFFImageryProvider {
       const noData = image.getGDALNoData();
       this.noData = options.renderOptions.nodata ?? noData;
 
-      const bands: {
+      const bands: Record<number, {
         min: number;
         max: number;
-      }[] = [];
+      }> = {};
       // 获取波段数
       const samples = image.getSamplesPerPixel();
       for (let i = 0; i < samples; i++) {
-        if (samples > 1) {
-          bands.push({
-            min: 0,
-            max: 255
-          })
+        // 获取该波段最大最小值信息
+        const element = image.getGDALMetadata(i);
+        const bandNum = i + 1;
+
+        if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
+          bands[bandNum] = {
+            min: +element.STATISTICS_MINIMUM,
+            max: +element.STATISTICS_MAXIMUM,
+          }
         } else {
-          // 获取该波段最大最小值信息
-          const element = image.getGDALMetadata(i);
-          if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
-            bands.push({
-              min: element.STATISTICS_MINIMUM,
-              max: element.STATISTICS_MAXIMUM,
-            })
-          } else {
-            // 尝试强制获取波段最大最小值
-            const previewImage = await res.getImage()
+          const { single, multi } = options.renderOptions ?? {};
+          if (multi) {
+            const inputBand = multi[Object.keys(multi).find(key => multi[key]?.band === bandNum)]
+            if (inputBand?.min !== undefined && inputBand?.max !== undefined) {
+              const { min, max } = inputBand
+              bands[bandNum] = {
+                min, max
+              }
+            }
+          }
+
+          if (single && single.band === bandNum && single.domain) {
+            bands[bandNum] = {
+              min: single.domain[0],
+              max: single.domain[1],
+            }
+          }
+
+          if (!bands[bandNum]) {
+            // 尝试获取波段最大最小值
+            console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
+  
+            const previewImage = await res.getImage(this._imageCount - 1)
             const data = (await previewImage.readRasters({
               samples: [i],
               pool: this._pool,
             }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
-            bands.push(getMinMax(data, noData))
+            bands[bandNum] = getMinMax(data, noData)
           }
         }
       }
@@ -179,20 +242,34 @@ export class TIFFImageryProvider {
       this.maximumLevel = this.maximumLevel >= this._imageCount ? this._imageCount - 1 : this.maximumLevel;
       this._images = new Array(this._imageCount).fill(null);
       
-      this.plot = new plot({
-        canvas,
-        applyDisplayRange: true,
-      })
-      this.plot.setNoDataValue(this.noData);
-      const { expression, fill, r } = options.renderOptions ?? {};
-      this.plot.setExpression(expression);
-      if (fill?.colors) {
-        const { stops, colorScale } = generateColorScale(fill.colors, bands, r)
-        addColorScale('temp', colorScale.colors, colorScale.positions);
-        this.plot.setColorScale('temp' as any);
-        this.options.renderOptions.fill.colors = stops;
-      } else {
-        this.plot.setColorScale(fill?.colorScale ?? 'blackwhite');
+      // 如果是单通道渲染, 则构建plot对象
+      try {
+        if (options.renderOptions?.single) {
+          const single = options.renderOptions.single;
+          const band = this.bands[single.band ?? 1];
+          if (!band) {
+            throw new Error(`Invalid band${single.band}`);
+          }
+          this.plot = new plot({
+            canvas,
+            ...single,
+            domain: single.domain ?? [band.min, band.max]
+          })
+          this.plot.setNoDataValue(this.noData);
+          
+          const { expression, colors } = single;
+          this.plot.setExpression(expression);
+          if (colors) {
+            const colorScale = generateColorScale(colors)
+            addColorScale('temp', colorScale.colors, colorScale.positions);
+            this.plot.setColorScale('temp' as any);
+          } else {
+            this.plot.setColorScale(single?.colorScale ?? 'blackwhite');
+          }
+        }
+      } catch (e) {
+        console.error(e);
+        this._error.raiseEvent(e);
       }
 
       this.ready = true;
@@ -280,46 +357,41 @@ export class TIFFImageryProvider {
     if (this._cacheTime && this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`].data;
 
     const { renderOptions } = this.options;
+    const { single, multi } = renderOptions;
 
     try {
       const { data, width, height } = await this._loadTile(x, y, z);
 
-      const opts = {
-        width,
-        height,
-        renderOptions,
-        bands: this.bands,
-        noData: this.noData
-      }
-      if (!this._workerFarm?.worker) {
-        throw new Error('web workers bootstrap error');
-      }
-
-      const { r, fill } = renderOptions;
-
       let result: ImageData | HTMLImageElement
 
-      if (fill && fill.type !== 'discrete') {
-        this.plot.datasetCollection = {};
-        data.forEach((band, index) => {
-          this.plot.addDataset(`band${index + 1}`, band, width, height);
+      if (single) {
+        const { band = 1 } = single;
+        this.plot.removeAllDataset();
+        data.forEach((dt, index) => {
+          this.plot.addDataset(`band${index + 1}`, dt, width, height);
         })
-        const range = getRange(this.bands, r)
-        this.plot.setDomain([range.min, range.max])
-        this.plot.setDisplayRange([range.min, range.max])
-        this.plot.renderDataset(`band${(r?.band ?? 1)}`)
+        
+        this.plot.renderDataset(`band${band}`)
         this.plot.render();
 
         const image = new Image();
+        
         image.src = this.plot.canvas.toDataURL();
 
         result = image;
-      } else {
-        try {
-          result = await this._workerFarm.scheduleTask(data, opts);
-        } catch (e) {
-          console.error(e)
+      } else if (multi) {
+        const opts = {
+          width,
+          height,
+          renderOptions: multi,
+          bands: this.bands,
+          noData: this.noData
         }
+        if (!this._workerFarm?.worker) {
+          throw new Error('web workers bootstrap error');
+        }
+
+        result = await this._workerFarm.scheduleTask(data, opts);
       }
 
       if (result && this._cacheTime) {
@@ -336,6 +408,7 @@ export class TIFFImageryProvider {
       }
       return result;
     } catch (e) {
+      console.error(e);
       this._error.raiseEvent(e);
       throw e;
     }
@@ -386,6 +459,7 @@ export class TIFFImageryProvider {
     this._imagesCache = undefined;
     this._workerFarm?.destory();
     this._pool.destroy();
+    this.plot?.destroy();
     this._destroyed = true;
   }
 }

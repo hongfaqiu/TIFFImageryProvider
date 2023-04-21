@@ -18,7 +18,8 @@
   },
   "scripts": {
     "dev": "rollup -c -w",
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "prepublish": "pnpm build"
   },
   "author": "hongfaqiu",
   "license": "MIT",

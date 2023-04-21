@@ -22,51 +22,47 @@ export function decimal2rgb(number: number) {
   return Math.round(number * 255)
 }
 
-export function getRange(bands: {
+export function getRange(bands: Record<number, {
   min: number;
   max: number;
-}[], opts: {
+}>, opts: {
   min?: number,
   max?: number,
-  band?: number
-} | undefined) {
-  const min = opts?.min ?? +bands[(opts?.band ?? 1) - 1].min;
-  const max = opts?.max ?? +bands[(opts?.band ?? 1) - 1].max;
+  band: number
+  } | undefined) {
+  const band = bands[opts.band]
+  if (!band) {
+    throw new Error(`Invalid band${opts.band}`)
+  }
+  const min = opts?.min ?? +band.min;
+  const max = opts?.max ?? +band.max;
   const range = max - min;
   return { min, max, range };
 }
 
-export function generateColorScale(colors: [number, string][] | string[], bands: {
-  min: number;
-  max: number;
-}[], opts: {
-  min?: number,
-  max?: number,
-  band?: number
-} | undefined) {
-  const { min, max, range } = getRange(bands, opts);
-
+export function generateColorScale(colors: [number, string][] | string[]) {
   let stops: [number, string][];
 
   if (typeof colors[0] === 'string') {
-    const step = range / colors.length;
-    stops = (colors as string[]).map((color: any, index: number) => {
-      return [min + index * step, color]
-    })
+    stops = (colors as string[]).map((color, index) => [index / colors.length, color])
   } else {
-    stops = (colors as [number, string][]).sort((a, b) => a[0] - b[0])
-    if (stops[0][0] > min) {
-      stops[0][0] = min;
-    }
-    if (stops[stops.length - 1][0] < max) {
-      stops[stops.length] = [max, stops[stops.length - 1][1]];
-    }
+    stops = (colors as [number, string][])
+  }
+
+  stops.sort((a, b) => a[0] - b[0]);
+
+  if (stops[0][0] > 0) {
+    stops = [stops[0], ...stops]
+  }
+
+  if (stops[stops.length - 1][0] > 0) {
+    stops = [...stops, stops[stops.length - 1]]
   }
 
   const colorScale = {
     colors: stops.map(stop => stop[1]),
-    positions: stops.map(stop => (stop[0] - min) / range),
+    positions: stops.map(stop => stop[0]),
   }
 
-  return { stops, colorScale };
+  return colorScale;
 }

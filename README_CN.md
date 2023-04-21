@@ -1,14 +1,16 @@
 # TIFFImageryProvider
 
-在Cesium上加载GeoTIFF / COG（优化的云存储GeoTIFF）
+在Cesium中加载GeoTIFF/COG（Cloud optimized GeoTIFF）。
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
+
+[中文readme](./README_CN.md)
 
 ## 特点
 
 - 三波段渲染。
 - 多模式颜色渲染。
-- 支持使用地理位置识别TIFF值。
+- 支持在地图上查询TIFF值。
 - 支持任何投影的TIFF。
 - Web Workers 加速。
 - WebGL 加速渲染。
@@ -23,7 +25,7 @@ npm install --save tiff-imagery-provider
 pnpm add tiff-imagery-provider
 ```
 
-## 用法
+## 使用
 
 基本用法
 
@@ -42,7 +44,7 @@ provider.readyPromise().then(() => {
 
 ```
 
-如果TIFF的投影不是EPSG：4326或EPSG：3857，则可以传递 ``projFunc`` 来处理投影
+如果TIFF的投影不是EPSG：4326或EPSG：3857，您可以传递``projFunc``来处理投影
 
 ```ts
 import proj4 from 'proj4';
@@ -64,10 +66,10 @@ new TIFFImageryProvider({
 class TIFFImageryProvider {
   ready: boolean;
   readyPromise: Promise<void>
-  bands: {
-      min: number;
-      max: number;
-  }[];
+  bands: Record<number, {
+    min: number;
+    max: number;
+  }>;
   constructor(options: TIFFImageryProviderOptions);
 
   get isDestroyed(): boolean;
@@ -82,60 +84,108 @@ interface TIFFImageryProviderOptions {
   minimumLevel?: number;
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
-  renderOptions?: {
-    /** nodata 值，默认从 tiff meta 中读取 */
-    nodata?: number;
-    /** 波段值从1开始 */
-    r?: {
-      band?: number;
-      min?: number;
-      max?: number;
-    };
-    g?: {
-      band?: number;
-      min?: number;
-      max?: number;
-    };
-    b?: {
-      band?: number;
-      min?: number;
-      max?: number;
-    };
-    fill?: {
-      /** 色带名称 */
-      colorScale?: ColorScaleNames;
-      /** 自定义色带，[stopValue, color] 或 [color]，如果是后者，意味着均匀分布 */
-      colors?: [number, string][] | string[];
-      /** 默认为连续 */
-      type?: 'continuous' | 'discrete';
-    };
-    /**
-     * 设置要在图上评估的数学表达式。表达式可以包含具有整数/浮点值的数学运算、波段标识符或具有单个参数的 GLSL 支持函数。
-     * 支持的数学运算有：加“+”、减“-”、乘“*”、除“/”、幂“**”、一元加“+a”、一元减“-a”。
-     * 有用的 GLSL 函数例如：弧度、度数、sin、asin、cos、acos、tan、atan、log2、log、sqrt、exp2、exp、abs、sign、floor、ceil、fract。
-     * @param {string} expression 数学表达式。示例：'-2 *sin(3.1415 -band1) **2'
-     */
-    expression?: string;
-  }
-  /** 投影函数，将 [lon, lat] 位置转换为 EPSG:4326 */
-  projFunc?: (code:number) => (((pos: number[]) => number[]) | void);
-  /** 缓存生存时间，默认为 60 *3000 ms */
+  renderOptions?: TIFFImageryProviderRenderOptions;
+  /** 投影函数，将[经度，纬度]位置转换为EPSG：4326 */
+  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+  /** 缓存生存时间，默认为60 * 3000毫秒 */
   cache?: number;
 }
 
-/** 参考 https://observablehq.com/@d3/color-schemes */
-type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' | 'summer' | 'autumn' | 'winter' | 'bone' | 'copper' | 'greys' | 'ylgnbu' | 'greens' | 'ylorrd' | 'bluered' | 'rdbu' | 'picnic' | 'portland' | 'blackbody' | 'earth' | 'electric' | 'magma' | 'plasma';
+type TIFFImageryProviderRenderOptions = {
+  /** 无效值，默认从tiff meta读取 */
+  nodata?: number;
+  single?: SingleBandRenderOptions;
+  multi?: MultiBandRenderOptions;
+}
+
+interface SingleBandRenderOptions {
+  /** 波段索引从1开始，默认为1 */
+  band?: number;
+
+  /**
+   * 使用的颜色比例尺图像。
+   */
+  colorScaleImage?: HTMLCanvasElement | HTMLImageElement;
+
+  /**
+   * 使用的命名颜色比例尺的名称。
+   */
+  colorScale?: ColorScaleNames;
+
+  /** 自定义插值颜色，[stopValue(0-1), color]或[color]，如果后者，表示等分布 
+   * @example
+   * [[0, 'red'], [0.6, 'green'], [1, 'blue']]
+  */
+  colors?: [number, string][] | string[];
+
+  /** 默认为连续 */
+  type?: 'continuous' | 'discrete';
+
+  /**
+   * 将值域缩放到颜色。
+   */
+  domain?: [number, number];
+
+  /**
+   * 将呈现的值的范围，超出范围的值将透明。
+   */
+  displayRange?: [number, number];
+
+  /**
+   * 设置是否应使用displayRange。
+   */
+  applyDisplayRange?: boolean;
+
+  /**
+   * 是否对域以下的值进行夹紧。
+   */
+  clampLow?: boolean;
+
+  /**
+   * 是否对域以上的值进行夹紧（如果未定义，则默认为clampLow值）。
+   */
+  clampHigh?: boolean;
+  
+  /**
+   * 设置要在绘图上评估的数学表达式。表达式可以包含具有整数/浮点值、波段标识符或带有单个参数的GLSL支持函数的数学运算。
+   * 支持的数学运算符为：add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'。
+   * 有用的GLSL函数例如：radians、degrees、sin、asin、cos、acos、tan、atan、log2、log、sqrt、exp、ceil、floor、abs、sign、min、max、clamp、mix、step、smoothstep。
+   * 这些函数的完整列表可以在[GLSL 4.50规范](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.50.pdf)的第117页找到。
+   */
+  expression?: string;
+}
+
+interface MultiBandRenderOptions {
+  /** 波段值从1开始 */
+  r?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+  g?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+  b?: {
+    band: number;
+    min?: number;
+    max?: number;
+  };
+}
+
+type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' | 'summer' | 'autumn' | 'winter' | 'bone' | 'copper' | 'greys' | 'ylgnbu' | 'greens' | 'ylorrd' | 'bluered' | 'rdbu' | 'picnic' | 'portland' | 'blackbody' | 'earth' | 'electric' | 'magma' | 'plasma' | 'redblue' | 'coolwarm' | 'diverging_1' | 'diverging_2' | 'blackwhite' | 'twilight' | 'twilight_shifted';
 ```
 
 ## 示例
 
-[在线演示](https://tiff-imagery-provider-example.vercel.app/)
+[在线示例](https://tiff-imagery-provider-example.vercel.app/)
 
-- 由 [Next.js](https://github.com/vercel/next.js) 支持。
-- 带有 [Semi-UI](<https://github.com/DouyinFE/semi-design>) 的暗色模式。
-- 简单的自定义渲染方法。
+- 使用 [Next.js](https://github.com/vercel/next.js) 搭建。
+- 使用 [Semi-UI](<https://github.com/DouyinFE/semi-design>) 实现暗黑模式。
+- 实现了简单的 COG 自定义渲染方法。
 
-在示例文件夹中启动应用程序，然后访问 <http://localhost:3000/>
+在 `demo` 文件夹中启动应用程序，然后访问 <http://localhost:3000/>：
 
 ```node
 pnpm install
@@ -148,14 +198,16 @@ pnpm start
 
 ## 已知问题
 
-- Cesium@1.101 错位
+- Cesium@1.101 中的位置错误
 
 ## 计划
 
-- [x] 使用Web Workers生成图块图像
-- [x] GPU 加速计算
+- [x] 使用 Web Workers 生成瓦片图像
+- [x] 使用 GPU 加速计算
+- [ ] 使用 Web Workers 加速Webgl渲染，共享上下文
 
-## 鸣谢
+## 致谢
 
 <https://github.com/geotiffjs/geotiff.js>
+
 <https://github.com/santilland/plotty>

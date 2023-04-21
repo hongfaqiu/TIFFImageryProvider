@@ -1,3 +1,4 @@
+import { SingleBandRenderOptions } from "src/TIFFImageryProvider";
 import { colorscales } from "./colorscales";
 
 export type TypedArray = Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array | Float64Array;
@@ -10,9 +11,11 @@ export interface DataSet {
   id: string;
 }
 
+export type RenderColorType = 'continuous' | 'discrete';
+
 export type ColorScaleNames = keyof typeof colorscales;
 
-export interface PlotOptions {
+export type PlotOptions = {
   /**
    * The canvas to render to.
    */
@@ -44,41 +47,6 @@ export interface PlotOptions {
   }[];
 
   /**
-   * The color scale image to use.
-   */
-  colorScaleImage?: HTMLCanvasElement | HTMLImageElement;
-
-  /**
-   * The name of a named color scale to use.
-   */
-  colorScale?: ColorScaleNames;
-
-  /**
-   * The value domain to scale the color.
-   */
-  domain?: [number, number];
-
-  /**
-   * Range of values that will be rendered, values outside of the range will be transparent.
-   */
-  displayRange?: [number, number];
-
-  /**
-   * Set if displayRange should be used.
-   */
-  applyDisplayRange?: boolean;
-
-  /**
-   * Whether or not values below the domain shall be clamped.
-   */
-  clampLow?: boolean;
-
-  /**
-   * Whether or not values above the domain shall be clamped (if not defined defaults to clampLow value).
-   */
-  clampHigh?: boolean;
-
-  /**
    * The no-data value that shall always be hidden.
    */
   noDataValue?: number;
@@ -92,4 +60,4 @@ export interface PlotOptions {
    * Plotty can also function with pure javascript but it is much slower then using WebGL rendering.
    */
   useWebGL?: boolean;
-}
+} & SingleBandRenderOptions
