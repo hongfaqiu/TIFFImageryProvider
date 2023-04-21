@@ -104,7 +104,7 @@ export interface TIFFImageryProviderOptions {
   renderOptions?: TIFFImageryProviderRenderOptions;
   /** projection function, convert [lon, lat] position to EPSG:4326 */
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
-  /** cache survival time, defaults to 60 * 3000 ms */
+  /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
 }
 const canvas = document.createElement('canvas');
