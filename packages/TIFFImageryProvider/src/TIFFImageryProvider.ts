@@ -203,7 +203,10 @@ export class TIFFImageryProvider {
         min: number;
         max: number;
       }> = {};
-      this.readSamples.forEach(async (i) => {
+      for (let i = 0; i < this.readSamples.length; i++) {
+        
+      }
+      await Promise.all(this.readSamples.map(async (i) => {
         const element = image.getGDALMetadata(i);
         const bandNum = i + 1;
         
@@ -249,7 +252,7 @@ export class TIFFImageryProvider {
             bands[bandNum] = getMinMax(data, noData)
           }
         }
-      })
+      }))
       this.bands = bands;
       
       // 获取空间范围
