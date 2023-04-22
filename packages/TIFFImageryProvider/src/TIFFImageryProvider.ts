@@ -161,14 +161,14 @@ export class TIFFImageryProvider {
 
       this.tileSize = this.tileWidth = this.tileHeight = options.tileSize || image.getTileWidth() || 512;
 
-      // 获取nodata值
-      const noData = image.getGDALNoData();
-      this.noData = options.renderOptions.nodata ?? noData;
       // 获取波段数
       const samples = image.getSamplesPerPixel();
-      
       // 赋初值
       this.renderOptions = options.renderOptions ?? {}
+      // 获取nodata值
+      const noData = image.getGDALNoData();
+      this.noData = this.renderOptions.nodata ?? noData;
+
       if (samples < 3 && this.renderOptions.convertToRGB) {
         const error = new Error('Can not render the image as RGB, please check the convertToRGB parameter')
         throw error;
