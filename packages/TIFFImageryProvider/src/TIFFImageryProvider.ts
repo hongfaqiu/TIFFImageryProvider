@@ -58,7 +58,10 @@ export interface SingleBandRenderOptions {
    * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
    * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
    * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
-   * @param {string} expression Mathematical expression. Example: '-2 * sin(3.1415 - band1) ** 2'
+   * Don't forget to set the domain parameter!
+   * @example 
+   * '-2 * sin(3.1415 - b1) ** 2'
+   * '(b1 - b2) / (b1 + b2)'
    */
   expression?: string;
 }
@@ -233,14 +236,14 @@ export class TIFFImageryProvider {
             }
           }
   
-          if (single && single.band === bandNum && single.domain) {
+          if (single && !single.expression && single.band === bandNum && single.domain) {
             bands[bandNum] = {
               min: single.domain[0],
               max: single.domain[1],
             }
           }
   
-          if (!bands[bandNum]) {
+          if (!single.expression && !bands[bandNum]) {
             // 尝试获取波段最大最小值
             console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
   
@@ -291,7 +294,7 @@ export class TIFFImageryProvider {
       try {
         if (this.renderOptions.single) {
           const band = this.bands[single.band];
-          if (!band) {
+          if (!single.expression && !band) {
             throw new Error(`Invalid band${single.band}`);
           }
           this.plot = new plot({
@@ -430,14 +433,14 @@ export class TIFFImageryProvider {
         }
 
         result = await this._workerFarm.scheduleTask(data, opts);
-      } else if (single) {
+      } else if (single && this.plot) {
         const { band = 1 } = single;
         this.plot.removeAllDataset();
         this.readSamples.forEach((sample, index) => {
-          this.plot.addDataset(`band${sample + 1}`, data[index], this.tileSize, this.tileSize);
+          this.plot.addDataset(`b${sample + 1}`, data[index], this.tileSize, this.tileSize);
         })
         
-        this.plot.renderDataset(`band${band}`)
+        this.plot.renderDataset(`b${band}`)
         this.plot.render();
 
         const image = new Image();
@@ -519,7 +522,7 @@ export class TIFFImageryProvider {
     this._images = undefined;
     this._imagesCache = undefined;
     this._workerFarm?.destory();
-    this._pool.destroy();
+    this._pool?.destroy();
     this.plot?.destroy();
     this._destroyed = true;
   }

@@ -68,7 +68,7 @@ export function generateColorScale(colors: [number, string][] | string[]) {
 }
 
 export function findAndSortBandNumbers(str: string) {
-  const regex = /band(\d+)/g;
+  const regex = /b(\d+)/g;
   const bandNumbers = new Set<number>();
   let match: string[];
   while ((match = regex.exec(str)) !== null) {

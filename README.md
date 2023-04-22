@@ -14,7 +14,7 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 - Support any projected TIFF.
 - Web Workers speed up.
 - WebGL accelerated rendering.
-- Band calculation [Experimental].
+- Band calculation.
 
 ## Install
 
@@ -55,6 +55,22 @@ new TIFFImageryProvider({
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
       return proj4("EPSG:32760", "EPSG:4326").forward
+    }
+  }
+});
+```
+
+Band calculation
+
+```ts
+// NDVI
+new TIFFImageryProvider({
+  url: YOUR_TIFF_URL,
+  renderOptions: {
+    single: {
+      colorScale: 'rainbow',
+      domain: [-1, 1],
+      expression: '(b1 - b2) / (b1 + b2)'
     }
   }
 });
@@ -154,7 +170,10 @@ interface SingleBandRenderOptions {
    * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
    * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
    * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
-   * @param {string} expression Mathematical expression. Example: '-2 * sin(3.1415 - band1) ** 2'
+   * Don't forget to set the domain parameter!
+   * @example 
+   * '-2 * sin(3.1415 - b1) ** 2'
+   * '(b1 - b2) / (b1 + b2)'
    */
   expression?: string;
 }

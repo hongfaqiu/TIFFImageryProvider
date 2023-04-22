@@ -14,7 +14,7 @@
 - 支持任何投影的TIFF。
 - Web Workers 加速。
 - WebGL 加速渲染。
-- 波段计算 [实验中]。
+- 波段计算。
 
 ## 安装
 
@@ -55,6 +55,22 @@ new TIFFImageryProvider({
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
       return proj4("EPSG:32760", "EPSG:4326").forward
+    }
+  }
+});
+```
+
+波段计算
+
+```ts
+// NDVI
+new TIFFImageryProvider({
+  url: YOUR_TIFF_URL,
+  renderOptions: {
+    single: {
+      colorScale: 'rainbow',
+      domain: [-1, 1],
+      expression: '(b1 - b2) / (b1 + b2)'
     }
   }
 });
@@ -155,6 +171,10 @@ interface SingleBandRenderOptions {
    * 支持的数学运算符为：add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'。
    * 有用的GLSL函数例如：radians、degrees、sin、asin、cos、acos、tan、atan、log2、log、sqrt、exp、ceil、floor、abs、sign、min、max、clamp、mix、step、smoothstep。
    * 这些函数的完整列表可以在[GLSL 4.50规范](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.50.pdf)的第117页找到。
+   * 不要忘记设置domain参数!
+   * @example 
+   * '-2 * sin(3.1415 - b1) ** 2'
+   * '(b1 - b2) / (b1 + b2)'
    */
   expression?: string;
 }
