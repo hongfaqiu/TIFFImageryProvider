@@ -111,6 +111,19 @@ export interface TIFFImageryProviderOptions {
   cache?: number;
 }
 const canvas = document.createElement('canvas');
+
+let workerPool: Pool;
+function getWorkerPool() {
+  if (!workerPool) {
+    workerPool = new Pool();
+    if (!workerPool.workers) {
+      console.warn('Geotiff decode worker pool is not initialized, use main thread')
+      return undefined
+    };
+  };
+  return workerPool;
+}
+
 export class TIFFImageryProvider {
   ready: boolean;
   tilingScheme: GeographicTilingScheme;
@@ -157,7 +170,7 @@ export class TIFFImageryProvider {
     this.readyPromise = tiffFromUrl(options.url, {
       allowFullFile: true
     }).then(async (res) => {
-      this._pool = new Pool()
+      this._pool = getWorkerPool()
       this._source = res;
       const image = await res.getImage();
       this._imageCount = await res.getImageCount();
@@ -410,6 +423,9 @@ export class TIFFImageryProvider {
 
     try {
       const data = await this._loadTile(x, y, z);
+      if (this._destroyed) {
+        return undefined;
+      }
       
       let result: ImageData | HTMLImageElement
       
