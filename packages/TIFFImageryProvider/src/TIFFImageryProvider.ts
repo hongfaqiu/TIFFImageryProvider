@@ -117,8 +117,7 @@ function getWorkerPool() {
   if (!workerPool) {
     workerPool = new Pool();
     if (!workerPool.workers) {
-      console.warn('Geotiff decode worker pool is not initialized, use main thread')
-      return undefined
+      workerPool = undefined;
     };
   };
   return workerPool;
@@ -175,16 +174,17 @@ export class TIFFImageryProvider {
       const image = await res.getImage();
       this._imageCount = await res.getImageCount();
 
-      this.tileSize = this.tileWidth = this.tileHeight = options.tileSize || image.getTileWidth() || 512;
+      this.tileSize = this.tileWidth = options.tileSize || image.getTileWidth() || 512;
+      this.tileHeight = options.tileSize || image.getTileHeight() || 512;
 
       // 获取波段数
       const samples = image.getSamplesPerPixel();
-      // 赋初值
       this.renderOptions = options.renderOptions ?? {}
       // 获取nodata值
       const noData = image.getGDALNoData();
       this.noData = this.renderOptions.nodata ?? noData;
 
+      // 赋初值
       if (samples < 3 && this.renderOptions.convertToRGB) {
         const error = new DeveloperError('Can not render the image as RGB, please check the convertToRGB parameter')
         throw error;
@@ -219,9 +219,6 @@ export class TIFFImageryProvider {
         min: number;
         max: number;
       }> = {};
-      for (let i = 0; i < this.readSamples.length; i++) {
-        
-      }
       await Promise.all(this.readSamples.map(async (i) => {
         const element = image.getGDALMetadata(i);
         const bandNum = i + 1;
@@ -398,7 +395,11 @@ export class TIFFImageryProvider {
       } else {
         res = await image.readRasters(options) as TypedArray[];
       }
-      return res;
+      return {
+        data: res,
+        width: this.tileWidth,
+        height: this.tileHeight
+      };
     } catch(error) {
       this._error.raiseEvent(error);
       throw error;
@@ -422,7 +423,7 @@ export class TIFFImageryProvider {
     const { single, multi, convertToRGB } = this.renderOptions;
 
     try {
-      const data = await this._loadTile(x, y, z);
+      const { width, height, data } = await this._loadTile(x, y, z);
       if (this._destroyed) {
         return undefined;
       }
@@ -431,8 +432,8 @@ export class TIFFImageryProvider {
       
       if (multi || convertToRGB) {
         const opts = {
-          width: this.tileSize,
-          height: this.tileSize,
+          width,
+          height,
           renderOptions: multi ?? ['r', 'g', 'b'].reduce((pre, val, index) => ({
             ...pre,
             [val]: {
@@ -453,7 +454,7 @@ export class TIFFImageryProvider {
         const { band = 1 } = single;
         this.plot.removeAllDataset();
         this.readSamples.forEach((sample, index) => {
-          this.plot.addDataset(`b${sample + 1}`, data[index], this.tileSize, this.tileSize);
+          this.plot.addDataset(`b${sample + 1}`, data[index], width, height);
         })
         
         if (single.expression) {
