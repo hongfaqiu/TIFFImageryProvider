@@ -352,17 +352,26 @@ export class TIFFImageryProvider {
     return this._destroyed
   }
 
+  /**
+   * get available cog levels
+   */
   private async _getCogLevels() {
     const levels: number[] = [];
-    
+    let nowCogLevel: number;
     for (let i = this._imageCount - 1; i >= 0; i--) {
-      const z = levels.length + 1;
       const image = this._images[i] = await this._source.getImage(i);
       const width = image.getWidth();
+      const height = image.getHeight();
+      const size = Math.max(width, height);
+      
       // add 50% tilewidth tolerance
-      if (width > (this.tileWidth * (z - 0.5))) {
-        levels.push(i)
+      if (size > (this.tileWidth * 0.5)) {
+        nowCogLevel = i;
+        break;
       }
+    }
+    while (nowCogLevel >= 0) {
+      levels.push(nowCogLevel--);
     }
     return levels;
   }
