@@ -173,7 +173,7 @@ export class TIFFImageryProvider {
       this.noData = this.renderOptions.nodata ?? noData;
 
       if (samples < 3 && this.renderOptions.convertToRGB) {
-        const error = new Error('Can not render the image as RGB, please check the convertToRGB parameter')
+        const error = new DeveloperError('Can not render the image as RGB, please check the convertToRGB parameter')
         throw error;
       }
       if (!this.renderOptions.single && !this.renderOptions.multi && !this.renderOptions.convertToRGB) {
@@ -243,7 +243,7 @@ export class TIFFImageryProvider {
             }
           }
   
-          if (!single.expression && !bands[bandNum]) {
+          if (!single?.expression && !bands[bandNum]) {
             // 尝试获取波段最大最小值
             console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
   
@@ -274,7 +274,7 @@ export class TIFFImageryProvider {
       } else if (prjCode === 3857 || prjCode === 900913) {
         this.rectangle = Rectangle.fromCartesianArray([new Cartesian3(west, south), new Cartesian3(east, north)]);
       } else {
-        const error = new Error(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
+        const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
         throw error;
       }
       // 处理跨180度经线的情况
@@ -295,7 +295,7 @@ export class TIFFImageryProvider {
         if (this.renderOptions.single) {
           const band = this.bands[single.band];
           if (!single.expression && !band) {
-            throw new Error(`Invalid band${single.band}`);
+            throw new DeveloperError(`Invalid band${single.band}`);
           }
           this.plot = new plot({
             canvas,
@@ -429,7 +429,7 @@ export class TIFFImageryProvider {
           noData: this.noData,
         }
         if (!this._workerFarm?.worker) {
-          throw new Error('web workers bootstrap error');
+          throw new DeveloperError('web workers bootstrap error');
         }
 
         result = await this._workerFarm.scheduleTask(data, opts);
@@ -440,8 +440,11 @@ export class TIFFImageryProvider {
           this.plot.addDataset(`b${sample + 1}`, data[index], this.tileSize, this.tileSize);
         })
         
-        this.plot.renderDataset(`b${band}`)
-        this.plot.render();
+        if (single.expression) {
+          this.plot.render();
+        } else {
+          this.plot.renderDataset(`b${band}`)
+        }
 
         const image = new Image();
         

@@ -36,7 +36,7 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 const cesiumViewer = new Viewer("cesiumContainer");
 
 const provider = new TIFFImageryProvider({
-  url: 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/36/Q/WD/2020/7/S2A_36QWD_20200701_0_L2A/TCI.tif',
+  url: 'https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif',
 });
 provider.readyPromise.then(() => {
   cesiumViewer.imageryLayers.addImageryProvider(provider);
