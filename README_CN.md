@@ -105,6 +105,8 @@ interface TIFFImageryProviderOptions {
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
   /** 缓存生存时间，默认为60 * 3000毫秒 */
   cache?: number;
+  /** geotiff 重采样方法, 默认为 nearest */
+  resampleMethod?: 'nearest' | 'bilinear' | 'linear';
 }
 
 type TIFFImageryProviderRenderOptions = {

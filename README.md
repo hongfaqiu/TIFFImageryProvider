@@ -105,6 +105,8 @@ interface TIFFImageryProviderOptions {
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
+  /** geotiff resample method, defaults to nearest */
+  resampleMethod?: 'nearest' | 'bilinear' | 'linear';
 }
 
 type TIFFImageryProviderRenderOptions = {

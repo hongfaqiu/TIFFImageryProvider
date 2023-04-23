@@ -109,6 +109,8 @@ export interface TIFFImageryProviderOptions {
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
+  /** geotiff resample method, defaults to nearest */
+  resampleMethod?: 'nearest' | 'bilinear' | 'linear';
 }
 const canvas = document.createElement('canvas');
 
@@ -155,6 +157,7 @@ export class TIFFImageryProvider {
   plot: plot;
   renderOptions: TIFFImageryProviderRenderOptions;
   readSamples: number[];
+  cogLevels: number[];
   constructor(private readonly options: TIFFImageryProviderOptions) {
     this.ready = false;
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
@@ -172,10 +175,12 @@ export class TIFFImageryProvider {
       this._pool = getWorkerPool()
       this._source = res;
       const image = await res.getImage();
+      
       this._imageCount = await res.getImageCount();
-
       this.tileSize = this.tileWidth = options.tileSize || image.getTileWidth() || 512;
       this.tileHeight = options.tileSize || image.getTileHeight() || 512;
+      // 获取合适的COG层级
+      this.cogLevels = await this._getCogLevels();
 
       // 获取波段数
       const samples = image.getSamplesPerPixel();
@@ -257,7 +262,7 @@ export class TIFFImageryProvider {
             // 尝试获取波段最大最小值
             console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
   
-            const previewImage = await res.getImage(this._imageCount - 1)
+            const previewImage = await res.getImage(this.cogLevels[0])
             const data = (await previewImage.readRasters({
               samples: [i],
               pool: this._pool,
@@ -297,7 +302,8 @@ export class TIFFImageryProvider {
         numberOfLevelZeroTilesX: 1,
         numberOfLevelZeroTilesY: 1
       });
-      this.maximumLevel = this.maximumLevel >= this._imageCount ? this._imageCount - 1 : this.maximumLevel;
+      const maxCogLevel = this.cogLevels.length - 1
+      this.maximumLevel = this.maximumLevel > maxCogLevel ? maxCogLevel : this.maximumLevel;
       this._images = new Array(this._imageCount).fill(null);
 
       // 如果是单通道渲染, 则构建plot对象
@@ -346,10 +352,19 @@ export class TIFFImageryProvider {
     return this._destroyed
   }
 
-  private _getIndex(level: number) {
-    const z = level > this._imageCount ? this._imageCount : level;
-    const index = this._imageCount - z - 1;
-    return index;
+  private async _getCogLevels() {
+    const levels: number[] = [];
+    
+    for (let i = this._imageCount - 1; i >= 0; i--) {
+      const z = levels.length + 1;
+      const image = this._images[i] = await this._source.getImage(i);
+      const width = image.getWidth();
+      // add 50% tilewidth tolerance
+      if (width > (this.tileWidth * (z - 0.5))) {
+        levels.push(i)
+      }
+    }
+    return levels;
   }
 
   /**
@@ -359,8 +374,7 @@ export class TIFFImageryProvider {
    * @param z 
    */
   private async _loadTile(x: number, y: number, z: number) {
-    
-    const index = this._getIndex(z);
+    const index = this.cogLevels[z];
     let image = this._images[index];
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
@@ -386,6 +400,7 @@ export class TIFFImageryProvider {
       height: this.tileHeight,
       pool: this._pool,
       samples: this.readSamples,
+      resampleMethod: this.options.resampleMethod,
       interleave: false,
     }
     let res: TypedArray[];
@@ -417,7 +432,7 @@ export class TIFFImageryProvider {
       );
     }
 
-    if (z < this.minimumLevel || z > this.maximumLevel || z > this._imageCount) return undefined
+    if (z < this.minimumLevel || z > this.maximumLevel) return undefined
     if (this._cacheTime && this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`].data;
 
     const { single, multi, convertToRGB } = this.renderOptions;
@@ -444,6 +459,7 @@ export class TIFFImageryProvider {
           }), {}),
           bands: this.bands,
           noData: this.noData,
+          resampleMethod: this.options.resampleMethod,
         }
         if (!this._workerFarm?.worker) {
           throw new DeveloperError('web workers bootstrap error');
@@ -464,9 +480,18 @@ export class TIFFImageryProvider {
         }
 
         const image = new Image();
-        
-        image.src = this.plot.canvas.toDataURL();
-
+        if (this.plot.canvas instanceof HTMLCanvasElement) {
+          
+          image.src = this.plot.canvas.toDataURL();
+  
+        } else {
+          const imgBitmap = this.plot.canvas.transferToImageBitmap();
+          canvas.width = imgBitmap.width;
+          canvas.height = imgBitmap.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(imgBitmap, 0, 0);
+          image.src = canvas.toDataURL();
+        }
         result = image;
       }
 
@@ -493,8 +518,8 @@ export class TIFFImageryProvider {
   async pickFeatures(x: number, y: number, zoom: number, longitude: number, latitude: number) {
     if (!this.options.enablePickFeatures) return undefined
 
-    const z = zoom > this._imageCount ? this._imageCount : zoom;
-    const index = this._getIndex(z);
+    const z = zoom > this.maximumLevel ? this.maximumLevel : zoom;
+    const index = this.cogLevels[z];
     let image = this._images[index];
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);

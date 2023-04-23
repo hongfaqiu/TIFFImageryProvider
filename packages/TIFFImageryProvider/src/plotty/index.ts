@@ -12,19 +12,19 @@ import { colorscales } from './colorscales';
 import { parse as parseArithmetics } from './arithmetics-parser';
 import { ColorScaleNames, DataSet, PlotOptions, RenderColorType, TypedArray } from './typing';
 
-function hasOwnProperty(obj, prop) {
+function hasOwnProperty(obj: any, prop: string) {
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
-function defaultFor(arg, val) { return typeof arg !== 'undefined' ? arg : val; }
+function defaultFor(arg: any, val: any) { return typeof arg !== 'undefined' ? arg : val; }
 
-function create3DContext(canvas: HTMLCanvasElement, optAttribs: { premultipliedAlpha: boolean; }) {
+function create3DContext(canvas: HTMLCanvasElement | OffscreenCanvas, optAttribs: { premultipliedAlpha: boolean; }) {
   const names = ['webgl', 'experimental-webgl'];
   let context: WebGLRenderingContext | null= null;
   for (let ii = 0; ii < names.length; ++ii) {
     try {
-      context = canvas.getContext(names[ii] as any, optAttribs);
-    } catch(e) {}  // eslint-disable-line
+      context = canvas.getContext(names[ii] as any, optAttribs) as any as WebGLRenderingContext;
+    } catch(e) {}
     if (context) {
       break;
     }
@@ -58,7 +58,7 @@ function createProgram(gl: WebGLRenderingContext, vertexShaderSource: string, fr
   return program;
 }
 
-function setRectangle(gl, x, y, width, height) {
+function setRectangle(gl: WebGLRenderingContext, x: number, y: number, width: number, height: number) {
   const x1 = x;
   const x2 = x + width;
   const y1 = y;
@@ -251,13 +251,13 @@ void main() {
  *
  */
 class plot {
-  canvas: HTMLCanvasElement;
+  canvas: HTMLCanvasElement | OffscreenCanvas;
   currentDataset: DataSet;
   datasetCollection: Record<string, DataSet>;
   gl: WebGLRenderingContext | null;
   program: WebGLProgram;
   texCoordBuffer: WebGLBuffer;
-  ctx: CanvasRenderingContext2D;
+  ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
   displayRange: number[];
   applyDisplayRange: boolean;
   matrix: number[];
@@ -282,7 +282,7 @@ class plot {
     if (defaultFor(options.useWebGL, true)) {
       // Try to create a webgl context in a temporary canvas to see if webgl and
       // required OES_texture_float is supported
-      if (create3DContext(document.createElement('canvas'), {premultipliedAlpha: false}) !== null) {
+      if (create3DContext(new OffscreenCanvas(512, 512), {premultipliedAlpha: false}) !== null) {
         const gl = create3DContext(this.canvas, {premultipliedAlpha: false});
         this.gl = gl;
         this.program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
@@ -466,9 +466,9 @@ class plot {
   /**
    * Set the canvas to draw to. When no canvas is supplied, a new canvas element
    * is created.
-   * @param {HTMLCanvasElement} [canvas] the canvas element to render to.
+   * @param {HTMLCanvasElement | OffscreenCanvas} [canvas] the canvas element to render to.
    */
-  setCanvas(canvas: HTMLCanvasElement) {
+  setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas) {
     this.canvas = canvas || document.createElement('canvas');
   }
 
@@ -503,9 +503,9 @@ class plot {
 
   /**
    * Get the canvas that is currently rendered to.
-   * @returns {HTMLCanvasElement} the canvas that is currently rendered to.
+   * @returns {HTMLCanvasElement | OffscreenCanvas} the canvas that is currently rendered to.
    */
-  getCanvas(): HTMLCanvasElement {
+  getCanvas(): HTMLCanvasElement | OffscreenCanvas {
     return this.canvas;
   }
 
@@ -588,7 +588,7 @@ class plot {
     let ids = null;
     if (this.expressionAst) {
       const idsSet = new Set([]);
-      const getIds = (node) => {
+      const getIds = (node: any) => {
         if (typeof node === 'string') {
           // ids should not contain unary operators
           idsSet.add(node.replace(new RegExp(/[+-]/, 'g'), ''));
@@ -635,7 +635,7 @@ class plot {
             // The GPU will interpolate this value between points.
             v_texCoord = a_texCoord;
           }`;
-        const expressionReducer = (node) => {
+        const expressionReducer = (node: any) => {
           if (typeof node === 'object') {
             if (node.op === '**') {
               // math power operator substitution
@@ -660,7 +660,7 @@ class plot {
           uniform sampler2D u_textureScale;
 
           // add all required textures
-          ${ids.map(id => `uniform sampler2D u_texture_${id};`).join('\n')}
+          ${ids.map((id: any) => `uniform sampler2D u_texture_${id};`).join('\n')}
 
           uniform vec2 u_textureSize;
           uniform vec2 u_domain;
@@ -670,7 +670,7 @@ class plot {
           // the texCoords passed in from the vertex shader.
           varying vec2 v_texCoord;
           void main() {
-            ${ids.map(id => `float ${id}_value = texture2D(u_texture_${id}, v_texCoord)[0];`).join('\n')}
+            ${ids.map((id: any) => `float ${id}_value = texture2D(u_texture_${id}, v_texCoord)[0];`).join('\n')}
             float value = ${compiledExpression};
 
             if (value == u_noDataValue)

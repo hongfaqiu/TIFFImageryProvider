@@ -4,6 +4,8 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
+[中文readme](./README_CN.md)
+
 ## Features
 
 - Three band rendering.
@@ -34,9 +36,9 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 const cesiumViewer = new Viewer("cesiumContainer");
 
 const provider = new TIFFImageryProvider({
-  url: 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/36/Q/WD/2020/7/S2A_36QWD_20200701_0_L2A/TCI.tif',
+  url: 'https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif',
 });
-provider.readyPromise().then(() => {
+provider.readyPromise.then(() => {
   cesiumViewer.imageryLayers.addImageryProvider(provider);
 })
 
@@ -53,6 +55,22 @@ new TIFFImageryProvider({
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
       return proj4("EPSG:32760", "EPSG:4326").forward
+    }
+  }
+});
+```
+
+Band calculation
+
+```ts
+// NDVI
+new TIFFImageryProvider({
+  url: YOUR_TIFF_URL,
+  renderOptions: {
+    single: {
+      colorScale: 'rainbow',
+      domain: [-1, 1],
+      expression: '(b1 - b2) / (b1 + b2)'
     }
   }
 });
@@ -87,14 +105,19 @@ interface TIFFImageryProviderOptions {
   projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
+  /** geotiff resample method, defaults to nearest */
+  resampleMethod?: 'nearest' | 'bilinear' | 'linear';
 }
 
 type TIFFImageryProviderRenderOptions = {
   /** nodata value, default read from tiff meta */
   nodata?: number;
-  single?: SingleBandRenderOptions;
-  /** priority rendering */
+  /** try to render multi band cog to RGB, priority 1 */
+  convertToRGB?: boolean;
+  /** priority 2 */
   multi?: MultiBandRenderOptions;
+  /** priority 3 */
+  single?: SingleBandRenderOptions;
 }
 
 interface SingleBandRenderOptions {
@@ -149,7 +172,10 @@ interface SingleBandRenderOptions {
    * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
    * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
    * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
-   * @param {string} expression Mathematical expression. Example: '-2 * sin(3.1415 - band1) ** 2'
+   * Don't forget to set the domain parameter!
+   * @example 
+   * '-2 * sin(3.1415 - b1) ** 2'
+   * '(b1 - b2) / (b1 + b2)'
    */
   expression?: string;
 }

@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "lerna": "lerna publish",
+    "lerna": "lerna publish --conventional-commits",
     "postinstall": "pnpm run build:lib",
     "build:lib": "pnpm -r --filter \"./packages/**\" run build"
   },
