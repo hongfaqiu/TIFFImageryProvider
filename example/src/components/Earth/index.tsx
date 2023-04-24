@@ -42,7 +42,7 @@ const EarthViewer: React.FC<ViewerProps> = ({
         layerName: 'singleBand',
         id: '1',
         method: 'cog',
-        url: 'https://s2downloads.eox.at/demo/Sentinel-2/3857/R10m.tif',
+        url: '/cogtif.tif',
         renderOptions: {
           single: {
             colorScale: 'rainbow'
