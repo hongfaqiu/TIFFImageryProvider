@@ -44,7 +44,7 @@ provider.readyPromise.then(() => {
 
 ```
 
-If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
+If TIFF's projection is not EPSG:4326, you can pass the ``projFunc`` to handle the projection
 
 ```ts
 import proj4 from 'proj4';

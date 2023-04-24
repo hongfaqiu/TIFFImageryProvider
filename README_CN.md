@@ -44,7 +44,7 @@ provider.readyPromise.then(() => {
 
 ```
 
-如果TIFF的投影不是EPSG：4326或EPSG：3857，您可以传递``projFunc``来处理投影
+如果TIFF的投影不是EPSG：4326，您可以传递``projFunc``来处理投影
 
 ```ts
 import proj4 from 'proj4';

@@ -286,12 +286,11 @@ export class TIFFImageryProvider {
         this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1])
       } else if (prjCode === 4326) {
         this.rectangle = Rectangle.fromDegrees(...bbox)
-      } else if (prjCode === 3857 || prjCode === 900913) {
-        this.rectangle = Rectangle.fromCartesianArray([new Cartesian3(west, south), new Cartesian3(east, north)]);
       } else {
         const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
         throw error;
       }
+      
       // 处理跨180度经线的情况
       // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
       if (this.rectangle.east < this.rectangle.west) {
@@ -353,23 +352,30 @@ export class TIFFImageryProvider {
   }
 
   /**
-   * get available cog levels
+   * get suitable cog levels
    */
   private async _getCogLevels() {
     const levels: number[] = [];
-    let nowCogLevel: number;
+    let maximumLevel: number = this._imageCount - 1;
     for (let i = this._imageCount - 1; i >= 0; i--) {
       const image = this._images[i] = await this._source.getImage(i);
       const width = image.getWidth();
       const height = image.getHeight();
       const size = Math.max(width, height);
+
+      // 如果第一张瓦片的image tileSize大于512，则顺位后延，以减少请求量
+      if (i === this._imageCount - 1) {
+        const firstImageLevel = Math.ceil((size - this.tileSize) / this.tileSize)
+        levels.push(...new Array(firstImageLevel).fill(i))
+      }
       
       // add 50% tilewidth tolerance
-      if (size > (this.tileWidth * 0.5)) {
-        nowCogLevel = i;
+      if (size > (this.tileSize * 0.5)) {
+        maximumLevel = i;
         break;
       }
     }
+    let nowCogLevel: number = maximumLevel;
     while (nowCogLevel >= 0) {
       levels.push(nowCogLevel--);
     }
@@ -390,6 +396,7 @@ export class TIFFImageryProvider {
     }
     const width = image.getWidth();
     const height = image.getHeight();
+    
     const tileXNum = this.tilingScheme.getNumberOfXTilesAtLevel(z);
     const tileYNum = this.tilingScheme.getNumberOfYTilesAtLevel(z);
     const tilePixel = {
