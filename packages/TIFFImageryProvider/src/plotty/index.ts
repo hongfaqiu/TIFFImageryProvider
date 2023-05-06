@@ -664,6 +664,8 @@ class plot {
 
           uniform vec2 u_textureSize;
           uniform vec2 u_domain;
+          uniform vec2 u_display_range;
+          uniform bool u_apply_display_range;
           uniform float u_noDataValue;
           uniform bool u_clampLow;
           uniform bool u_clampHigh;
@@ -674,6 +676,8 @@ class plot {
             float value = ${compiledExpression};
 
             if (value == u_noDataValue)
+              gl_FragColor = vec4(0.0, 0, 0, 0.0);
+            else if (u_apply_display_range && (value < u_display_range[0] || value >= u_display_range[1]))
               gl_FragColor = vec4(0.0, 0, 0, 0.0);
             else if ((!u_clampLow && value < u_domain[0]) || (!u_clampHigh && value > u_domain[1]))
               gl_FragColor = vec4(0, 0, 0, 0);
