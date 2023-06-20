@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.6.0](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.5.0...v2.6.0) (2023-06-20)
+
+
+### Features
+
+* add fromUrl, support cesium@1.104+ [#11](https://github.com/hongfaqiu/TIFFImageryProvider/issues/11) ([8ce6a81](https://github.com/hongfaqiu/TIFFImageryProvider/commit/8ce6a81a49cf49634f64b6ca05eb376292709e7e))
+
+
+
+
+
 # [2.5.0](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.4.3...v2.5.0) (2023-06-20)
 
 
