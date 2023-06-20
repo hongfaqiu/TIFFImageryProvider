@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, ImageryLayerFeatureInfo, Math as CMath, DeveloperError } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined } from "cesium";
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
@@ -97,7 +97,6 @@ export type TIFFImageryProviderRenderOptions = {
 }
 
 export interface TIFFImageryProviderOptions {
-  url: string | File | Blob;
   requestOptions?: {
     /** defaults to false */
     forceXHR?: boolean;
@@ -144,7 +143,7 @@ export class TIFFImageryProvider {
   minimumLevel: number;
   credit: Credit;
   private _error: Event;
-  readyPromise: Promise<void>;
+  readyPromise: Promise<boolean>;
   private _destroyed = false;
   _source!: GeoTIFF;
   private _imageCount!: number;
@@ -165,8 +164,10 @@ export class TIFFImageryProvider {
   renderOptions: TIFFImageryProviderRenderOptions;
   readSamples: number[];
   cogLevels: number[];
-  constructor(private readonly options: TIFFImageryProviderOptions) {
-    this.ready = false;
+  constructor(private readonly options: TIFFImageryProviderOptions & {
+    /** Deprecated */
+    url?: string | File | Blob;
+  }) {
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
     this.maximumLevel = options.maximumLevel ?? 18;
     this.minimumLevel = options.minimumLevel ?? 0;
@@ -176,170 +177,12 @@ export class TIFFImageryProvider {
     this._workerFarm = new WorkerFarm();
     this._cacheTime = options.cache ?? 60 * 1000;
     
-    this.readyPromise = (options.url instanceof File || options.url instanceof Blob  ? fromBlob(options.url) : fromUrl(options.url, options.requestOptions)).then(async (res) => {
-      this._source = res;
-      const image = await res.getImage();
-      
-      this._imageCount = await res.getImageCount();
-      this.tileSize = this.tileWidth = options.tileSize || image.getTileWidth() || 512;
-      this.tileHeight = options.tileSize || image.getTileHeight() || 512;
-      // 获取合适的COG层级
-      this.cogLevels = await this._getCogLevels();
-
-      // 获取波段数
-      const samples = image.getSamplesPerPixel();
-      this.renderOptions = options.renderOptions ?? {}
-      // 获取nodata值
-      const noData = image.getGDALNoData();
-      this.noData = this.renderOptions.nodata ?? noData;
-
-      // 赋初值
-      if (samples < 3 && this.renderOptions.convertToRGB) {
-        const error = new DeveloperError('Can not render the image as RGB, please check the convertToRGB parameter')
-        throw error;
-      }
-      if (!this.renderOptions.single && !this.renderOptions.multi && !this.renderOptions.convertToRGB) {
-        if (samples > 1) {
-          this.renderOptions = {
-            convertToRGB: true,
-            ...this.renderOptions
-          }
-        } else {
-          this.renderOptions = {
-            single: {
-              band: 1
-            },
-            ...this.renderOptions
-          }
-        }
-      }
-      if (this.renderOptions.single) {
-        this.renderOptions.single.band = this.renderOptions.single.band ?? 1;
-      }
-      
-      const { single, multi, convertToRGB } = this.renderOptions;
-      this.readSamples = multi ? [multi.r.band - 1, multi.g.band - 1, multi.b.band - 1] : convertToRGB ? [0, 1, 2] : [0]
-      if (single?.expression) {
-        this.readSamples = findAndSortBandNumbers(single.expression);
-      }
-      
-      // 获取波段最大最小值信息
-      const bands: Record<number, {
-        min: number;
-        max: number;
-      }> = {};
-      await Promise.all(this.readSamples.map(async (i) => {
-        const element = image.getGDALMetadata(i);
-        const bandNum = i + 1;
-        
-        if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
-          bands[bandNum] = {
-            min: +element.STATISTICS_MINIMUM,
-            max: +element.STATISTICS_MAXIMUM,
-          }
-        } else {
-          if (convertToRGB) {
-            bands[bandNum] = {
-              min: 0,
-              max: 255,
-            }
-          };
-  
-          if (multi) {
-            const inputBand = multi[Object.keys(multi).find(key => multi[key]?.band === bandNum)]
-            if (inputBand?.min !== undefined && inputBand?.max !== undefined) {
-              const { min, max } = inputBand
-              bands[bandNum] = {
-                min, max
-              }
-            }
-          }
-  
-          if (single && !single.expression && single.band === bandNum && single.domain) {
-            bands[bandNum] = {
-              min: single.domain[0],
-              max: single.domain[1],
-            }
-          }
-  
-          if (!single?.expression && !bands[bandNum]) {
-            // 尝试获取波段最大最小值
-            console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
-  
-            const previewImage = await res.getImage(this.cogLevels[0])
-            const data = (await previewImage.readRasters({
-              samples: [i],
-              pool: getWorkerPool(),
-            }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
-            bands[bandNum] = getMinMax(data, noData)
-          }
-        }
-      }))
-      this.bands = bands;
-      
-      // 获取空间范围
-      const bbox = image.getBoundingBox();
-      const [west, south, east, north] = bbox;
-
-      const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
-      const { projFunc } = options;
-      const proj = projFunc?.(prjCode)
-      if (typeof proj === 'function') {
-        const leftBottom = proj([west, south])
-        const rightTop = proj([east, north])
-        this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1])
-      } else if (prjCode === 4326) {
-        this.rectangle = Rectangle.fromDegrees(...bbox)
-      } else {
-        const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
-        throw error;
-      }
-      
-      // 处理跨180度经线的情况
-      // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
-      if (this.rectangle.east < this.rectangle.west) {
-        this.rectangle.east += CMath.TWO_PI;
-      }
-      this.tilingScheme = new GeographicTilingScheme({
-        rectangle: this.rectangle,
-        numberOfLevelZeroTilesX: 1,
-        numberOfLevelZeroTilesY: 1
-      });
-      const maxCogLevel = this.cogLevels.length - 1
-      this.maximumLevel = this.maximumLevel > maxCogLevel ? maxCogLevel : this.maximumLevel;
-      this._images = new Array(this._imageCount).fill(null);
-
-      // 如果是单通道渲染, 则构建plot对象
-      try {
-        if (this.renderOptions.single) {
-          const band = this.bands[single.band];
-          if (!single.expression && !band) {
-            throw new DeveloperError(`Invalid band${single.band}`);
-          }
-          this.plot = new plot({
-            canvas,
-            ...single,
-            domain: single.domain ?? [band.min, band.max]
-          })
-          this.plot.setNoDataValue(this.noData);
-          
-          const { expression, colors } = single;
-          this.plot.setExpression(expression);
-          if (colors) {
-            const colorScale = generateColorScale(colors)
-            addColorScale('temp', colorScale.colors, colorScale.positions);
-            this.plot.setColorScale('temp' as any);
-          } else {
-            this.plot.setColorScale(single?.colorScale ?? 'blackwhite');
-          }
-        }
-      } catch (e) {
-        console.error(e);
-        this._error.raiseEvent(e);
-      }
-
-      this.ready = true;
-    })
+    this.ready = false;
+    if (defined(options.url)) {
+      this.readyPromise = this.build(options.url, options).then(() => {
+        return true;
+      })
+    }
   }
 
   /**
@@ -353,6 +196,180 @@ export class TIFFImageryProvider {
 
   get isDestroyed() {
     return this._destroyed
+  }
+
+  async build(url: string | File | Blob, options: TIFFImageryProviderOptions) {
+    const { tileSize, renderOptions, projFunc, requestOptions } = options ?? {};
+    const source = await (url instanceof File || url instanceof Blob ? fromBlob(url) : fromUrl(url, requestOptions))
+    this._source = source;
+    const image = await source.getImage();
+
+    this._imageCount = await source.getImageCount();
+    this.tileSize = this.tileWidth = tileSize || image.getTileWidth() || 512;
+    this.tileHeight = tileSize || image.getTileHeight() || 512;
+    // 获取合适的COG层级
+    this.cogLevels = await this._getCogLevels();
+
+    // 获取波段数
+    const samples = image.getSamplesPerPixel();
+    this.renderOptions = renderOptions ?? {}
+    // 获取nodata值
+    const noData = image.getGDALNoData();
+    this.noData = this.renderOptions.nodata ?? noData;
+
+    // 赋初值
+    if (samples < 3 && this.renderOptions.convertToRGB) {
+      const error = new DeveloperError('Can not render the image as RGB, please check the convertToRGB parameter')
+      throw error;
+    }
+    if (!this.renderOptions.single && !this.renderOptions.multi && !this.renderOptions.convertToRGB) {
+      if (samples > 1) {
+        this.renderOptions = {
+          convertToRGB: true,
+          ...this.renderOptions
+        }
+      } else {
+        this.renderOptions = {
+          single: {
+            band: 1
+          },
+          ...this.renderOptions
+        }
+      }
+    }
+    if (this.renderOptions.single) {
+      this.renderOptions.single.band = this.renderOptions.single.band ?? 1;
+    }
+
+    const { single, multi, convertToRGB } = this.renderOptions;
+    this.readSamples = multi ? [multi.r.band - 1, multi.g.band - 1, multi.b.band - 1] : convertToRGB ? [0, 1, 2] : [0]
+    if (single?.expression) {
+      this.readSamples = findAndSortBandNumbers(single.expression);
+    }
+
+    // 获取波段最大最小值信息
+    const bands: Record<number, {
+      min: number;
+      max: number;
+    }> = {};
+    await Promise.all(this.readSamples.map(async (i) => {
+      const element = image.getGDALMetadata(i);
+      const bandNum = i + 1;
+
+      if (element?.STATISTICS_MINIMUM && element?.STATISTICS_MAXIMUM) {
+        bands[bandNum] = {
+          min: +element.STATISTICS_MINIMUM,
+          max: +element.STATISTICS_MAXIMUM,
+        }
+      } else {
+        if (convertToRGB) {
+          bands[bandNum] = {
+            min: 0,
+            max: 255,
+          }
+        };
+
+        if (multi) {
+          const inputBand = multi[Object.keys(multi).find(key => multi[key]?.band === bandNum)]
+          if (inputBand?.min !== undefined && inputBand?.max !== undefined) {
+            const { min, max } = inputBand
+            bands[bandNum] = {
+              min, max
+            }
+          }
+        }
+
+        if (single && !single.expression && single.band === bandNum && single.domain) {
+          bands[bandNum] = {
+            min: single.domain[0],
+            max: single.domain[1],
+          }
+        }
+
+        if (!single?.expression && !bands[bandNum]) {
+          // 尝试获取波段最大最小值
+          console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
+
+          const previewImage = await source.getImage(this.cogLevels[0])
+          const data = (await previewImage.readRasters({
+            samples: [i],
+            pool: getWorkerPool(),
+          }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
+          bands[bandNum] = getMinMax(data, noData)
+        }
+      }
+    }))
+    this.bands = bands;
+
+    // 获取空间范围
+    const bbox = image.getBoundingBox();
+    const [west, south, east, north] = bbox;
+
+    const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
+
+    const proj = projFunc?.(prjCode)
+    if (typeof proj === 'function') {
+      const leftBottom = proj([west, south])
+      const rightTop = proj([east, north])
+      this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1])
+    } else if (prjCode === 4326) {
+      this.rectangle = Rectangle.fromDegrees(...bbox)
+    } else {
+      const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
+      throw error;
+    }
+
+    // 处理跨180度经线的情况
+    // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
+    if (this.rectangle.east < this.rectangle.west) {
+      this.rectangle.east += CMath.TWO_PI;
+    }
+    this.tilingScheme = new GeographicTilingScheme({
+      rectangle: this.rectangle,
+      numberOfLevelZeroTilesX: 1,
+      numberOfLevelZeroTilesY: 1
+    });
+    const maxCogLevel = this.cogLevels.length - 1
+    this.maximumLevel = this.maximumLevel > maxCogLevel ? maxCogLevel : this.maximumLevel;
+    this._images = new Array(this._imageCount).fill(null);
+
+    // 如果是单通道渲染, 则构建plot对象
+    try {
+      if (this.renderOptions.single) {
+        const band = this.bands[single.band];
+        if (!single.expression && !band) {
+          throw new DeveloperError(`Invalid band${single.band}`);
+        }
+        this.plot = new plot({
+          canvas,
+          ...single,
+          domain: single.domain ?? [band.min, band.max]
+        })
+        this.plot.setNoDataValue(this.noData);
+
+        const { expression, colors } = single;
+        this.plot.setExpression(expression);
+        if (colors) {
+          const colorScale = generateColorScale(colors)
+          addColorScale('temp', colorScale.colors, colorScale.positions);
+          this.plot.setColorScale('temp' as any);
+        } else {
+          this.plot.setColorScale(single?.colorScale ?? 'blackwhite');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      this._error.raiseEvent(e);
+    }
+    this.readyPromise = Promise.resolve(true);
+    this.ready = true;
+  }
+
+  static async fromUrl(url: string | File | Blob, options?: TIFFImageryProviderOptions) {
+    const provider = new TIFFImageryProvider(options);
+    await provider.build(url, options)
+    
+    return provider;
   }
 
   /**
@@ -398,6 +415,7 @@ export class TIFFImageryProvider {
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
     }
+    
     const width = image.getWidth();
     const height = image.getHeight();
     

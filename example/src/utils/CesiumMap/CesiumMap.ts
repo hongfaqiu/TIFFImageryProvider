@@ -112,8 +112,7 @@ export default class CesiumMap extends BaseMap {
         });
         break;
       case 'cog':
-        imageryProvider = new TIFFImageryProvider({
-          url,
+        imageryProvider = await TIFFImageryProvider.fromUrl(url, {
           minimumLevel,
           maximumLevel,
           renderOptions,
@@ -134,7 +133,6 @@ export default class CesiumMap extends BaseMap {
       default:
         break;
     }
-    await imageryProvider.readyPromise
     return imageryProvider;
   }
 

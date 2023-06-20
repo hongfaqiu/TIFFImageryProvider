@@ -41,7 +41,7 @@ importers:
         specifier: ^3.7.2
         version: 3.7.2(react@18.2.0)
       cesium:
-        specifier: ^1.99.0
+        specifier: ^1.100.0
         version: 1.100.0
       classnames:
         specifier: ^2.3.2
