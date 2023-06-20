@@ -57,10 +57,11 @@ declare namespace Layer {
    * 栅格图层元数据格式
    */
   export type COGLayerItem = {
+    url: string | File | Blob;
     method: 'cog';
     loaderinfo?: LoaderInfo;
     renderOptions?: TIFFImageryProviderRenderOptions & RasterOptions;
-  } & BasicLayer;
+  } & Omit<BasicLayer, 'url'>;
 
   export type LayerItem =
     | COGLayerItem

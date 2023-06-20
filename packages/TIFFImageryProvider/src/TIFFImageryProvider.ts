@@ -1,5 +1,5 @@
 import { Event, GeographicTilingScheme, Credit, Rectangle, Cartesian3, ImageryLayerFeatureInfo, Math as CMath, DeveloperError } from "cesium";
-import GeoTIFF, { Pool, fromUrl as tiffFromUrl, GeoTIFFImage } from 'geotiff';
+import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
 import WorkerFarm from "./worker-farm";
@@ -97,7 +97,18 @@ export type TIFFImageryProviderRenderOptions = {
 }
 
 export interface TIFFImageryProviderOptions {
-  url: string;
+  url: string | File | Blob;
+  requestOptions?: {
+    /** defaults to false */
+    forceXHR?: boolean;
+    headers?: Record<string, any>;
+    credentials?: boolean;
+    /** defaults to 0 */
+    maxRanges?: number;
+    /** defaults to false */
+    allowFullFile?: boolean;
+    [key: string]: any;
+  };
   credit?: string;
   tileSize?: number;
   maximumLevel?: number;
@@ -118,9 +129,6 @@ let workerPool: Pool;
 function getWorkerPool() {
   if (!workerPool) {
     workerPool = new Pool();
-    if (!workerPool.workers) {
-      workerPool = undefined;
-    };
   };
   return workerPool;
 }
@@ -151,7 +159,6 @@ export class TIFFImageryProvider {
   }>;
   noData: number;
   hasAlphaChannel: boolean;
-  private _pool: Pool;
   private _workerFarm: WorkerFarm | null;
   private _cacheTime: number;
   plot: plot;
@@ -168,11 +175,8 @@ export class TIFFImageryProvider {
 
     this._workerFarm = new WorkerFarm();
     this._cacheTime = options.cache ?? 60 * 1000;
-
-    this.readyPromise = tiffFromUrl(options.url, {
-      allowFullFile: true
-    }).then(async (res) => {
-      this._pool = getWorkerPool()
+    
+    this.readyPromise = (options.url instanceof File || options.url instanceof Blob  ? fromBlob(options.url) : fromUrl(options.url, options.requestOptions)).then(async (res) => {
       this._source = res;
       const image = await res.getImage();
       
@@ -265,7 +269,7 @@ export class TIFFImageryProvider {
             const previewImage = await res.getImage(this.cogLevels[0])
             const data = (await previewImage.readRasters({
               samples: [i],
-              pool: this._pool,
+              pool: getWorkerPool(),
             }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
             bands[bandNum] = getMinMax(data, noData)
           }
@@ -414,7 +418,7 @@ export class TIFFImageryProvider {
       window: pixelBounds,
       width: this.tileWidth,
       height: this.tileHeight,
-      pool: this._pool,
+      pool: getWorkerPool(),
       samples: this.readSamples,
       resampleMethod: this.options.resampleMethod,
       interleave: false,
@@ -497,9 +501,7 @@ export class TIFFImageryProvider {
 
         const image = new Image();
         if (this.plot.canvas instanceof HTMLCanvasElement) {
-          
           image.src = this.plot.canvas.toDataURL();
-  
         } else {
           const imgBitmap = this.plot.canvas.transferToImageBitmap();
           canvas.width = imgBitmap.width;
@@ -556,7 +558,7 @@ export class TIFFImageryProvider {
       window: [posX, posY, posX + 1, posY + 1],
       height: 1,
       width: 1,
-      pool: this._pool,
+      pool: getWorkerPool(),
       interleave: false,
     }
     let res: TypedArray[];
@@ -583,7 +585,6 @@ export class TIFFImageryProvider {
     this._images = undefined;
     this._imagesCache = undefined;
     this._workerFarm?.destory();
-    this._pool?.destroy();
     this.plot?.destroy();
     this._destroyed = true;
   }

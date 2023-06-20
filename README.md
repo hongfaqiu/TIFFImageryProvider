@@ -93,7 +93,18 @@ class TIFFImageryProvider {
 }
 
 interface TIFFImageryProviderOptions {
-  url: string;
+  url: string | File | Blob;
+  requestOptions?: {
+    /** defaults to false */
+    forceXHR?: boolean;
+    headers?: Record<string, any>;
+    credentials?: boolean;
+    /** defaults to 0 */
+    maxRanges?: number;
+    /** defaults to false */
+    allowFullFile?: boolean;
+    [key: string]: any;
+  };
   credit?: string;
   tileSize?: number;
   maximumLevel?: number;
@@ -231,6 +242,7 @@ pnpm start
 
 - [x] Use Web Workers to generate tile image
 - [x] GPU speed up calculation
+- [ ] More efficient tile request method
 - [ ] Web Workers Offscreen WebGL rendering
 
 ## Credits

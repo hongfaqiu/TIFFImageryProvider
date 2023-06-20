@@ -93,7 +93,18 @@ class TIFFImageryProvider {
 }
 
 interface TIFFImageryProviderOptions {
-  url: string;
+  url: string | File | Blob;
+  requestOptions?: {
+    /** 默认 false */
+    forceXHR?: boolean;
+    headers?: Record<string, any>;
+    credentials?: boolean;
+    /** 默认 0 */
+    maxRanges?: number;
+    /** 默认 false */
+    allowFullFile?: boolean;
+    [key: string]: any;
+  };
   credit?: string;
   tileSize?: number;
   maximumLevel?: number;
@@ -230,6 +241,7 @@ pnpm start
 
 - [x] 使用 Web Workers 生成瓦片图像
 - [x] 使用 GPU 加速计算
+- [ ] 更高效的瓦片请求方法
 - [ ] 使用 Web Workers 加速Webgl渲染，共享上下文
 
 ## 致谢
