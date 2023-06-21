@@ -163,7 +163,8 @@ export class TIFFImageryProvider {
   plot: plot;
   renderOptions: TIFFImageryProviderRenderOptions;
   readSamples: number[];
-  cogLevels: number[];
+  requestLevels: number[];
+  private _isTiled: boolean;
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /** Deprecated */
     url?: string | File | Blob;
@@ -203,12 +204,13 @@ export class TIFFImageryProvider {
     const source = await (url instanceof File || url instanceof Blob ? fromBlob(url) : fromUrl(url, requestOptions))
     this._source = source;
     const image = await source.getImage();
+    this._isTiled = image.isTiled;
 
     this._imageCount = await source.getImageCount();
-    this.tileSize = this.tileWidth = tileSize || image.getTileWidth() || 512;
-    this.tileHeight = tileSize || image.getTileHeight() || 512;
+    this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 512;
+    this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 512;
     // 获取合适的COG层级
-    this.cogLevels = await this._getCogLevels();
+    this.requestLevels = this._isTiled ? await this._getCogLevels() : [0];
 
     // 获取波段数
     const samples = image.getSamplesPerPixel();
@@ -290,7 +292,7 @@ export class TIFFImageryProvider {
           // 尝试获取波段最大最小值
           console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
 
-          const previewImage = await source.getImage(this.cogLevels[0])
+          const previewImage = await source.getImage(this.requestLevels[0])
           const data = (await previewImage.readRasters({
             samples: [i],
             pool: getWorkerPool(),
@@ -329,7 +331,7 @@ export class TIFFImageryProvider {
       numberOfLevelZeroTilesX: 1,
       numberOfLevelZeroTilesY: 1
     });
-    const maxCogLevel = this.cogLevels.length - 1
+    const maxCogLevel = this.requestLevels.length - 1
     this.maximumLevel = this.maximumLevel > maxCogLevel ? maxCogLevel : this.maximumLevel;
     this._images = new Array(this._imageCount).fill(null);
 
@@ -410,7 +412,7 @@ export class TIFFImageryProvider {
    * @param z 
    */
   private async _loadTile(x: number, y: number, z: number) {
-    const index = this.cogLevels[z];
+    const index = this.requestLevels[z];
     let image = this._images[index];
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
@@ -555,7 +557,7 @@ export class TIFFImageryProvider {
     if (!this.options.enablePickFeatures) return undefined
 
     const z = zoom > this.maximumLevel ? this.maximumLevel : zoom;
-    const index = this.cogLevels[z];
+    const index = this.requestLevels[z];
     let image = this._images[index];
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
