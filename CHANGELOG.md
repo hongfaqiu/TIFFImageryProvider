@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.6.3](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.6.2...v2.6.3) (2023-06-21)
+
+
+### Performance Improvements
+
+* adjust code order ([a59d0de](https://github.com/hongfaqiu/TIFFImageryProvider/commit/a59d0de3746c1960821b29f4159346a2808e8764))
+
+
+
+
+
 ## [2.6.2](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.6.1...v2.6.2) (2023-06-21)
 
 
