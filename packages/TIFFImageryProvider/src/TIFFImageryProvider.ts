@@ -349,13 +349,13 @@ export class TIFFImageryProvider {
         })
         this.plot.setNoDataValue(this.noData);
 
-        const { expression, colors } = single;
+        const { expression, colors, colorScaleImage } = single;
         this.plot.setExpression(expression);
         if (colors) {
           const colorScale = generateColorScale(colors)
           addColorScale('temp', colorScale.colors, colorScale.positions);
           this.plot.setColorScale('temp' as any);
-        } else {
+        } else if (!colorScaleImage) {
           this.plot.setColorScale(single?.colorScale ?? 'blackwhite');
         }
       }
