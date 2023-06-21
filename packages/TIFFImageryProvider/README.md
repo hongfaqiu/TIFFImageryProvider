@@ -35,22 +35,28 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 
 const cesiumViewer = new Viewer("cesiumContainer");
 
+const provider = await TIFFImageryProvider.fromUrl('https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif');
+
+cesiumViewer.imageryLayers.addImageryProvider(provider);
+```
+
+You can also use the New keyword to create a new TIFFimageryProvider, which was deprecated after cesium@1.104+
+
+```ts
 const provider = new TIFFImageryProvider({
-  url: 'https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif',
+  url: YOUR_TIFF_URL,
 });
 provider.readyPromise.then(() => {
   cesiumViewer.imageryLayers.addImageryProvider(provider);
 })
-
 ```
 
-If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
+If TIFF's projection is not EPSG:4326, you can pass the ``projFunc`` to handle the projection
 
 ```ts
 import proj4 from 'proj4';
 
-new TIFFImageryProvider({
-  url: YOUR_TIFF_URL,
+TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
   projFunc: (code) => {
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
@@ -64,8 +70,7 @@ Band calculation
 
 ```ts
 // NDVI
-new TIFFImageryProvider({
-  url: YOUR_TIFF_URL,
+TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
   renderOptions: {
     single: {
       colorScale: 'rainbow',
@@ -86,14 +91,29 @@ class TIFFImageryProvider {
     min: number;
     max: number;
   }>;
-  constructor(options: TIFFImageryProviderOptions);
+  constructor(options: TIFFImageryProviderOptions & {
+    /** Deprecated */
+    url?: string | File | Blob;
+  });
 
   get isDestroyed(): boolean;
   destroy(): void;
+  
+  static fromUrl(url: string | File | Blob, options?: TIFFImageryProviderOptions): Promise<TIFFImageryProvider>;
 }
 
 interface TIFFImageryProviderOptions {
-  url: string;
+  requestOptions?: {
+    /** defaults to false */
+    forceXHR?: boolean;
+    headers?: Record<string, any>;
+    credentials?: boolean;
+    /** defaults to 0 */
+    maxRanges?: number;
+    /** defaults to false */
+    allowFullFile?: boolean;
+    [key: string]: any;
+  };
   credit?: string;
   tileSize?: number;
   maximumLevel?: number;
@@ -220,7 +240,7 @@ cd example
 pnpm start
 ```
 
-![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)
+![screenshot.png](../../pictures/screenshot.png) | ![classify.png](../../pictures/classify.png) | ![landsat.png](../../pictures/landsat.png)
 | ------- | ------- | -------- |
 
 ## Bugs
@@ -231,6 +251,7 @@ pnpm start
 
 - [x] Use Web Workers to generate tile image
 - [x] GPU speed up calculation
+- [ ] More efficient tile request method
 - [ ] Web Workers Offscreen WebGL rendering
 
 ## Credits

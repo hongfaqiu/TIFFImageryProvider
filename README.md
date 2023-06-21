@@ -35,9 +35,7 @@ import TIFFImageryProvider from 'tiff-imagery-provider';
 
 const cesiumViewer = new Viewer("cesiumContainer");
 
-const provider = await TIFFImageryProvider.fromUrl({
-  url: 'https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif',
-});
+const provider = await TIFFImageryProvider.fromUrl('https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif');
 
 cesiumViewer.imageryLayers.addImageryProvider(provider);
 ```
