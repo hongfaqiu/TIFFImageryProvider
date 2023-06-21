@@ -206,11 +206,43 @@ export class TIFFImageryProvider {
     const image = await source.getImage();
     this._isTiled = image.isTiled;
 
+    // 获取空间范围
+    const bbox = image.getBoundingBox();
+    const [west, south, east, north] = bbox;
+
+    const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
+
+    const proj = projFunc?.(prjCode)
+    if (typeof proj === 'function') {
+      const leftBottom = proj([west, south])
+      const rightTop = proj([east, north])
+      this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1])
+    } else if (prjCode === 4326) {
+      this.rectangle = Rectangle.fromDegrees(...bbox)
+    } else {
+      const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
+      throw error;
+    }
+
+    // 处理跨180度经线的情况
+    // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
+    if (this.rectangle.east < this.rectangle.west) {
+      this.rectangle.east += CMath.TWO_PI;
+    }
+    this.tilingScheme = new GeographicTilingScheme({
+      rectangle: this.rectangle,
+      numberOfLevelZeroTilesX: 1,
+      numberOfLevelZeroTilesY: 1
+    });
+
     this._imageCount = await source.getImageCount();
     this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 512;
     this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 512;
     // 获取合适的COG层级
     this.requestLevels = this._isTiled ? await this._getCogLevels() : [0];
+    const maxCogLevel = this.requestLevels.length - 1
+    this.maximumLevel = this.maximumLevel > maxCogLevel ? maxCogLevel : this.maximumLevel;
+    this._images = new Array(this._imageCount).fill(null);
 
     // 获取波段数
     const samples = image.getSamplesPerPixel();
@@ -302,38 +334,6 @@ export class TIFFImageryProvider {
       }
     }))
     this.bands = bands;
-
-    // 获取空间范围
-    const bbox = image.getBoundingBox();
-    const [west, south, east, north] = bbox;
-
-    const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
-
-    const proj = projFunc?.(prjCode)
-    if (typeof proj === 'function') {
-      const leftBottom = proj([west, south])
-      const rightTop = proj([east, north])
-      this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1])
-    } else if (prjCode === 4326) {
-      this.rectangle = Rectangle.fromDegrees(...bbox)
-    } else {
-      const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
-      throw error;
-    }
-
-    // 处理跨180度经线的情况
-    // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
-    if (this.rectangle.east < this.rectangle.west) {
-      this.rectangle.east += CMath.TWO_PI;
-    }
-    this.tilingScheme = new GeographicTilingScheme({
-      rectangle: this.rectangle,
-      numberOfLevelZeroTilesX: 1,
-      numberOfLevelZeroTilesY: 1
-    });
-    const maxCogLevel = this.requestLevels.length - 1
-    this.maximumLevel = this.maximumLevel > maxCogLevel ? maxCogLevel : this.maximumLevel;
-    this._images = new Array(this._imageCount).fill(null);
 
     // 如果是单通道渲染, 则构建plot对象
     try {

@@ -3,6 +3,7 @@ import { Button, Divider, Input, Upload } from '@douyinfe/semi-ui';
 import { useCallback, useState } from 'react';
 import DragableLayerItems from './DragableLayerItems';
 import styles from './index.module.scss'
+import { FileItem } from '@douyinfe/semi-ui/lib/es/upload';
 
 const LayerManage = () => {
   const { allLayers, addLayer, moveLayer } = LayerHook.useHook();
@@ -22,16 +23,19 @@ const LayerManage = () => {
     [url],
   )
 
-  const uploadFile = (file: File) => {
-    const { name } = file;
-    addLayer({
-        id: name,
-        url: file,
-        layerName: name.slice(0, name.lastIndexOf('.')),
-        method: 'cog'
-      }, {
-        zoom: true
-      })
+  const uploadFile = (file: FileItem) => {
+    const { name, fileInstance } = file;
+    if (fileInstance) {
+      addLayer({
+          id: name,
+          url: fileInstance,
+          layerName: name.slice(0, name.lastIndexOf('.')),
+          method: 'cog'
+        }, {
+          zoom: true
+        })
+    }
+    return false
   }
 
   return (
@@ -40,9 +44,8 @@ const LayerManage = () => {
         <Input value={url} onChange={setUrl} placeholder={'输入url添加图层'} showClear />
         <Button onClick={addCogLayer}>添加</Button>
         <Upload
-          onSuccess={(_, file) => uploadFile(file)}
+          beforeUpload={({ file }) => uploadFile(file)}
           accept='.tif,.tiff'
-          action='#'
           showUploadList={false}
         >
           <Button>上传文件</Button>

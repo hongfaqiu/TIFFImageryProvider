@@ -119,7 +119,12 @@ export default class CesiumMap extends BaseMap {
           enablePickFeatures: true,
           projFunc: (code) => {
             if (![4326].includes(code)) {
-              return proj4(`EPSG:${code}`, "EPSG:4326").forward
+              try {
+                let prj = proj4(`EPSG:${code}`, "EPSG:4326")
+                if (prj) return prj.forward
+              } catch (e) {
+                console.error(e);
+              }
             }
           },
         });
