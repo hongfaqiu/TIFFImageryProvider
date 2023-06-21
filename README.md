@@ -93,15 +93,18 @@ class TIFFImageryProvider {
     min: number;
     max: number;
   }>;
-  constructor(options: TIFFImageryProviderOptions);
+  constructor(options: TIFFImageryProviderOptions & {
+    /** Deprecated */
+    url?: string | File | Blob;
+  });
 
   get isDestroyed(): boolean;
   destroy(): void;
+  
+  static fromUrl(url: string | File | Blob, options?: TIFFImageryProviderOptions): Promise<TIFFImageryProvider>;
 }
 
 interface TIFFImageryProviderOptions {
-  /** Deprecated */
-  url?: string | File | Blob;
   requestOptions?: {
     /** defaults to false */
     forceXHR?: boolean;

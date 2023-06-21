@@ -180,7 +180,7 @@ export class TIFFImageryProvider {
     
     this.ready = false;
     if (defined(options.url)) {
-      this.readyPromise = this.build(options.url, options).then(() => {
+      this.readyPromise = this._build(options.url, options).then(() => {
         return true;
       })
     }
@@ -199,7 +199,7 @@ export class TIFFImageryProvider {
     return this._destroyed
   }
 
-  async build(url: string | File | Blob, options: TIFFImageryProviderOptions) {
+  private async _build(url: string | File | Blob, options: TIFFImageryProviderOptions) {
     const { tileSize, renderOptions, projFunc, requestOptions } = options ?? {};
     const source = await (url instanceof File || url instanceof Blob ? fromBlob(url) : fromUrl(url, requestOptions))
     this._source = source;
@@ -369,7 +369,7 @@ export class TIFFImageryProvider {
 
   static async fromUrl(url: string | File | Blob, options?: TIFFImageryProviderOptions) {
     const provider = new TIFFImageryProvider(options);
-    await provider.build(url, options)
+    await provider._build(url, options)
     
     return provider;
   }
