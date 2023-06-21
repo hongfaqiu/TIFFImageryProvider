@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.6.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.6.0...v2.6.1) (2023-06-21)
+
+
+### Bug Fixes
+
+* native tiff support ([2899702](https://github.com/hongfaqiu/tiff-imagery-provider/commit/28997027125d6841a6fbf49f63ed78d4a5c7ba55))
+
+
+
+
+
 # [2.6.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.5.0...v2.6.0) (2023-06-20)
 
 
