@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.6.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.6.1...v2.6.2) (2023-06-21)
+
+
+### Bug Fixes
+
+* colorScaleImage not working [#13](https://github.com/hongfaqiu/tiff-imagery-provider/issues/13) ([99812c8](https://github.com/hongfaqiu/tiff-imagery-provider/commit/99812c8d71ee1ffea4e0c338ba1d3be19047a6f2))
+
+
+
+
+
 ## [2.6.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.6.0...v2.6.1) (2023-06-21)
 
 
