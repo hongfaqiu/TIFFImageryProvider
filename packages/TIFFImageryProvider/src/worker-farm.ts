@@ -13,7 +13,7 @@ async function sendMessage(worker: Worker, payload: { data: TypedArray[], opts: 
     id: msgId,
     payload,
   };
-  return new Promise<ImageData>(function (resolve, reject) {
+  return new Promise<ImageBitmap>(function (resolve, reject) {
     // save callbacks for later
     resolves[msgId] = resolve;
     rejects[msgId] = reject;

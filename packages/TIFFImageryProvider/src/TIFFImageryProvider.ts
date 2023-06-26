@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined, ImageryProvider } from "cesium";
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
@@ -132,7 +132,7 @@ function getWorkerPool() {
   return workerPool;
 }
 
-export class TIFFImageryProvider {
+export class TIFFImageryProvider extends ImageryProvider {
   ready: boolean;
   tilingScheme: GeographicTilingScheme;
   rectangle: Rectangle;
@@ -142,7 +142,7 @@ export class TIFFImageryProvider {
   maximumLevel: number;
   minimumLevel: number;
   credit: Credit;
-  private _error: Event;
+  errorEvent: Event;
   readyPromise: Promise<boolean>;
   private _destroyed = false;
   _source!: GeoTIFF;
@@ -150,7 +150,7 @@ export class TIFFImageryProvider {
   _images: (GeoTIFFImage | null)[] = [];
   _imagesCache: Record<string, {
     time: number;
-    data: ImageData | HTMLCanvasElement | HTMLImageElement;
+    data: ImageBitmap | HTMLCanvasElement | HTMLImageElement;
   }> = {};
   bands: Record<number, {
     min: number;
@@ -169,11 +169,12 @@ export class TIFFImageryProvider {
     /** Deprecated */
     url?: string | File | Blob;
   }) {
+    super();
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
     this.maximumLevel = options.maximumLevel ?? 18;
     this.minimumLevel = options.minimumLevel ?? 0;
     this.credit = new Credit(options.credit || "", false);
-    this._error = new Event();
+    this.errorEvent = new Event();
 
     this._workerFarm = new WorkerFarm();
     this._cacheTime = options.cache ?? 60 * 1000;
@@ -184,15 +185,6 @@ export class TIFFImageryProvider {
         return true;
       })
     }
-  }
-
-  /**
-   * Gets an event that will be raised if an error is encountered during processing.
-   * @memberof GeoJsonDataSource.prototype
-   * @type {Event}
-   */
-  get errorEvent() {
-    return this._error
   }
 
   get isDestroyed() {
@@ -361,7 +353,7 @@ export class TIFFImageryProvider {
       }
     } catch (e) {
       console.error(e);
-      this._error.raiseEvent(e);
+      this.errorEvent.raiseEvent(e);
     }
     this.readyPromise = Promise.resolve(true);
     this.ready = true;
@@ -456,7 +448,7 @@ export class TIFFImageryProvider {
         height: this.tileHeight
       };
     } catch(error) {
-      this._error.raiseEvent(error);
+      this.errorEvent.raiseEvent(error);
       throw error;
     }
   }
@@ -483,7 +475,7 @@ export class TIFFImageryProvider {
         return undefined;
       }
       
-      let result: ImageData | HTMLImageElement
+      let result: ImageBitmap | HTMLImageElement
       
       if (multi || convertToRGB) {
         const opts = {
@@ -520,16 +512,7 @@ export class TIFFImageryProvider {
         }
 
         const image = new Image();
-        if (this.plot.canvas instanceof HTMLCanvasElement) {
-          image.src = this.plot.canvas.toDataURL();
-        } else {
-          const imgBitmap = this.plot.canvas.transferToImageBitmap();
-          canvas.width = imgBitmap.width;
-          canvas.height = imgBitmap.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(imgBitmap, 0, 0);
-          image.src = canvas.toDataURL();
-        }
+        image.src = this.plot.canvas.toDataURL();
         result = image;
       }
 
@@ -548,7 +531,7 @@ export class TIFFImageryProvider {
       return result;
     } catch (e) {
       console.error(e);
-      this._error.raiseEvent(e);
+      this.errorEvent.raiseEvent(e);
       throw e;
     }
   }

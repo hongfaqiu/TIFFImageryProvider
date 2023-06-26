@@ -18,7 +18,7 @@ function hasOwnProperty(obj: any, prop: string) {
 
 function defaultFor(arg: any, val: any) { return typeof arg !== 'undefined' ? arg : val; }
 
-function create3DContext(canvas: HTMLCanvasElement | OffscreenCanvas, optAttribs: { premultipliedAlpha: boolean; }) {
+function create3DContext(canvas: HTMLCanvasElement, optAttribs: { premultipliedAlpha: boolean; }) {
   const names = ['webgl', 'experimental-webgl'];
   let context: WebGLRenderingContext | null= null;
   for (let ii = 0; ii < names.length; ++ii) {
@@ -251,13 +251,13 @@ void main() {
  *
  */
 class plot {
-  canvas: HTMLCanvasElement | OffscreenCanvas;
+  canvas: HTMLCanvasElement;
   currentDataset: DataSet;
   datasetCollection: Record<string, DataSet>;
   gl: WebGLRenderingContext | null;
   program: WebGLProgram;
   texCoordBuffer: WebGLBuffer;
-  ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
+  ctx: CanvasRenderingContext2D;
   displayRange: number[];
   applyDisplayRange: boolean;
   matrix: number[];
@@ -282,8 +282,8 @@ class plot {
     if (defaultFor(options.useWebGL, true)) {
       // Try to create a webgl context in a temporary canvas to see if webgl and
       // required OES_texture_float is supported
-      if (create3DContext(new OffscreenCanvas(512, 512), {premultipliedAlpha: false}) !== null) {
-        const gl = create3DContext(this.canvas, {premultipliedAlpha: false});
+      const gl = create3DContext(this.canvas, { premultipliedAlpha: false });
+      if (gl !== null) {
         this.gl = gl;
         this.program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
         gl.useProgram(this.program);
@@ -466,9 +466,9 @@ class plot {
   /**
    * Set the canvas to draw to. When no canvas is supplied, a new canvas element
    * is created.
-   * @param {HTMLCanvasElement | OffscreenCanvas} [canvas] the canvas element to render to.
+   * @param {HTMLCanvasElement} [canvas] the canvas element to render to.
    */
-  setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas) {
+  setCanvas(canvas: HTMLCanvasElement) {
     this.canvas = canvas || document.createElement('canvas');
   }
 
@@ -503,9 +503,9 @@ class plot {
 
   /**
    * Get the canvas that is currently rendered to.
-   * @returns {HTMLCanvasElement | OffscreenCanvas} the canvas that is currently rendered to.
+   * @returns {HTMLCanvasElement} the canvas that is currently rendered to.
    */
-  getCanvas(): HTMLCanvasElement | OffscreenCanvas {
+  getCanvas(): HTMLCanvasElement {
     return this.canvas;
   }
 

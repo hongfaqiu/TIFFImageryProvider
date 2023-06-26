@@ -19,7 +19,7 @@ export type PlotOptions = {
   /**
    * The canvas to render to.
    */
-  canvas?: HTMLCanvasElement | OffscreenCanvas;
+  canvas?: HTMLCanvasElement;
 
   /**
    * The raster data to render.
