@@ -132,7 +132,7 @@ function getWorkerPool() {
   return workerPool;
 }
 
-export class TIFFImageryProvider extends ImageryProvider {
+export class TIFFImageryProvider {
   ready: boolean;
   tilingScheme: GeographicTilingScheme;
   rectangle: Rectangle;
@@ -169,7 +169,6 @@ export class TIFFImageryProvider extends ImageryProvider {
     /** Deprecated */
     url?: string | File | Blob;
   }) {
-    super();
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
     this.maximumLevel = options.maximumLevel ?? 18;
     this.minimumLevel = options.minimumLevel ?? 0;
