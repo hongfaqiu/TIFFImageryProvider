@@ -6,6 +6,8 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 [中文readme](./README_CN.md)
 
+[![CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/p/github/hongfaqiu/cog-example/main)
+
 ## Features
 
 - Three band rendering.
@@ -21,6 +23,10 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 ```bash
 #npm
 npm install --save tiff-imagery-provider
+
+#yarn
+yarn add tiff-imagery-provider
+
 #pnpm
 pnpm add tiff-imagery-provider
 ```
@@ -252,7 +258,6 @@ pnpm start
 - [x] Use Web Workers to generate tile image
 - [x] GPU speed up calculation
 - [ ] More efficient tile request method
-- [ ] Web Workers Offscreen WebGL rendering
 
 ## Credits
 

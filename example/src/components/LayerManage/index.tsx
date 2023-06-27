@@ -1,5 +1,5 @@
 import { LayerHook } from '@/hooks/use-layer';
-import { Button, Divider, Input, Upload } from '@douyinfe/semi-ui';
+import { Button, Input, Upload } from '@douyinfe/semi-ui';
 import { useCallback, useState } from 'react';
 import DragableLayerItems from './DragableLayerItems';
 import styles from './index.module.scss'
@@ -8,10 +8,13 @@ import { FileItem } from '@douyinfe/semi-ui/lib/es/upload';
 const LayerManage = () => {
   const { allLayers, addLayer, moveLayer } = LayerHook.useHook();
   const [url, setUrl] = useState('')
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const addCogLayer = useCallback(
-    () => {
-      addLayer({
+    async () => {
+      setLoading(true);
+      await addLayer({
         id: url,
         url,
         layerName: url,
@@ -19,6 +22,7 @@ const LayerManage = () => {
       }, {
         zoom: true
       })
+      setLoading(false);
     },
     [url],
   )
@@ -26,14 +30,19 @@ const LayerManage = () => {
   const uploadFile = (file: FileItem) => {
     const { name, fileInstance } = file;
     if (fileInstance) {
+      setUploading(true);
       addLayer({
-          id: name,
-          url: fileInstance,
-          layerName: name.slice(0, name.lastIndexOf('.')),
-          method: 'cog'
-        }, {
-          zoom: true
-        })
+        id: name,
+        url: fileInstance,
+        layerName: name.slice(0, name.lastIndexOf('.')),
+        method: 'cog'
+      }, {
+        zoom: true
+      }).then(() => {
+        setUploading(false);
+      }).catch(() => {
+        setUploading(false);
+      })
     }
     return false
   }
@@ -42,13 +51,13 @@ const LayerManage = () => {
     <div className={styles.layerMangeContainer}>
       <div className={styles.addLayer}>
         <Input value={url} onChange={setUrl} placeholder={'输入url添加图层'} showClear />
-        <Button onClick={addCogLayer}>添加</Button>
+        <Button loading={loading} onClick={addCogLayer}>添加</Button>
         <Upload
           beforeUpload={({ file }) => uploadFile(file)}
           accept='.tif,.tiff'
           showUploadList={false}
         >
-          <Button>上传文件</Button>
+          <Button loading={uploading}>上传文件</Button>
         </Upload>
       </div>
 

@@ -4,7 +4,7 @@
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
-[中文readme](./README_CN.md)
+[![CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/p/github/hongfaqiu/cog-example/main)
 
 ## 特点
 
@@ -21,6 +21,10 @@
 ```bash
 #npm
 npm install --save tiff-imagery-provider
+
+#yarn
+yarn add tiff-imagery-provider
+
 #pnpm
 pnpm add tiff-imagery-provider
 ```
@@ -252,7 +256,6 @@ pnpm start
 - [x] 使用 Web Workers 生成瓦片图像
 - [x] 使用 GPU 加速计算
 - [ ] 更高效的瓦片请求方法
-- [ ] 使用 Web Workers 加速Webgl渲染，共享上下文
 
 ## 致谢
 
