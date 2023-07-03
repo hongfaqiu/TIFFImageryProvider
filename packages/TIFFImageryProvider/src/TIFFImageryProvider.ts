@@ -166,8 +166,14 @@ export class TIFFImageryProvider {
   requestLevels: number[];
   private _isTiled: boolean;
   constructor(private readonly options: TIFFImageryProviderOptions & {
-    /** Deprecated */
-    url?: string | File | Blob;
+    /** 
+     * Deprecated
+     * 
+     * You can use fromUrl instead
+     * @example 
+     * const provider = await TIFFImageryProvider.fromUrl(url)
+     */
+    url: string | File | Blob;
   }) {
     this.hasAlphaChannel = options.hasAlphaChannel ?? true;
     this.maximumLevel = options.maximumLevel ?? 18;
@@ -190,8 +196,8 @@ export class TIFFImageryProvider {
     return this._destroyed
   }
 
-  private async _build(url: string | File | Blob, options: TIFFImageryProviderOptions) {
-    const { tileSize, renderOptions, projFunc, requestOptions } = options ?? {};
+  private async _build(url: string | File | Blob, options: TIFFImageryProviderOptions = {}) {
+    const { tileSize, renderOptions, projFunc, requestOptions } = options;
     const source = await (url instanceof File || url instanceof Blob ? fromBlob(url) : fromUrl(url, requestOptions))
     this._source = source;
     const image = await source.getImage();
@@ -359,7 +365,7 @@ export class TIFFImageryProvider {
   }
 
   static async fromUrl(url: string | File | Blob, options?: TIFFImageryProviderOptions) {
-    const provider = new TIFFImageryProvider(options);
+    const provider = new TIFFImageryProvider(options as any);
     await provider._build(url, options)
     
     return provider;

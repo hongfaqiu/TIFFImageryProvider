@@ -41,8 +41,8 @@ importers:
         specifier: ^3.7.2
         version: 3.7.2(react@18.2.0)
       cesium:
-        specifier: ^1.100.0
-        version: 1.100.0
+        specifier: ^1.106.1
+        version: 1.106.1
       classnames:
         specifier: ^2.3.2
         version: 2.3.2
@@ -289,6 +289,31 @@ packages:
       rbush: 3.0.1
       topojson-client: 3.1.0
       urijs: 1.19.11
+    dev: true
+
+  /@cesium/engine@2.4.1:
+    resolution: {integrity: sha512-8f0hBzhPUSimYLZ+cmQ0rSudm+8zYD3sBMvJcPSVt0wDpLT7tvBt9swC2v5qC2gOwGOeyFnJhXKes3ICE6SaDA==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
+      '@tweenjs/tween.js': 18.6.4
+      '@zip.js/zip.js': 2.4.26
+      autolinker: 4.0.0
+      bitmap-sdf: 1.0.4
+      dompurify: 3.0.3
+      earcut: 2.2.4
+      grapheme-splitter: 1.0.4
+      jsep: 1.3.8
+      kdbush: 4.0.2
+      ktx-parse: 0.5.0
+      lerc: 2.0.0
+      mersenne-twister: 1.1.0
+      meshoptimizer: 0.19.0
+      pako: 2.1.0
+      protobufjs: 7.1.2
+      rbush: 3.0.1
+      topojson-client: 3.1.0
+      urijs: 1.19.11
+    dev: false
 
   /@cesium/widgets@1.0.0:
     resolution: {integrity: sha512-tT/euGktMuOmKwiJvnWwh/9syTAs3sARXIVrOu9JyUAUx6aN12tZzwA9XSsDCRixL+IUtIFjDv6fq4+bvbDetA==}
@@ -296,6 +321,15 @@ packages:
     dependencies:
       '@cesium/engine': 1.0.0
       nosleep.js: 0.12.0
+    dev: true
+
+  /@cesium/widgets@2.3.1:
+    resolution: {integrity: sha512-KC/GtcrS2t9Vf710C5a0ArG9ZawVeUhA37ISzFSCqVoAmlNd2YAjv00SZZOMtFqjMFWr7sOcm3BwMjWXnTWjvw==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
+      '@cesium/engine': 2.4.1
+      nosleep.js: 0.12.0
+    dev: false
 
   /@douyinfe/semi-animation-react@2.25.2:
     resolution: {integrity: sha512-Yr+KeAMA4bcK5GitTdvWT7zGuzQ2dVObnK1yMxUmLU30r4J9NHYcxrnaCTBB/FS13eW/98wu6HN6Cyz+ph1X4w==}
@@ -2394,6 +2428,13 @@ packages:
     resolution: {integrity: sha512-JiYl7j2Z19F9NdTmirENSUUIIL/9MytEWtmzhfmsKPCp9E+G35Y0UNCMoM9tFigxT59qSc8Ml2dlZXOCVTYwuA==}
     dependencies:
       tslib: 2.5.0
+    dev: true
+
+  /autolinker@4.0.0:
+    resolution: {integrity: sha512-fl5Kh6BmEEZx+IWBfEirnRUU5+cOiV0OK7PEt0RBKvJMJ8GaRseIOeDU3FKf4j3CE5HVefcjHmhYPOcaVt0bZw==}
+    dependencies:
+      tslib: 2.5.0
+    dev: false
 
   /axe-core@4.6.1:
     resolution: {integrity: sha512-lCZN5XRuOnpG4bpMq8v0khrWtUOn+i8lZSb6wHZH56ZfbIEv6XwJV84AAueh9/zi7qPVJ/E4yz6fmsiyOmXR4w==}
@@ -2587,6 +2628,15 @@ packages:
     dependencies:
       '@cesium/engine': 1.0.0
       '@cesium/widgets': 1.0.0
+    dev: true
+
+  /cesium@1.106.1:
+    resolution: {integrity: sha512-89sgLqWBhj57wtC8Jfn1yKfN3+Vk5IYxeW+5KqOZ280AL6Rr7E+MWTFiEfp5P3MY3xEcrutN3v8GYgP+Q3JfbA==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
+      '@cesium/engine': 2.4.1
+      '@cesium/widgets': 2.3.1
+    dev: false
 
   /chalk@2.4.2:
     resolution: {integrity: sha512-Mti+f9lpJNcwF4tWV8/OrTTtF1gZi+f8FqlyAdouralcFWFQWF2+NgCHShjkCb+IFBLq9buZwE1xckQU4peSuQ==}
@@ -3243,6 +3293,11 @@ packages:
 
   /dompurify@2.4.1:
     resolution: {integrity: sha512-ewwFzHzrrneRjxzmK6oVz/rZn9VWspGFRDb4/rRtIsM1n36t9AKma/ye8syCpcw+XJ25kOK/hOG7t1j2I2yBqA==}
+    dev: true
+
+  /dompurify@3.0.3:
+    resolution: {integrity: sha512-axQ9zieHLnAnHh0sfAamKYiqXMJAVwu+LM/alQ7WDagoWessyWvMSFyW65CqF3owufNu8HBcE4cM2Vflu7YWcQ==}
+    dev: false
 
   /dot-prop@5.3.0:
     resolution: {integrity: sha512-QM8q3zDe58hqUqjraQOmzZ1LIH9SWQJTlEKCH4kJ2oQvLZk7RbQXvtDM2XEq3fwkV9CCvvH4LA0AV+ogFsBM2Q==}
@@ -4678,6 +4733,12 @@ packages:
   /jsep@0.3.5:
     resolution: {integrity: sha512-AoRLBDc6JNnKjNcmonituEABS5bcfqDhQAWWXNTFrqu6nVXBpBAGfcoTGZMFlIrh9FjmE1CQyX9CTNwZrXMMDA==}
     engines: {node: '>= 6.0.0'}
+    dev: true
+
+  /jsep@1.3.8:
+    resolution: {integrity: sha512-qofGylTGgYj9gZFsHuyWAN4jr35eJ66qJCK4eKDnldohuUoQFbU3iZn2zjvEbd9wOAhP9Wx5DsAAduTyE1PSWQ==}
+    engines: {node: '>= 10.16.0'}
+    dev: false
 
   /jsesc@2.5.2:
     resolution: {integrity: sha512-OYu7XEzjkCQ3C5Ps3QIZsQfNpqoJyZZA99wd9aWd05NCtC5pWOkShK2mkL6HXQR6/Cy2lbNdPlZBpuQHXE63gA==}
@@ -4757,6 +4818,11 @@ packages:
 
   /kdbush@3.0.0:
     resolution: {integrity: sha512-hRkd6/XW4HTsA9vjVpY9tuXJYLSlelnkTmVFu4M9/7MIYQtFcHpbugAU7UbOfjOiVSVYl2fqgBuJ32JUmRo5Ew==}
+    dev: true
+
+  /kdbush@4.0.2:
+    resolution: {integrity: sha512-WbCVYJ27Sz8zi9Q7Q0xHC+05iwkm3Znipc2XTlrnJbsHMYktW4hPhXUE8Ys1engBrvffoSCqbil1JQAa7clRpA==}
+    dev: false
 
   /kind-of@6.0.3:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
@@ -4770,6 +4836,11 @@ packages:
 
   /ktx-parse@0.4.5:
     resolution: {integrity: sha512-MK3FOody4TXbFf8Yqv7EBbySw7aPvEcPX++Ipt6Sox+/YMFvR5xaTyhfNSk1AEmMy+RYIw81ctN4IMxCB8OAlg==}
+    dev: true
+
+  /ktx-parse@0.5.0:
+    resolution: {integrity: sha512-5IZrv5s1byUeDTIee1jjJQBiD5LPDB0w9pJJ0oT9BCKKJf16Tuj123vm1Ps0GOHSHmeWPgKM0zuViCVuTRpqaA==}
+    dev: false
 
   /language-subtag-registry@0.3.22:
     resolution: {integrity: sha512-tN0MCzyWnoz/4nHS6uxdlFWoUZT7ABptwKPQ52Ea7URk6vll88bWBVhodtnlfEuCcKWNGoc+uGbw1cwa9IKh/w==}
@@ -5057,6 +5128,11 @@ packages:
 
   /meshoptimizer@0.18.1:
     resolution: {integrity: sha512-ZhoIoL7TNV4s5B6+rx5mC//fw8/POGyNxS/DZyCJeiZ12ScLfVwRE/GfsxwiTkMYYD5DmK2/JXnEVXqL4rF+Sw==}
+    dev: true
+
+  /meshoptimizer@0.19.0:
+    resolution: {integrity: sha512-58qz5Qc/6Geu8Ib3bBWERE5R7pM5ErrJVo16fAtu6ryxVaE3VAtM/u2vurDxaq8AGZ3yWxuM/DnylTga5a4XCQ==}
+    dev: false
 
   /mgrs@1.0.0:
     resolution: {integrity: sha512-awNbTOqCxK1DBGjalK3xqWIstBZgN6fxsMSiXLs9/spqWkF2pAhb2rrYCFSsr1/tT7PhcDGjZndG8SWYn0byYA==}
