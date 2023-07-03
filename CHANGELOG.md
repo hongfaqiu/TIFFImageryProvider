@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.6.6](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.6.5...v2.6.6) (2023-07-03)
+
+
+### Bug Fixes
+
+* fromUrl options defaults to undefined [#17](https://github.com/hongfaqiu/TIFFImageryProvider/issues/17) ([9fd81b3](https://github.com/hongfaqiu/TIFFImageryProvider/commit/9fd81b328504000ef58420d1d80ca216396b3383))
+
+
+
+
+
 ## [2.6.5](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.6.4...v2.6.5) (2023-06-26)
 
 
