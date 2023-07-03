@@ -364,7 +364,7 @@ export class TIFFImageryProvider {
     this.ready = true;
   }
 
-  static async fromUrl(url: string | File | Blob, options?: TIFFImageryProviderOptions) {
+  static async fromUrl(url: string | File | Blob, options: TIFFImageryProviderOptions = {}) {
     const provider = new TIFFImageryProvider(options as any);
     await provider._build(url, options)
     
