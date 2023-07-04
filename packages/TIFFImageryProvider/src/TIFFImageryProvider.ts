@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined, ImageryProvider, Cartesian2, WebMercatorTilingScheme, Cartographic } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined, Cartesian2 } from "cesium";
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'

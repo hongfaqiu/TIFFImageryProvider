@@ -65,7 +65,10 @@ TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
   projFunc: (code) => {
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
-      return proj4("EPSG:32760", "EPSG:4326").forward
+      return {
+        project: proj4("EPSG:32760", "EPSG:4326").forward,
+        unproject: proj4("EPSG:4326", "EPSG:4326").forward
+      }
     }
   }
 });
@@ -126,8 +129,12 @@ interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
-  /** 投影函数，将[经度，纬度]位置转换为EPSG：4326 */
-  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+  projFunc?: (code: number) => {
+    /** 投影函数，将 [lon, lat] 位置转换为 EPSG:4326 */
+    project: ((pos: number[]) => number[]);
+    /** 逆投影函数 */
+    unproject: ((pos: number[]) => number[]);
+  } | undefined;
   /** 缓存生存时间，默认为60 * 3000毫秒 */
   cache?: number;
   /** geotiff 重采样方法, 默认为 nearest */

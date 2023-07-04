@@ -6,6 +6,8 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 
 [中文readme](./README_CN.md)
 
+[![CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/p/github/hongfaqiu/cog-example/main)
+
 ## Features
 
 - Three band rendering.
@@ -21,6 +23,10 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 ```bash
 #npm
 npm install --save tiff-imagery-provider
+
+#yarn
+yarn add tiff-imagery-provider
+
 #pnpm
 pnpm add tiff-imagery-provider
 ```
@@ -60,7 +66,10 @@ TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
   projFunc: (code) => {
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
-      return proj4("EPSG:32760", "EPSG:4326").forward
+      return {
+        project: proj4("EPSG:32760", "EPSG:4326").forward,
+        unproject: proj4("EPSG:4326", "EPSG:4326").forward
+      }
     }
   }
 });
@@ -121,8 +130,12 @@ interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
-  /** projection function, convert [lon, lat] position to EPSG:4326 */
-  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+  projFunc?: (code: number) => {
+    /** projection function, convert [lon, lat] position to EPSG:4326 */
+    project: ((pos: number[]) => number[]);
+    /** unprojection function */
+    unproject: ((pos: number[]) => number[]);
+  } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
   /** geotiff resample method, defaults to nearest */
@@ -252,7 +265,6 @@ pnpm start
 - [x] Use Web Workers to generate tile image
 - [x] GPU speed up calculation
 - [ ] More efficient tile request method
-- [ ] Web Workers Offscreen WebGL rendering
 
 ## Credits
 

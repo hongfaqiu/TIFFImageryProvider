@@ -66,7 +66,10 @@ TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
   projFunc: (code) => {
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
-      return proj4("EPSG:32760", "EPSG:4326").forward
+      return {
+        project: proj4("EPSG:32760", "EPSG:4326").forward,
+        unproject: proj4("EPSG:4326", "EPSG:4326").forward
+      }
     }
   }
 });
@@ -127,8 +130,12 @@ interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
-  /** projection function, convert [lon, lat] position to EPSG:4326 */
-  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+  projFunc?: (code: number) => {
+    /** projection function, convert [lon, lat] position to EPSG:4326 */
+    project: ((pos: number[]) => number[]);
+    /** unprojection function */
+    unproject: ((pos: number[]) => number[]);
+  } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
   /** geotiff resample method, defaults to nearest */
