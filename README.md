@@ -256,10 +256,6 @@ pnpm start
 ![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)
 | ------- | ------- | -------- |
 
-## Bugs
-
-- Cesium@1.101 misplacement
-
 ## Plans
 
 - [x] Use Web Workers to generate tile image

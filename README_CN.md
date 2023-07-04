@@ -254,10 +254,6 @@ pnpm start
 ![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)
 | ------- | ------- | -------- |
 
-## 已知问题
-
-- Cesium@1.101 中的位置错误
-
 ## 计划
 
 - [x] 使用 Web Workers 生成瓦片图像
