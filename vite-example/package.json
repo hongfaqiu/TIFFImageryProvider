@@ -1,0 +1,19 @@
+{
+  "name": "tiff-imagery-provider-example",
+  "private": true,
+  "scripts": {
+    "start": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6",
+    "vite": "^4.3.9",
+    "vite-plugin-cesium": "^1.2.22"
+  },
+  "dependencies": {
+    "cesium": "^1.106.1",
+    "proj4-fully-loaded": "^0.2.0",
+    "tiff-imagery-provider": "workspace:*"
+  },
+  "license": "MIT"
+}

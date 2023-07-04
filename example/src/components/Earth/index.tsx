@@ -42,12 +42,7 @@ const EarthViewer: React.FC<ViewerProps> = ({
         layerName: 'singleBand',
         id: '1',
         method: 'cog',
-        url: '/cogtif.tif',
-        renderOptions: {
-          single: {
-            colorScale: 'rainbow'
-          }
-        }
+        url: 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/56/J/NP/2023/4/S2A_56JNP_20230410_0_L2A/TCI.tif',
       }, {
         zoom: true
       })

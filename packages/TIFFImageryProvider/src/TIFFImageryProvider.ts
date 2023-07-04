@@ -1,10 +1,11 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined, ImageryProvider } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined, ImageryProvider, Cartesian2, WebMercatorTilingScheme, Cartographic } from "cesium";
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
 import WorkerFarm from "./worker-farm";
 import { getMinMax, generateColorScale, findAndSortBandNumbers } from "./utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
+import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
 
 export interface SingleBandRenderOptions {
   /** band index start from 1, defaults to 1 */
@@ -115,8 +116,12 @@ export interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
-  /** projection function, convert [lon, lat] position to EPSG:4326 */
-  projFunc?: (code: number) => (((pos: number[]) => number[]) | void);
+  projFunc?: (code: number) => {
+    /** projection function, convert [lon, lat] position to EPSG:4326 */
+    project: ((pos: number[]) => number[]);
+    /** unprojection function */
+    unproject: ((pos: number[]) => number[]);
+  } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
   /** geotiff resample method, defaults to nearest */
@@ -134,7 +139,7 @@ function getWorkerPool() {
 
 export class TIFFImageryProvider {
   ready: boolean;
-  tilingScheme: GeographicTilingScheme;
+  tilingScheme: TIFFImageryProviderTilingScheme | GeographicTilingScheme;
   rectangle: Rectangle;
   tileSize: number;
   tileWidth: number;
@@ -165,6 +170,13 @@ export class TIFFImageryProvider {
   readSamples: number[];
   requestLevels: number[];
   private _isTiled: boolean;
+  bbox: number[];
+  private _proj?: {
+    /** projection function, convert [lon, lat] position to EPSG:4326 */
+    project: (pos: number[]) => number[];
+    /** unprojection function */
+    unproject: (pos: number[]) => number[];
+  };
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /** 
      * Deprecated
@@ -204,33 +216,35 @@ export class TIFFImageryProvider {
     this._isTiled = image.isTiled;
 
     // 获取空间范围
-    const bbox = image.getBoundingBox();
-    const [west, south, east, north] = bbox;
+    this.bbox = image.getBoundingBox();
+    const [west, south, east, north] = this.bbox;
 
     const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
 
-    const proj = projFunc?.(prjCode)
-    if (typeof proj === 'function') {
-      const leftBottom = proj([west, south])
-      const rightTop = proj([east, north])
-      this.rectangle = Rectangle.fromDegrees(leftBottom[0], leftBottom[1], rightTop[0], rightTop[1])
+    this._proj = projFunc?.(prjCode)
+    if (typeof this._proj?.project === 'function' && typeof this._proj?.unproject === 'function') {
+      this.tilingScheme = new TIFFImageryProviderTilingScheme({
+        rectangleNortheastInMeters: new Cartesian2(east, north),
+        rectangleSouthwestInMeters: new Cartesian2(west, south),
+        ...this._proj
+      })
+      this.rectangle = this.tilingScheme.rectangle
     } else if (prjCode === 4326) {
-      this.rectangle = Rectangle.fromDegrees(...bbox)
+      this.rectangle = Rectangle.fromDegrees(...this.bbox)
+      // 处理跨180度经线的情况
+      // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
+      if (this.rectangle.east < this.rectangle.west) {
+        this.rectangle.east += CMath.TWO_PI;
+      }
+      this.tilingScheme = new GeographicTilingScheme({
+        rectangle: this.rectangle,
+        numberOfLevelZeroTilesX: 1,
+        numberOfLevelZeroTilesY: 1
+      });
     } else {
       const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
       throw error;
     }
-
-    // 处理跨180度经线的情况
-    // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
-    if (this.rectangle.east < this.rectangle.west) {
-      this.rectangle.east += CMath.TWO_PI;
-    }
-    this.tilingScheme = new GeographicTilingScheme({
-      rectangle: this.rectangle,
-      numberOfLevelZeroTilesX: 1,
-      numberOfLevelZeroTilesY: 1
-    });
 
     this._imageCount = await source.getImageCount();
     this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 512;
@@ -550,17 +564,26 @@ export class TIFFImageryProvider {
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
     }
-    const { west, south, north, width: lonWidth } = this.rectangle;
     const width = image.getWidth();
     const height = image.getHeight();
-    let lonGap = longitude - west;
-    // 处理跨180°经线的情况
-    if (longitude < west) {
-      lonGap += CMath.TWO_PI;
+    let posX: number, posY: number;
+    if (this._proj) {
+      const [west, south, east, north] = this.bbox;
+      const [x, y] = this._proj.unproject([longitude, latitude].map(CMath.toDegrees));
+      const xWidth = east - west, yHeight = north - south;
+      posX = ~~(Math.abs((x - west) / xWidth) * width);
+      posY = ~~(Math.abs((y - south) / yHeight) * height);
+    } else {
+      const { west, south, north, width: lonWidth } = this.rectangle;
+      let lonGap = longitude - west;
+      // 处理跨180°经线的情况
+      if (longitude < west) {
+        lonGap += CMath.TWO_PI;
+      }
+  
+      posX = ~~(Math.abs(lonGap / lonWidth) * width);
+      posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
     }
-
-    const posX = ~~(Math.abs(lonGap / lonWidth) * width);
-    const posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
 
     const options = {
       window: [posX, posY, posX + 1, posY + 1],
