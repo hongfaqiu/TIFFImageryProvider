@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.7.0](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.6.7...v2.7.0) (2023-07-04)
+
+
+### Bug Fixes
+
+* update readme [#16](https://github.com/hongfaqiu/TIFFImageryProvider/issues/16) ([c52dfca](https://github.com/hongfaqiu/TIFFImageryProvider/commit/c52dfca52dc4b3cc4bd3bd099e9827e3bb039aaa))
+
+
+### Features
+
+* reproject any projection coords [#18](https://github.com/hongfaqiu/TIFFImageryProvider/issues/18) ([64f404a](https://github.com/hongfaqiu/TIFFImageryProvider/commit/64f404aa3ce87a7e059cc92e9dc21654dc037281))
+
+
+
+
+
 ## [2.6.7](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.6.6...v2.6.7) (2023-07-03)
 
 
