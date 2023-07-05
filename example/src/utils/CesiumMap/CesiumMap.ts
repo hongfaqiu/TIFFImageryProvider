@@ -122,10 +122,9 @@ export default class CesiumMap extends BaseMap {
               {
                 try {
                   let prj = proj4(`EPSG:${code}`, "EPSG:4326")
-                  let unprj = proj4("EPSG:4326", `EPSG:${code}`)
-                  if (prj && unprj) return {
+                  if (prj) return {
                     project: prj.forward,
-                    unproject: unprj.forward
+                    unproject: prj.inverse
                   }
                 } catch (e) {
                   console.error(e);

@@ -567,7 +567,7 @@ export class TIFFImageryProvider {
     const width = image.getWidth();
     const height = image.getHeight();
     let posX: number, posY: number;
-    if (this._proj) {
+    if (this._proj?.unproject) {
       const [west, south, east, north] = this.bbox;
       const [x, y] = this._proj.unproject([longitude, latitude].map(CMath.toDegrees));
       const xWidth = east - west, yHeight = north - south;
