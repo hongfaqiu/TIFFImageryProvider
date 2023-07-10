@@ -99,6 +99,11 @@ export default class BaseMap {
       shouldAnimate: true,
       useBrowserRecommendedResolution: false,
       orderIndependentTranslucency: false,
+      contextOptions: {
+        webgl: {
+          alpha: true,
+        }
+      },
     });
 
     viewer.scene.fog.density = 0.0001; // 雾气中水分含量
