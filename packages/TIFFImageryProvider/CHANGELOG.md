@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.8.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.8.0...v2.8.1) (2023-07-31)
+
+
+### Performance Improvements
+
+* reduce packaging size ([1455d78](https://github.com/hongfaqiu/tiff-imagery-provider/commit/1455d789877406aeaf8b04282f2b66a8b0eae39f))
+
+
+
+
+
 # [2.8.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.7.0...v2.8.0) (2023-07-31)
 
 
