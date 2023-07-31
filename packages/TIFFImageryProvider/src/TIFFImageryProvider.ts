@@ -3,7 +3,7 @@ import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
 import WorkerFarm from "./worker-farm";
-import { getMinMax, generateColorScale, findAndSortBandNumbers } from "./utils";
+import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba } from "./utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
 
@@ -513,7 +513,7 @@ export class TIFFImageryProvider {
           bands: this.bands,
           noData: this.noData,
           resampleMethod: this.options.resampleMethod,
-          colorMapping: this.renderOptions.colorMapping ?? { 'black': 'transparent' }, 
+          colorMapping: Object.entries(this.renderOptions.colorMapping ?? { 'black': 'transparent' }).map((val) => val. map(stringColorToRgba)), 
         }
         if (!this._workerFarm?.worker) {
           throw new DeveloperError('web workers bootstrap error');

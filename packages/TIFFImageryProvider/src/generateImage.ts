@@ -1,4 +1,4 @@
-import { getRange, decimal2rgb, stringColorToRgba } from "./utils";
+import { getRange, decimal2rgb } from "./utils";
 import { MultiBandRenderOptions } from "./TIFFImageryProvider";
 
 export type GenerateImageOptions = {
@@ -10,7 +10,7 @@ export type GenerateImageOptions = {
     max: number;
   }>;
   noData?: number;
-  colorMapping: Record<string, string>;
+  colorMapping: number[][][];
 }
 
 export async function generateImage(data: Float32Array[], opts: GenerateImageOptions) {
@@ -36,9 +36,7 @@ export async function generateImage(data: Float32Array[], opts: GenerateImageOpt
     let blue = decimal2rgb((blueData[i] - ranges[2].min) / ranges[2].range);
     let alpha = ifNoDataFunc(redData[i], greenData[i], blueData[i]) ? 0 : 255;
 
-    Object.entries(colorMapping).map(([key, value]) => {
-      const colorFrom = stringColorToRgba(key);
-      const colorTo = stringColorToRgba(value);
+    colorMapping.map(([colorFrom, colorTo]) => {
       if (red === colorFrom[0] && green === colorFrom[1] && blue === colorFrom[2]) {
         red = colorTo[0];
         green = colorTo[1];
