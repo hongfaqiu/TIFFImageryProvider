@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.8.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.7.0...v2.8.0) (2023-07-31)
+
+
+### Bug Fixes
+
+* **demo:** higher cesium version mistake ([7392a20](https://github.com/hongfaqiu/tiff-imagery-provider/commit/7392a20fa8373f8917e79cbccc86dd21669bfe6a))
+
+
+### Features
+
+* add colorMapping options [#19](https://github.com/hongfaqiu/tiff-imagery-provider/issues/19) ([c751416](https://github.com/hongfaqiu/tiff-imagery-provider/commit/c75141647aa72f3f749d28ffa5a16006f0c40215))
+
+
+
+
+
 # [2.7.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.6.7...v2.7.0) (2023-07-04)
 
 
