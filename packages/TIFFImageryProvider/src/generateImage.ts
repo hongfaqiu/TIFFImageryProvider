@@ -1,4 +1,4 @@
-import { getRange, decimal2rgb } from "./utils";
+import { getRange, decimal2rgb, stringColorToRgba } from "./utils";
 import { MultiBandRenderOptions } from "./TIFFImageryProvider";
 
 export type GenerateImageOptions = {
@@ -10,19 +10,16 @@ export type GenerateImageOptions = {
     max: number;
   }>;
   noData?: number;
+  colorMapping: Record<string, string>;
 }
 
 export async function generateImage(data: Float32Array[], opts: GenerateImageOptions) {
-  const { width, height, renderOptions, bands, noData } = opts;
+  const { width, height, renderOptions, bands, noData, colorMapping } = opts;
   const imageData = new Uint8ClampedArray(width * height * 4);
 
   function ifNoDataFunc(...vals: number[]) {
-    for (let i = 0; i < vals.length; i++) {
-      const val = vals[i]
-      if (isNaN(val) || val === noData) {
-        return true
-      }
-    }
+    if (vals.some((val) => isNaN(val) || val === noData)) return true;
+
     return false
   }
 
@@ -34,13 +31,26 @@ export async function generateImage(data: Float32Array[], opts: GenerateImageOpt
   const blueData = data[2];
 
   for (let i = 0; i < data[0].length; i++) {
-    const red = redData[i];
-    const green = greenData[i];
-    const blue = blueData[i];
-    imageData[i * 4] = decimal2rgb((red - ranges[0].min) / ranges[0].range);
-    imageData[i * 4 + 1] = decimal2rgb((green - ranges[1].min) / ranges[1].range);
-    imageData[i * 4 + 2] = decimal2rgb((blue - ranges[2].min) / ranges[2].range);
-    imageData[i * 4 + 3] = ifNoDataFunc(red, green, blue) ? 0 : 255;
+    let red = decimal2rgb((redData[i] - ranges[0].min) / ranges[0].range);
+    let green = decimal2rgb((greenData[i] - ranges[1].min) / ranges[1].range);
+    let blue = decimal2rgb((blueData[i] - ranges[2].min) / ranges[2].range);
+    let alpha = ifNoDataFunc(redData[i], greenData[i], blueData[i]) ? 0 : 255;
+
+    Object.entries(colorMapping).map(([key, value]) => {
+      const colorFrom = stringColorToRgba(key);
+      const colorTo = stringColorToRgba(value);
+      if (red === colorFrom[0] && green === colorFrom[1] && blue === colorFrom[2]) {
+        red = colorTo[0];
+        green = colorTo[1];
+        blue = colorTo[2];
+        alpha = colorTo[3];
+      }
+    })
+    
+    imageData[i * 4] = red;
+    imageData[i * 4 + 1] = green;
+    imageData[i * 4 + 2] = blue;
+    imageData[i * 4 + 3] = alpha;
   }
 
   const result = new ImageData(imageData, width, height);

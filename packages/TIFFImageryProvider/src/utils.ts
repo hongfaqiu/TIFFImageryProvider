@@ -1,3 +1,5 @@
+import { Color } from "cesium";
+
 export function getMinMax(data: number[], nodata: number) {
   let min: number, max: number;
   for (let j = 0; j < data.length; j += 1) {
@@ -75,4 +77,11 @@ export function findAndSortBandNumbers(str: string) {
     bandNumbers.add(parseInt(match[1]) - 1);
   }
   return Array.from(bandNumbers).sort((a, b) => a - b);
+}
+
+export function stringColorToRgba(color: string) {
+  const newColor = Color.fromCssColorString(color);
+  const { red, green, blue, alpha } = newColor;
+
+  return [red, green, green, alpha].map(val => Math.round(val * 255));
 }

@@ -144,6 +144,8 @@ interface TIFFImageryProviderOptions {
 type TIFFImageryProviderRenderOptions = {
   /** 无效值，默认从tiff meta读取 */
   nodata?: number;
+  /** 只对三波段渲染有效，默认为 { 'black': 'transparent' } */
+  colorMapping?: Record<string, string>;
   /** 尝试将多波段cog渲染为rgb，优先级 1 */
   convertToRGB?: boolean;
   /** 优先级 2 */

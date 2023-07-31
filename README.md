@@ -145,6 +145,8 @@ interface TIFFImageryProviderOptions {
 type TIFFImageryProviderRenderOptions = {
   /** nodata value, default read from tiff meta */
   nodata?: number;
+  /** Only valid for three band rendering, defaults to { 'black': 'transparent' } */
+  colorMapping?: Record<string, string>;
   /** try to render multi band cog to RGB, priority 1 */
   convertToRGB?: boolean;
   /** priority 2 */

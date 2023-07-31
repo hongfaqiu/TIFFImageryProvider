@@ -89,6 +89,8 @@ export interface MultiBandRenderOptions {
 export type TIFFImageryProviderRenderOptions = {
   /** nodata value, default read from tiff meta */
   nodata?: number;
+  /** Only valid for three band rendering, defaults to { 'black': 'transparent' } */
+  colorMapping?: Record<string, string>;
   /** try to render multi band cog to RGB, priority 1 */
   convertToRGB?: boolean;
   /** priority 2 */
@@ -511,6 +513,7 @@ export class TIFFImageryProvider {
           bands: this.bands,
           noData: this.noData,
           resampleMethod: this.options.resampleMethod,
+          colorMapping: this.renderOptions.colorMapping ?? { 'black': 'transparent' }, 
         }
         if (!this._workerFarm?.worker) {
           throw new DeveloperError('web workers bootstrap error');
