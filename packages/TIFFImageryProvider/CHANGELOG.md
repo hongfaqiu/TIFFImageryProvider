@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.8.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.8.1...v2.8.2) (2023-08-02)
+
+
+### Bug Fixes
+
+* account for different corner coordinates [#16](https://github.com/hongfaqiu/tiff-imagery-provider/issues/16) ([ed9e928](https://github.com/hongfaqiu/tiff-imagery-provider/commit/ed9e92835a4535779126b76d5237b32cf1817db2))
+
+
+
+
+
 ## [2.8.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.8.0...v2.8.1) (2023-07-31)
 
 
