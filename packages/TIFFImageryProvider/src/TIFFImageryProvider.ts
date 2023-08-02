@@ -151,34 +151,35 @@ export class TIFFImageryProvider {
   credit: Credit;
   errorEvent: Event;
   readyPromise: Promise<boolean>;
-  private _destroyed = false;
-  _source!: GeoTIFF;
-  private _imageCount!: number;
-  _images: (GeoTIFFImage | null)[] = [];
-  _imagesCache: Record<string, {
-    time: number;
-    data: ImageBitmap | HTMLCanvasElement | HTMLImageElement;
-  }> = {};
   bands: Record<number, {
     min: number;
     max: number;
   }>;
   noData: number;
   hasAlphaChannel: boolean;
-  private _workerFarm: WorkerFarm | null;
-  private _cacheTime: number;
   plot: plot;
   renderOptions: TIFFImageryProviderRenderOptions;
   readSamples: number[];
   requestLevels: number[];
-  private _isTiled: boolean;
   bbox: number[];
+  private _destroyed = false;
+  private _source!: GeoTIFF;
+  private _imageCount!: number;
+  private _images: (GeoTIFFImage | null)[] = [];
+  private _imagesCache: Record<string, {
+    time: number;
+    data: ImageBitmap | HTMLCanvasElement | HTMLImageElement;
+  }> = {};
+  private _workerFarm: WorkerFarm | null;
+  private _cacheTime: number;
+  private _isTiled: boolean;
   private _proj?: {
     /** projection function, convert [lon, lat] position to EPSG:4326 */
     project: (pos: number[]) => number[];
     /** unprojection function */
     unproject: (pos: number[]) => number[];
   };
+  
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /** 
      * Deprecated

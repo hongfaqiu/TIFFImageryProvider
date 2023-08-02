@@ -95,8 +95,7 @@ export default class CesiumMap extends BaseMap {
         });
         break;
       case 'arcgis':
-        imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
-          url,
+        imageryProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(url, {
           maximumLevel,
           tilingScheme,
           enablePickFeatures: false
@@ -285,7 +284,7 @@ export default class CesiumMap extends BaseMap {
   };
 
   // 加载地形数据
-  addTerrain(layer: Layer.TerrainLayer) {
+  async addTerrain(layer: Layer.TerrainLayer) {
     const { type, headers, queryParameters, options } = layer;
     let terrainLayer:
       | Cesium.CesiumTerrainProvider
@@ -298,15 +297,14 @@ export default class CesiumMap extends BaseMap {
     });
     switch (type) {
       case 'cesium':
-        terrainLayer = Cesium.createWorldTerrain({
+        terrainLayer = await Cesium.CesiumTerrainProvider.fromIonAssetId(1, {
           requestVertexNormals: true,
           ...options,
         });
         break;
       case 'custom':
         if (!newUrl) break;
-        terrainLayer = new Cesium.CesiumTerrainProvider({
-          url: newUrl,
+        terrainLayer = await Cesium.CesiumTerrainProvider.fromUrl(newUrl, {
           requestVertexNormals: true,
         });
         break;

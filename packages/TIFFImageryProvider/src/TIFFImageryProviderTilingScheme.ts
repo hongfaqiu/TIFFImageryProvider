@@ -4,9 +4,6 @@ import {
   Math as CMath,
   Rectangle,
   WebMercatorTilingScheme,
-} from 'cesium';
-
-import {
   Cartesian3,
   Ellipsoid,
 } from 'cesium';
@@ -18,42 +15,74 @@ class TIFFImageryProviderTilingScheme extends WebMercatorTilingScheme {
     numberOfLevelZeroTilesY?: number;
     rectangleSouthwestInMeters?: Cartesian2;
     rectangleNortheastInMeters?: Cartesian2;
-    project?: (pos: number[]) => number[];
-    unproject?: (pos: number[]) => number[];
+    project: (pos: number[]) => number[];
+    unproject: (pos: number[]) => number[];
   }) {
     super(options);
     
     const { project, unproject } = options;
-    if (project) {
-      // @ts-ignore
-      this._projection.project = function (cartographic: Cartographic) {
-        const [x, y] = unproject([cartographic.longitude, cartographic.latitude].map(CMath.toDegrees))
+    // @ts-ignore
+    this._ellipsoid = options.ellipsoid ?? Ellipsoid.WGS84;
+
+    // @ts-ignore
+    this._projection = {
+      ellipsoid: this.ellipsoid,
+      project(cartographic: Cartographic, result?: Cartesian3): Cartesian3 {
+        const [x, y] = unproject(
+          [cartographic.longitude, cartographic.latitude].map(
+            CMath.toDegrees
+          )
+        );
         const z = cartographic.height;
-        return new Cartesian3(x, y, z);
-      };
-    }
-    if (unproject) {
-      // @ts-ignore
-      this._projection.unproject = function (cartesian: Cartesian3) {
-        const [longitude, latitude] = project([cartesian.x, cartesian.y]).map(CMath.toRadians)
+        return Cartesian3.fromElements(x, y, z, result);
+      },
+      unproject(cartesian: Cartesian3, result?: Cartographic): Cartographic {
+        const [longitude, latitude] = project([cartesian.x, cartesian.y]);
         const height = cartesian.z;
-        return new Cartographic(longitude, latitude, height);
-      };
-    }
-    
-    const southwest = this.projection.unproject(
-      options.rectangleSouthwestInMeters as any
-    );
-    const northeast = this.projection.unproject(
-      options.rectangleNortheastInMeters as any
-    );
+        return Cartographic.fromDegrees(longitude, latitude, height, result);
+      }
+    };
+
+    const swMeters = new Cartesian3();
+    options.rectangleSouthwestInMeters.clone(swMeters);
+    const neMeters = new Cartesian3();
+    options.rectangleNortheastInMeters.clone(neMeters);
+    const seMeters = new Cartesian3(neMeters.x, swMeters.y);
+    const nwMeters = new Cartesian3(swMeters.x, neMeters.y);
+
+    const southwest = this.projection.unproject(swMeters);
+    const southeast = this.projection.unproject(seMeters);
+    const northwest = this.projection.unproject(nwMeters);
+    const northeast = this.projection.unproject(neMeters);
+
     // @ts-ignore
     this._rectangle = new Rectangle(
-      southwest.longitude,
-      southwest.latitude,
-      northeast.longitude,
-      northeast.latitude
+      Math.min(
+        southwest.longitude,
+        southeast.longitude,
+        northwest.longitude,
+        northeast.longitude
+      ),
+      Math.min(
+        southwest.latitude,
+        southeast.latitude,
+        northwest.latitude,
+        northeast.latitude
+      ),
+      Math.max(
+        southwest.longitude,
+        southeast.longitude,
+        northwest.longitude,
+        northeast.longitude
+      ),
+      Math.max(
+        southwest.latitude,
+        southeast.latitude,
+        northwest.latitude,
+        northeast.latitude
+      )
     );
+    
   }
 }
 
