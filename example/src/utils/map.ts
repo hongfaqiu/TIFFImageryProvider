@@ -1,7 +1,7 @@
 import {
   Cartesian2,
   defined,
-  Math as CMath
+  Math as CesiumMath
 } from 'cesium';
 
 import CesiumMap from './CesiumMap';
@@ -68,8 +68,8 @@ export function screenPosToMapPos(viewer: Viewer, x: number, y: number) {
     //将笛卡尔三维坐标转为地图坐标（弧度）
     const cartographic = viewer.scene.globe.ellipsoid.cartesianToCartographic(cartesian);
     //将地图坐标（弧度）转为十进制的度数
-    const lon = +CMath.toDegrees(cartographic.longitude).toFixed(6);
-    const lat = +CMath.toDegrees(cartographic.latitude).toFixed(6);
+    const lon = +CesiumMath.toDegrees(cartographic.longitude).toFixed(6);
+    const lat = +CesiumMath.toDegrees(cartographic.latitude).toFixed(6);
     return [lon, lat];
   }
   return null;
@@ -103,8 +103,8 @@ export function CartesiantoLonlat(
       cartesian3 as Cartesian3,
     );
     // 将弧度转为度的十进制度表示
-    const lon = +CMath.toDegrees(cartographic.longitude);
-    const lat = +CMath.toDegrees(cartographic.latitude);
+    const lon = +CesiumMath.toDegrees(cartographic.longitude);
+    const lat = +CesiumMath.toDegrees(cartographic.latitude);
     pos = [lon, lat, height ?? cartographic.height];
   }
   return pos;

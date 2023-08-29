@@ -130,9 +130,9 @@ interface TIFFImageryProviderOptions {
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
   projFunc?: (code: number) => {
-    /** 投影函数，将 [lon, lat] 位置转换为 EPSG:4326 */
+    /** 投影函数，将 [x, y] 位置转换为 [lon, lat] */
     project: ((pos: number[]) => number[]);
-    /** 逆投影函数 */
+    /** 逆投影函数，将 [lon, lat] 位置转换为 [x, y] */
     unproject: ((pos: number[]) => number[]);
   } | undefined;
   /** 缓存生存时间，默认为60 * 3000毫秒 */
@@ -250,7 +250,7 @@ type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hs
 ```node
 pnpm install
 cd example
-pnpm start
+pnpm dev
 ```
 
 ![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)

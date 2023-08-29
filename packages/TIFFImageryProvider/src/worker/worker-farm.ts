@@ -1,19 +1,14 @@
-// @ts-ignore
-import GenerateImageWorker from "web-worker:./worker";
-import { GenerateImageOptions } from "./generateImage";
-import { TypedArray } from "./plotty/typing";
-
 const resolves = {};
 const rejects = {};
 let globalMsgId = 0; // Activate calculation in the worker, returning a promise
 
-async function sendMessage(worker: Worker, payload: { data: TypedArray[], opts: GenerateImageOptions }) {
+async function sendMessage<T = any, U = any>(worker: Worker, payload: T) {
   const msgId = globalMsgId++;
   const msg = {
     id: msgId,
     payload,
   };
-  return new Promise<ImageBitmap>(function (resolve, reject) {
+  return new Promise<U>(function (resolve, reject) {
     // save callbacks for later
     resolves[msgId] = resolve;
     rejects[msgId] = reject;
@@ -46,14 +41,12 @@ function handleMessage(msg: any) {
 }
 
 class WorkerFarm {
-  worker: Worker;
-  constructor() {
-    this.worker = new GenerateImageWorker();
+  constructor(public worker: Worker) {
     this.worker.onmessage = handleMessage;
   }
 
-  async scheduleTask(data: TypedArray[], opts: GenerateImageOptions) {
-    return await sendMessage(this.worker, { data, opts });
+  async scheduleTask<T = any, U = any>(options: T) {
+    return await sendMessage<T, U>(this.worker, options);
   }
 
   destory() {

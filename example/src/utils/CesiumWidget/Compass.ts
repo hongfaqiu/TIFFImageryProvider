@@ -6,7 +6,7 @@ import {
   Cartographic,
   getTimestamp,
   HeadingPitchRange,
-  Math as CMath,
+  Math as CesiumMath,
   Matrix4,
   Ray,
   SceneMode,
@@ -194,7 +194,7 @@ class Compass extends Widget {
     camera.flyToBoundingSphere(focusBoundingSphere, {
       offset: new HeadingPitchRange(
         0,
-        CMath.PI_OVER_TWO - Cartesian3.angleBetween(surfaceNormal, camera.directionWC),
+        CesiumMath.PI_OVER_TWO - Cartesian3.angleBetween(surfaceNormal, camera.directionWC),
         Cartesian3.distance(cameraPosition, center),
       ),
       duration: 1.5,
@@ -323,7 +323,7 @@ class Compass extends Widget {
     const deltaT = timestamp - this._orbitLastTimestamp;
     const rate = ((this._orbitCursorOpacity - 0.5) * 2.5) / 1000;
     const distance = deltaT * rate;
-    const angle = this._orbitCursorAngle + CMath.PI_OVER_TWO;
+    const angle = this._orbitCursorAngle + CesiumMath.PI_OVER_TWO;
     const x = Math.cos(angle) * distance;
     const y = Math.sin(angle) * distance;
     let oldTransform;
@@ -363,7 +363,7 @@ class Compass extends Widget {
    */
   private _updateAngleAndOpacity(vector: Cartesian2, compassWidth: number) {
     const angle = Math.atan2(-vector.y, vector.x);
-    this._orbitCursorAngle = CMath.zeroToTwoPi(angle - CMath.PI_OVER_TWO);
+    this._orbitCursorAngle = CesiumMath.zeroToTwoPi(angle - CesiumMath.PI_OVER_TWO);
     const distance = Cartesian2.magnitude(vector);
     const maxDistance = compassWidth / 2.0;
     const distanceFraction = Math.min(distance / maxDistance, 1.0);
@@ -463,7 +463,7 @@ class Compass extends Widget {
     const vector = this._getVector(e);
     const angle = Math.atan2(-vector.y, vector.x);
     const angleDifference = angle - this._rotateInitialCursorAngle;
-    const newCameraAngle = CMath.zeroToTwoPi(this._rotateInitialCameraAngle - angleDifference);
+    const newCameraAngle = CesiumMath.zeroToTwoPi(this._rotateInitialCameraAngle - angleDifference);
     let oldTransform;
     if (this._rotateFrame) {
       oldTransform = Matrix4.clone(camera.transform);

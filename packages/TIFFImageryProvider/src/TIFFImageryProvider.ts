@@ -1,11 +1,16 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CMath, DeveloperError, defined, Cartesian2 } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CesiumMath, DeveloperError, defined, Cartesian2 } from "cesium";
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
-import WorkerFarm from "./worker-farm";
-import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba } from "./utils";
+import WorkerFarm from "./worker/worker-farm";
+import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba } from "./helpers/utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
+import { reprojection } from "./helpers/reprojection";
+
+// @ts-ignore
+import GenerateImageWorker from "web-worker:./worker/worker-generateImage";
+import { GenerateImageOptions } from "./helpers/generateImage";
 
 export interface SingleBandRenderOptions {
   /** band index start from 1, defaults to 1 */
@@ -119,9 +124,9 @@ export interface TIFFImageryProviderOptions {
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
   projFunc?: (code: number) => {
-    /** projection function, convert [lon, lat] position to EPSG:4326 */
+    /** projection function, convert [lon, lat] position to [x, y] */
     project: ((pos: number[]) => number[]);
-    /** unprojection function */
+    /** unprojection function, convert [x, y] position to [lon, lat] */
     unproject: ((pos: number[]) => number[]);
   } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
@@ -170,7 +175,8 @@ export class TIFFImageryProvider {
     time: number;
     data: ImageBitmap | HTMLCanvasElement | HTMLImageElement;
   }> = {};
-  private _workerFarm: WorkerFarm | null;
+  private _generateImageworkerFarm: WorkerFarm | null;
+  private _reprojectionworkerFarm: WorkerFarm;
   private _cacheTime: number;
   private _isTiled: boolean;
   private _proj?: {
@@ -195,8 +201,7 @@ export class TIFFImageryProvider {
     this.minimumLevel = options.minimumLevel ?? 0;
     this.credit = new Credit(options.credit || "", false);
     this.errorEvent = new Event();
-
-    this._workerFarm = new WorkerFarm();
+    this._generateImageworkerFarm = new WorkerFarm(new GenerateImageWorker());
     this._cacheTime = options.cache ?? 60 * 1000;
     
     this.ready = false;
@@ -237,7 +242,7 @@ export class TIFFImageryProvider {
       // 处理跨180度经线的情况
       // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
       if (this.rectangle.east < this.rectangle.west) {
-        this.rectangle.east += CMath.TWO_PI;
+        this.rectangle.east += CesiumMath.TWO_PI;
       }
       this.tilingScheme = new GeographicTilingScheme({
         rectangle: this.rectangle,
@@ -434,25 +439,36 @@ export class TIFFImageryProvider {
     
     const width = image.getWidth();
     const height = image.getHeight();
-    
-    const tileXNum = this.tilingScheme.getNumberOfXTilesAtLevel(z);
-    const tileYNum = this.tilingScheme.getNumberOfYTilesAtLevel(z);
-    const tilePixel = {
-      xWidth: width / tileXNum,
-      yWidth: height / tileYNum
+    const lonlatRect = this.tilingScheme.tileXYToRectangle(x, y, z);
+
+    if (lonlatRect.east < lonlatRect.west) {
+      lonlatRect.east += CesiumMath.TWO_PI;
     }
-    const pixelBounds = [
-      Math.round(x * tilePixel.xWidth),
-      Math.round(y * tilePixel.yWidth),
-      Math.round((x + 1) * tilePixel.xWidth),
-      Math.round((y + 1) * tilePixel.yWidth),
-    ];
+
+    let targetRect: Rectangle = lonlatRect,
+      nativeRect: Rectangle = this.rectangle;
+
+    if (this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
+      targetRect = this.tilingScheme.tileXYToNativeRectangle(x, y, z);
+      nativeRect = this.tilingScheme.nativeRectangle;
+      targetRect.west -= (nativeRect.width / width)
+      targetRect.east += (nativeRect.width / width)
+      targetRect.south -= (nativeRect.height / height)
+      targetRect.north += (nativeRect.height / height)
+    }
+
+    let window = [
+      ~~((targetRect.west - nativeRect.west) / nativeRect.width * width),
+      ~~((nativeRect.north - targetRect.north) / nativeRect.height * height),
+      ~~((targetRect.east - nativeRect.west) / nativeRect.width * width),
+      ~~((nativeRect.north - targetRect.south) / nativeRect.height * height),
+    ]
 
     const options = {
-      window: pixelBounds,
+      window,
+      pool: getWorkerPool(),
       width: this.tileWidth,
       height: this.tileHeight,
-      pool: getWorkerPool(),
       samples: this.readSamples,
       resampleMethod: this.options.resampleMethod,
       interleave: false,
@@ -463,6 +479,29 @@ export class TIFFImageryProvider {
         res = await image.readRGB(options) as TypedArray[];
       } else {
         res = await image.readRasters(options) as TypedArray[];
+      }
+      if (this._proj.project) {
+        const sourceBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north] as any;
+        
+        const targetBBox = [lonlatRect.west, lonlatRect.south, lonlatRect.east, lonlatRect.north].map(CesiumMath.toDegrees) as any
+        
+        const result = [];
+        for (let i = 0; i < res.length; i++) {
+          const prjData = reprojection({
+            data: res[i] as any,
+            sourceWidth: this.tileWidth,
+            sourceHeight: this.tileHeight,
+            targetWidth: this.tileWidth,
+            targetHeight: this.tileHeight,
+            nodata: this.noData,
+            project: this._proj.project,
+            bbox: sourceBBox,
+            targetBBox
+          })
+          result.push(prjData)
+        }
+        res = result
+
       }
       return {
         data: res,
@@ -500,7 +539,8 @@ export class TIFFImageryProvider {
       let result: ImageBitmap | HTMLImageElement
       
       if (multi || convertToRGB) {
-        const opts = {
+        const opts: GenerateImageOptions = {
+          data: data as any,
           width,
           height,
           renderOptions: multi ?? ['r', 'g', 'b'].reduce((pre, val, index) => ({
@@ -513,14 +553,13 @@ export class TIFFImageryProvider {
           }), {}),
           bands: this.bands,
           noData: this.noData,
-          resampleMethod: this.options.resampleMethod,
-          colorMapping: Object.entries(this.renderOptions.colorMapping ?? { 'black': 'transparent' }).map((val) => val. map(stringColorToRgba)), 
+          colorMapping: Object.entries(this.renderOptions.colorMapping ?? { 'black': 'transparent' }).map((val) => val.map(stringColorToRgba)), 
         }
-        if (!this._workerFarm?.worker) {
+        if (!this._generateImageworkerFarm?.worker) {
           throw new DeveloperError('web workers bootstrap error');
         }
 
-        result = await this._workerFarm.scheduleTask(data, opts);
+        result = await this._generateImageworkerFarm.scheduleTask<GenerateImageOptions, ImageBitmap>(opts);
       } else if (single && this.plot) {
         const { band = 1 } = single;
         this.plot.removeAllDataset();
@@ -571,9 +610,9 @@ export class TIFFImageryProvider {
     const width = image.getWidth();
     const height = image.getHeight();
     let posX: number, posY: number;
-    if (this._proj?.unproject) {
+    if (this._proj?.project) {
       const [west, south, east, north] = this.bbox;
-      const [x, y] = this._proj.unproject([longitude, latitude].map(CMath.toDegrees));
+      const [x, y] = this._proj.project([longitude, latitude].map(CesiumMath.toDegrees));
       const xWidth = east - west, yHeight = north - south;
       posX = ~~(Math.abs((x - west) / xWidth) * width);
       posY = ~~(Math.abs((y - south) / yHeight) * height);
@@ -582,7 +621,7 @@ export class TIFFImageryProvider {
       let lonGap = longitude - west;
       // 处理跨180°经线的情况
       if (longitude < west) {
-        lonGap += CMath.TWO_PI;
+        lonGap += CesiumMath.TWO_PI;
       }
   
       posX = ~~(Math.abs(lonGap / lonWidth) * width);
@@ -619,7 +658,7 @@ export class TIFFImageryProvider {
   destroy() {
     this._images = undefined;
     this._imagesCache = undefined;
-    this._workerFarm?.destory();
+    this._generateImageworkerFarm?.destory();
     this.plot?.destroy();
     this._destroyed = true;
   }

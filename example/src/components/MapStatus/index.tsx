@@ -1,4 +1,4 @@
-import { ScreenSpaceEventHandler, ScreenSpaceEventType, Math as CMath } from "cesium";
+import { ScreenSpaceEventHandler, ScreenSpaceEventType, Math as CesiumMath } from "cesium";
 import { useEffect, useRef, useState } from "react";
 import { throttle } from "lodash";
 
@@ -24,10 +24,10 @@ const MapStatus = () => {
   const orbitTickFunction = () => {
     if (!viewer || viewer?.isDestroyed()) return
 
-    const angle = CMath.toDegrees(viewer.camera.heading);
+    const angle = CesiumMath.toDegrees(viewer.camera.heading);
     setParams({
       height: viewer.camera.positionCartographic.height,
-      pitch: CMath.toDegrees(viewer.camera.pitch),
+      pitch: CesiumMath.toDegrees(viewer.camera.pitch),
       angle: -(angle > 180 ? angle - 360 : angle),
     });
   }

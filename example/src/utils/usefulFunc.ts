@@ -1,4 +1,4 @@
-import { Cartesian3, Cartographic, Math as CMath } from "cesium";
+import { Cartesian3, Cartographic, Math as CesiumMath } from "cesium";
 
 /**
  * 经纬度四至转多边形
@@ -61,7 +61,7 @@ export function boundary4326(boundary: string) {
   if (coors?.every(item => Math.abs(item[0]) > 180)) {
     coors = coors.map(item => {
       const cartographic = Cartographic.fromCartesian(new Cartesian3(item[0], item[1]));
-      return [CMath.toDegrees(cartographic.longitude), CMath.toDegrees(cartographic.latitude)]
+      return [CesiumMath.toDegrees(cartographic.longitude), CesiumMath.toDegrees(cartographic.latitude)]
     })
   }
   return coors ? coors2Boundary(coors) : undefined

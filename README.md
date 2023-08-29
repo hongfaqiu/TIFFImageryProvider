@@ -131,9 +131,9 @@ interface TIFFImageryProviderOptions {
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
   projFunc?: (code: number) => {
-    /** projection function, convert [lon, lat] position to EPSG:4326 */
+    /** projection function, convert [lon, lat] position to [x, y] */
     project: ((pos: number[]) => number[]);
-    /** unprojection function */
+    /** unprojection function, convert [x, y] position to [lon, lat] */
     unproject: ((pos: number[]) => number[]);
   } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
@@ -252,7 +252,7 @@ Launch the app in the demo folder, and then visit <http://localhost:3000/>
 ```node
 pnpm install
 cd example
-pnpm start
+pnpm dev
 ```
 
 ![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)

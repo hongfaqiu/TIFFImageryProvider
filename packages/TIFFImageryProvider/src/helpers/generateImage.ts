@@ -1,7 +1,8 @@
 import { getRange, decimal2rgb } from "./utils";
-import { MultiBandRenderOptions } from "./TIFFImageryProvider";
+import { MultiBandRenderOptions } from "../TIFFImageryProvider";
 
 export type GenerateImageOptions = {
+  data: Float32Array[];
   width: number;
   height: number;
   renderOptions?: MultiBandRenderOptions;
@@ -13,8 +14,8 @@ export type GenerateImageOptions = {
   colorMapping: number[][][];
 }
 
-export async function generateImage(data: Float32Array[], opts: GenerateImageOptions) {
-  const { width, height, renderOptions, bands, noData, colorMapping } = opts;
+export async function generateImage(opts: GenerateImageOptions) {
+  const { data, width, height, renderOptions, bands, noData, colorMapping } = opts;
   const imageData = new Uint8ClampedArray(width * height * 4);
 
   function ifNoDataFunc(...vals: number[]) {

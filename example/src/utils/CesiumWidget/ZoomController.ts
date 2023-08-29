@@ -1,4 +1,4 @@
-import { Cartesian3, Ellipsoid, IntersectionTests, Math as CMath, Ray, SceneMode } from 'cesium';
+import { Cartesian3, Ellipsoid, IntersectionTests, Math as CesiumMath, Ray, SceneMode } from 'cesium';
 
 import Icons from './icons';
 import { DomUtil } from './utils';
@@ -98,9 +98,9 @@ class ZoomController extends Widget {
       this._viewer.camera.flyTo({
         destination: this._options.home,
         orientation: {
-          heading: CMath.toRadians(0),
-          pitch: CMath.toRadians(-90),
-          roll: CMath.toRadians(0),
+          heading: CesiumMath.toRadians(0),
+          pitch: CesiumMath.toRadians(-90),
+          roll: CesiumMath.toRadians(0),
         },
         duration: 1,
       });
