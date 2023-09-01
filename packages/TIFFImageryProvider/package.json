@@ -30,7 +30,8 @@
   "license": "MIT",
   "files": [
     "lib",
-    "README.md"
+    "README.md",
+    "README_CN.md"
   ],
   "peerDependencies": {
     "cesium": "*"

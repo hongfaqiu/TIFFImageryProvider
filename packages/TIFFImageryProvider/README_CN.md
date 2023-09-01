@@ -1,24 +1,22 @@
 # TIFFImageryProvider
 
-Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
+在Cesium中加载GeoTIFF/COG（Cloud optimized GeoTIFF）。
 
 [![gzip size](http://img.badgesize.io/https://unpkg.com/tiff-imagery-provider@latest?compression=gzip&label=gzip)](https://unpkg.com/tiff-imagery-provider) ![npm latest version](https://img.shields.io/npm/v/tiff-imagery-provider.svg) ![license](https://img.shields.io/npm/l/tiff-imagery-provider)
 
-[中文readme](./README_CN.md)
-
 [![CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/p/github/hongfaqiu/cog-example/main)
 
-## Features
+## 特点
 
-- Three band rendering.
-- Multi mode color rendering.
-- Support identify TIFF value with cartographic position.
-- Support any projected TIFF.
-- Web Workers speed up.
-- WebGL accelerated rendering.
-- Band calculation.
+- 三波段渲染。
+- 多模式颜色渲染。
+- 支持在地图上查询TIFF值。
+- 支持任何投影的TIFF。
+- Web Workers 加速。
+- WebGL 加速渲染。
+- 波段计算。
 
-## Install
+## 安装
 
 ```bash
 #npm
@@ -31,9 +29,9 @@ yarn add tiff-imagery-provider
 pnpm add tiff-imagery-provider
 ```
 
-## Usage
+## 使用
 
-Basic
+基本用法
 
 ```ts
 import { Viewer } from "cesium";
@@ -44,9 +42,10 @@ const cesiumViewer = new Viewer("cesiumContainer");
 const provider = await TIFFImageryProvider.fromUrl('https://oin-hotosm.s3.amazonaws.com/56f9b5a963ebf4bc00074e70/0/56f9c2d42b67227a79b4faec.tif');
 
 cesiumViewer.imageryLayers.addImageryProvider(provider);
+
 ```
 
-You can also use the New keyword to create a new TIFFimageryProvider, which was deprecated after cesium@1.104+
+也可以使用New关键字新建一个TIFFimageryProvider，但是在cesium@1.104+之后被弃用
 
 ```ts
 const provider = new TIFFImageryProvider({
@@ -57,7 +56,7 @@ provider.readyPromise.then(() => {
 })
 ```
 
-If TIFF's projection is not EPSG:4326, you can pass the ``projFunc`` to handle the projection
+如果 TIFF 的投影不是 EPSG:4326，你可以通过 ``projFunc`` 来处理投影
 
 ```ts
 import proj4 from 'proj4';
@@ -75,7 +74,7 @@ TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
 });
 ```
 
-Band calculation
+波段计算
 
 ```ts
 // NDVI
@@ -101,7 +100,7 @@ class TIFFImageryProvider {
     max: number;
   }>;
   constructor(options: TIFFImageryProviderOptions & {
-    /** Deprecated */
+    /** 已弃用 */
     url?: string | File | Blob;
   });
 
@@ -113,13 +112,13 @@ class TIFFImageryProvider {
 
 interface TIFFImageryProviderOptions {
   requestOptions?: {
-    /** defaults to false */
+    /** 默认 false */
     forceXHR?: boolean;
     headers?: Record<string, any>;
     credentials?: boolean;
-    /** defaults to 0 */
+    /** 默认 0 */
     maxRanges?: number;
-    /** defaults to false */
+    /** 默认 false */
     allowFullFile?: boolean;
     [key: string]: any;
   };
@@ -131,83 +130,84 @@ interface TIFFImageryProviderOptions {
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
   projFunc?: (code: number) => {
-    /** projection function, convert [lon, lat] position to [x, y] */
+    /** 投影函数，将 [lon, lat] 位置转换为 [x, y] */
     project: ((pos: number[]) => number[]);
-    /** unprojection function, convert [x, y] position to [lon, lat] */
+    /** 逆投影函数，将 [x, y] 位置转换为 [lon, lat] */
     unproject: ((pos: number[]) => number[]);
   } | undefined;
-  /** cache survival time, defaults to 60 * 1000 ms */
+  /** 缓存生存时间，默认为60 * 1000毫秒 */
   cache?: number;
-  /** geotiff resample method, defaults to nearest */
+  /** geotiff 重采样方法, 默认为 nearest */
   resampleMethod?: 'nearest' | 'bilinear' | 'linear';
 }
 
 type TIFFImageryProviderRenderOptions = {
-  /** nodata value, default read from tiff meta */
+  /** 无效值，默认从tiff meta读取 */
   nodata?: number;
-  /** Only valid for three band rendering, defaults to { 'black': 'transparent' } */
+  /** 只对三波段渲染有效，默认为 { 'black': 'transparent' } */
   colorMapping?: Record<string, string>;
-  /** try to render multi band cog to RGB, priority 1 */
+  /** 尝试将多波段cog渲染为rgb，优先级 1 */
   convertToRGB?: boolean;
-  /** priority 2 */
+  /** 优先级 2 */
   multi?: MultiBandRenderOptions;
-  /** priority 3 */
+  /** 优先级 3 */
   single?: SingleBandRenderOptions;
 }
 
 interface SingleBandRenderOptions {
-  /** band index start from 1, defaults to 1 */
+  /** 波段索引从1开始，默认为1 */
   band?: number;
 
   /**
-   * The color scale image to use.
+   * 使用的颜色比例尺图像。
    */
   colorScaleImage?: HTMLCanvasElement | HTMLImageElement;
 
   /**
-   * The name of a named color scale to use.
+   * 使用的命名颜色比例尺的名称。
    */
   colorScale?: ColorScaleNames;
 
-  /** custom interpolate colors, [stopValue(0 - 1), color] or [color], if the latter, means equal distribution 
+  /** 自定义插值颜色，[stopValue(0-1), color]或[color]，如果后者，表示等分布 
    * @example
    * [[0, 'red'], [0.6, 'green'], [1, 'blue']]
   */
   colors?: [number, string][] | string[];
 
-  /** defaults to continuous */
+  /** 默认为连续 */
   type?: 'continuous' | 'discrete';
 
   /**
-   * The value domain to scale the color.
+   * 将值域缩放到颜色。
    */
   domain?: [number, number];
 
   /**
-   * Range of values that will be rendered, values outside of the range will be transparent.
+   * 将呈现的值的范围，超出范围的值将透明。
    */
   displayRange?: [number, number];
 
   /**
-   * Set if displayRange should be used.
+   * 设置是否应使用displayRange。
    */
   applyDisplayRange?: boolean;
 
   /**
-   * Whether or not values below the domain shall be clamped.
+   * 是否对域以下的值进行夹紧。
    */
   clampLow?: boolean;
 
   /**
-   * Whether or not values above the domain shall be clamped (if not defined defaults to clampLow value).
+   * 是否对域以上的值进行夹紧（如果未定义，则默认为clampLow值）。
    */
   clampHigh?: boolean;
   
   /**
-   * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
-   * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
-   * Useful GLSL functions are for example: radians, degrees, sin, asin, cos, acos, tan, atan, log2, log, sqrt, exp2, exp, abs, sign, floor, ceil, fract.
-   * Don't forget to set the domain parameter!
+   * 设置要在绘图上评估的数学表达式。表达式可以包含具有整数/浮点值、波段标识符或带有单个参数的GLSL支持函数的数学运算。
+   * 支持的数学运算符为：add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'。
+   * 有用的GLSL函数例如：radians、degrees、sin、asin、cos、acos、tan、atan、log2、log、sqrt、exp、ceil、floor、abs、sign、min、max、clamp、mix、step、smoothstep。
+   * 这些函数的完整列表可以在[GLSL 4.50规范](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.50.pdf)的第117页找到。
+   * 不要忘记设置domain参数!
    * @example 
    * '-2 * sin(3.1415 - b1) ** 2'
    * '(b1 - b2) / (b1 + b2)'
@@ -216,7 +216,7 @@ interface SingleBandRenderOptions {
 }
 
 interface MultiBandRenderOptions {
-  /** Band value starts from 1 */
+  /** 波段值从1开始 */
   r?: {
     band: number;
     min?: number;
@@ -234,20 +234,18 @@ interface MultiBandRenderOptions {
   };
 }
 
-
-/** see https://observablehq.com/@d3/color-schemes */
 type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' | 'summer' | 'autumn' | 'winter' | 'bone' | 'copper' | 'greys' | 'ylgnbu' | 'greens' | 'ylorrd' | 'bluered' | 'rdbu' | 'picnic' | 'portland' | 'blackbody' | 'earth' | 'electric' | 'magma' | 'plasma' | 'redblue' | 'coolwarm' | 'diverging_1' | 'diverging_2' | 'blackwhite' | 'twilight' | 'twilight_shifted';
 ```
 
-## Demo
+## 示例
 
-[online Demo](https://tiff-imagery-provider-example.vercel.app/)
+[在线示例](https://tiff-imagery-provider-example.vercel.app/)
 
-- Powered by [Next.js](https://github.com/vercel/next.js).
-- Dark mode with [Semi-UI](<https://github.com/DouyinFE/semi-design>).
-- Simple cog custom render method.
+- 使用 [Next.js](https://github.com/vercel/next.js) 搭建。
+- 使用 [Semi-UI](<https://github.com/DouyinFE/semi-design>) 实现暗黑模式。
+- 实现了简单的 COG 自定义渲染方法。
 
-Launch the app in the demo folder, and then visit <http://localhost:3000/>
+在 `demo` 文件夹中启动应用程序，然后访问 <http://localhost:3000/>：
 
 ```node
 pnpm install
@@ -258,13 +256,13 @@ pnpm dev
 ![screenshot.png](/pictures/screenshot.png) | ![classify.png](/pictures/classify.png) | ![landsat.png](/pictures/landsat.png)
 | ------- | ------- | -------- |
 
-## Plans
+## 计划
 
-- [x] Use Web Workers to generate tile image
-- [x] GPU speed up calculation
-- [ ] More efficient tile request method
+- [x] 使用 Web Workers 生成瓦片图像
+- [x] 使用 GPU 加速计算
+- [ ] 更高效的瓦片请求方法
 
-## Credits
+## 致谢
 
 <https://github.com/geotiffjs/geotiff.js>
 
