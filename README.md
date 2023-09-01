@@ -67,8 +67,8 @@ TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
     if (code === 32760) {
       proj4.defs("EPSG:32760", "+proj=utm +zone=60 +south +datum=WGS84 +units=m +no_defs +type=crs");
       return {
-        project: proj4("EPSG:32760", "EPSG:4326").forward,
-        unproject: proj4("EPSG:32760", "EPSG:4326").inverse
+        project: proj4("EPSG:4326", "EPSG:32760").forward,
+        unproject: proj4("EPSG:4326", "EPSG:32760").inverse
       }
     }
   }

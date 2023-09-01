@@ -188,8 +188,7 @@ export class TIFFImageryProvider {
   
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /** 
-     * Deprecated
-     * 
+     * @deprecated
      * You can use fromUrl instead
      * @example 
      * const provider = await TIFFImageryProvider.fromUrl(url)
