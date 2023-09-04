@@ -13,7 +13,11 @@
   },
   "devDependencies": {
     "conventional-changelog-cli": "^2.2.2",
+    "esbuild": "^0.19.2",
     "lerna": "^6.1.0",
+    "rimraf": "^5.0.1",
+    "rollup-plugin-dts": "^6.0.1",
+    "rollup-plugin-esbuild": "^5.0.0",
     "turbo": "^1.10.13"
   }
 }

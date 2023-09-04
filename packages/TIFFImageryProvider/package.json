@@ -9,12 +9,12 @@
     "cog",
     "webgl"
   ],
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./lib/index.js",
-      "require": "./lib/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
     }
   },
   "repository": {
@@ -22,8 +22,8 @@
     "url": "git+https://github.com/hongfaqiu/tiff-imagery-provider.git"
   },
   "scripts": {
-    "dev": "rollup -c -w",
-    "build": "rollup -c",
+    "dev": "rimraf dist && rollup -c --watch",
+    "build": "rimraf dist && rollup -c",
     "prepublish": "pnpm build"
   },
   "author": "hongfaqiu",

@@ -42,7 +42,7 @@ class TIFFImageryProviderTilingScheme extends WebMercatorTilingScheme {
         return Cartographic.fromDegrees(longitude, latitude, height, result);
       },
     };
-
+    
     const swMeters = new Cartesian3();
     options.rectangleSouthwestInMeters.clone(swMeters);
     const neMeters = new Cartesian3();
@@ -57,9 +57,10 @@ class TIFFImageryProviderTilingScheme extends WebMercatorTilingScheme {
 
     // @ts-ignore
     this._rectangle = Rectangle.fromCartographicArray([southwest, southeast, northwest, northeast])
+
   }
   
-  tileXYToNativeRectangle(
+  tileXYToNativeRectangle2(
     x: number,
     y: number,
     level: number,
@@ -88,19 +89,15 @@ class TIFFImageryProviderTilingScheme extends WebMercatorTilingScheme {
     y: number,
     level: number,
   ) {
-    const xTiles = this.getNumberOfXTilesAtLevel(level);
-    const yTiles = this.getNumberOfYTilesAtLevel(level);
+    const rect = this.tileXYToNativeRectangle(x, y, level);
 
-    const xTileWidth = this.rectangle.width / xTiles;
-    const west = this.rectangle.west + x * xTileWidth;
-    const east = this.rectangle.west + (x + 1) * xTileWidth;
+    const projection = this.projection;
+    const ws = projection.unproject(new Cartesian3(rect.west, rect.south));
+    const wn = projection.unproject(new Cartesian3(rect.west, rect.north));
+    const en = projection.unproject(new Cartesian3(rect.east, rect.north));
+    const es = projection.unproject(new Cartesian3(rect.east, rect.south));
 
-    const yTileHeight = this.rectangle.height / yTiles;
-    const north = this.rectangle.north - y * yTileHeight;
-    const south = this.rectangle.north - (y + 1) * yTileHeight;
-
-    const rectangle = new Rectangle(west, south, east, north);
-    return rectangle;
+    return Rectangle.fromCartographicArray([ws, wn, en, es]);
   };
 }
 

@@ -1,4 +1,4 @@
-import { SingleBandRenderOptions } from "src/TIFFImageryProvider";
+import { SingleBandRenderOptions } from "../TIFFImageryProvider";
 import { colorscales } from "./colorscales";
 
 export type TypedArray = Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array | Float64Array;

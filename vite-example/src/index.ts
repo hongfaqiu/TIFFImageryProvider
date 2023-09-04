@@ -25,7 +25,7 @@ ArcGisMapServerImageryProvider.fromUrl('https://services.arcgisonline.com/ArcGIS
   const provider: any = await TIFFImageryProvider.fromUrl('https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/56/J/NP/2023/4/S2A_56JNP_20230410_0_L2A/TCI.tif', {
     enablePickFeatures: true,
     projFunc: (code) => {
-      if (![4326].includes(code)) {
+      if (![4326, 3857, 900913].includes(code)) {
         {
           try {
             let prj = proj4("EPSG:4326", `EPSG:${code}`, )

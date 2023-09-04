@@ -13,10 +13,10 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 - Three band rendering.
 - Multi mode color rendering.
 - Support identify TIFF value with cartographic position.
-- Support any projected TIFF.
 - Web Workers speed up.
 - WebGL accelerated rendering.
 - Band calculation.
+- Support any projected TIFF (experimental).
 
 ## Install
 
@@ -57,7 +57,7 @@ provider.readyPromise.then(() => {
 })
 ```
 
-If TIFF's projection is not EPSG:4326, you can pass the ``projFunc`` to handle the projection
+**Experimental** If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
 
 ```ts
 import proj4 from 'proj4';

@@ -1,6 +1,6 @@
 export type ReprojectionOptions = {
   project: (pos: number[]) => number[];
-  bbox: [minX: number, minY: number, maxX: number, maxY: number];
+  sourceBBox: [minX: number, minY: number, maxX: number, maxY: number];
   targetBBox: [minX: number, minY: number, maxX: number, maxY: number];
   data: number[];
   sourceWidth: number;
@@ -19,10 +19,10 @@ function inRange(val: number, range: [number, number]) {
 }
 
 export function reprojection(options: ReprojectionOptions) {
-  const { data, bbox, targetBBox, project, sourceWidth, sourceHeight, nodata } = options;
+  const { data, sourceBBox, targetBBox, project, sourceWidth, sourceHeight, nodata } = options;
   const { targetWidth = sourceWidth, targetHeight = sourceHeight } = options;
 
-  const [minX, minY, maxX, maxY] = bbox;
+  const [minX, minY, maxX, maxY] = sourceBBox;
 
   const [minLon, minLat, maxLon, maxLat] = targetBBox;
   

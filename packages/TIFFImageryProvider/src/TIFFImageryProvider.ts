@@ -1,4 +1,4 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CesiumMath, DeveloperError, defined, Cartesian2 } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CesiumMath, DeveloperError, defined, Cartesian2, WebMercatorTilingScheme } from "cesium";
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
@@ -135,7 +135,6 @@ export interface TIFFImageryProviderOptions {
   resampleMethod?: 'nearest' | 'bilinear' | 'linear';
 }
 const canvas = document.createElement('canvas');
-
 let workerPool: Pool;
 function getWorkerPool() {
   if (!workerPool) {
@@ -146,7 +145,7 @@ function getWorkerPool() {
 
 export class TIFFImageryProvider {
   ready: boolean;
-  tilingScheme: TIFFImageryProviderTilingScheme | GeographicTilingScheme;
+  tilingScheme: TIFFImageryProviderTilingScheme | GeographicTilingScheme | WebMercatorTilingScheme;
   rectangle: Rectangle;
   tileSize: number;
   tileWidth: number;
@@ -235,16 +234,14 @@ export class TIFFImageryProvider {
         rectangleSouthwestInMeters: new Cartesian2(west, south),
         ...this._proj
       })
-      this.rectangle = this.tilingScheme.rectangle
+    } else if (prjCode === 3857 || prjCode === 900913) {
+      this.tilingScheme = new WebMercatorTilingScheme({
+        rectangleNortheastInMeters: new Cartesian2(east, north),
+        rectangleSouthwestInMeters: new Cartesian2(west, south),
+      })
     } else if (prjCode === 4326) {
-      this.rectangle = Rectangle.fromDegrees(...this.bbox)
-      // 处理跨180度经线的情况
-      // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
-      if (this.rectangle.east < this.rectangle.west) {
-        this.rectangle.east += CesiumMath.TWO_PI;
-      }
       this.tilingScheme = new GeographicTilingScheme({
-        rectangle: this.rectangle,
+        rectangle: Rectangle.fromDegrees(...this.bbox),
         numberOfLevelZeroTilesX: 1,
         numberOfLevelZeroTilesY: 1
       });
@@ -253,6 +250,12 @@ export class TIFFImageryProvider {
       throw error;
     }
 
+    this.rectangle = this.tilingScheme.rectangle
+    // 处理跨180度经线的情况
+    // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
+    if (this.rectangle.east < this.rectangle.west) {
+      this.rectangle.east += CesiumMath.TWO_PI;
+    }
     this._imageCount = await source.getImageCount();
     this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 512;
     this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 512;
@@ -438,30 +441,35 @@ export class TIFFImageryProvider {
     
     const width = image.getWidth();
     const height = image.getHeight();
-    const lonlatRect = this.tilingScheme.tileXYToRectangle(x, y, z);
-
-    if (lonlatRect.east < lonlatRect.west) {
-      lonlatRect.east += CesiumMath.TWO_PI;
+    const tileXNum = this.tilingScheme.getNumberOfXTilesAtLevel(z);
+    const tileYNum = this.tilingScheme.getNumberOfYTilesAtLevel(z);
+    const tilePixel = {
+      xWidth: width / tileXNum,
+      yWidth: height / tileYNum
     }
+    let window = [
+      Math.round(x * tilePixel.xWidth),
+      Math.round(y * tilePixel.yWidth),
+      Math.round((x + 1) * tilePixel.xWidth),
+      Math.round((y + 1) * tilePixel.yWidth),
+    ];
 
-    let targetRect: Rectangle = lonlatRect,
-      nativeRect: Rectangle = this.rectangle;
-
-    if (this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
-      targetRect = this.tilingScheme.tileXYToNativeRectangle(x, y, z);
-      nativeRect = this.tilingScheme.nativeRectangle;
+    if (this._proj && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
+      const targetRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
+      const nativeRect = this.tilingScheme.nativeRectangle;
       targetRect.west -= (nativeRect.width / width)
       targetRect.east += (nativeRect.width / width)
       targetRect.south -= (nativeRect.height / height)
       targetRect.north += (nativeRect.height / height)
+
+      window = [
+        ~~((targetRect.west - nativeRect.west) / nativeRect.width * width),
+        ~~((nativeRect.north - targetRect.north) / nativeRect.height * height),
+        ~~((targetRect.east - nativeRect.west) / nativeRect.width * width),
+        ~~((nativeRect.north - targetRect.south) / nativeRect.height * height),
+      ]
     }
 
-    let window = [
-      ~~((targetRect.west - nativeRect.west) / nativeRect.width * width),
-      ~~((nativeRect.north - targetRect.north) / nativeRect.height * height),
-      ~~((targetRect.east - nativeRect.west) / nativeRect.width * width),
-      ~~((nativeRect.north - targetRect.south) / nativeRect.height * height),
-    ]
 
     const options = {
       window,
@@ -470,6 +478,7 @@ export class TIFFImageryProvider {
       height: this.tileHeight,
       samples: this.readSamples,
       resampleMethod: this.options.resampleMethod,
+      fillValue: this.noData,
       interleave: false,
     }
     let res: TypedArray[];
@@ -479,10 +488,12 @@ export class TIFFImageryProvider {
       } else {
         res = await image.readRasters(options) as TypedArray[];
       }
-      if (this._proj.project) {
-        const sourceBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north] as any;
+      if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
+        const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
+        const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
+        const sourceBBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north] as any;
         
-        const targetBBox = [lonlatRect.west, lonlatRect.south, lonlatRect.east, lonlatRect.north].map(CesiumMath.toDegrees) as any
+        const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as any
         
         const result = [];
         for (let i = 0; i < res.length; i++) {
@@ -494,7 +505,7 @@ export class TIFFImageryProvider {
             targetHeight: this.tileHeight,
             nodata: this.noData,
             project: this._proj.project,
-            bbox: sourceBBox,
+            sourceBBox,
             targetBBox
           })
           result.push(prjData)
@@ -609,23 +620,15 @@ export class TIFFImageryProvider {
     const width = image.getWidth();
     const height = image.getHeight();
     let posX: number, posY: number;
-    if (this._proj?.project) {
-      const [west, south, east, north] = this.bbox;
-      const [x, y] = this._proj.project([longitude, latitude].map(CesiumMath.toDegrees));
-      const xWidth = east - west, yHeight = north - south;
-      posX = ~~(Math.abs((x - west) / xWidth) * width);
-      posY = ~~(Math.abs((y - south) / yHeight) * height);
-    } else {
-      const { west, south, north, width: lonWidth } = this.rectangle;
-      let lonGap = longitude - west;
-      // 处理跨180°经线的情况
-      if (longitude < west) {
-        lonGap += CesiumMath.TWO_PI;
-      }
-  
-      posX = ~~(Math.abs(lonGap / lonWidth) * width);
-      posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
+    const { west, south, north, width: lonWidth } = this.rectangle;
+    let lonGap = longitude - west;
+    // 处理跨180°经线的情况
+    if (longitude < west) {
+      lonGap += CesiumMath.TWO_PI;
     }
+
+    posX = ~~(Math.abs(lonGap / lonWidth) * width);
+    posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
 
     const options = {
       window: [posX, posY, posX + 1, posY + 1],
