@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.9.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.0...v2.9.1) (2023-09-04)
+
+
+### Bug Fixes
+
+* error publish ([e7ecb7e](https://github.com/hongfaqiu/tiff-imagery-provider/commit/e7ecb7e988404f700ff853ef554455bfac407b03))
+
+
+
+
+
 # [2.9.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.8.2...v2.9.0) (2023-09-04)
 
 
