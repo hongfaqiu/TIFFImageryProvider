@@ -16,7 +16,7 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 - Web Workers speed up.
 - WebGL accelerated rendering.
 - Band calculation.
-- Support any projected TIFF (experimental).
+- **[experimental]** Support any projected TIFF .
 
 ## Install
 
@@ -130,6 +130,10 @@ interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
+  /**
+   * If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
+   * @experimental
+   */
   projFunc?: (code: number) => {
     /** projection function, convert [lon, lat] position to [x, y] */
     project: ((pos: number[]) => number[]);

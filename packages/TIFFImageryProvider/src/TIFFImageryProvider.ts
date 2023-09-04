@@ -123,6 +123,10 @@ export interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
+  /**
+   * If TIFF's projection is not EPSG:4326 or EPSG:3857, you can pass the ``projFunc`` to handle the projection
+   * @experimental
+   */
   projFunc?: (code: number) => {
     /** projection function, convert [lon, lat] position to [x, y] */
     project: ((pos: number[]) => number[]);
@@ -175,7 +179,6 @@ export class TIFFImageryProvider {
     data: ImageBitmap | HTMLCanvasElement | HTMLImageElement;
   }> = {};
   private _generateImageworkerFarm: WorkerFarm | null;
-  private _reprojectionworkerFarm: WorkerFarm;
   private _cacheTime: number;
   private _isTiled: boolean;
   private _proj?: {
@@ -278,7 +281,7 @@ export class TIFFImageryProvider {
       throw error;
     }
     if (!this.renderOptions.single && !this.renderOptions.multi && !this.renderOptions.convertToRGB) {
-      if (samples > 1) {
+      if (samples > 2) {
         this.renderOptions = {
           convertToRGB: true,
           ...this.renderOptions
@@ -297,7 +300,7 @@ export class TIFFImageryProvider {
     }
 
     const { single, multi, convertToRGB } = this.renderOptions;
-    this.readSamples = multi ? [multi.r.band - 1, multi.g.band - 1, multi.b.band - 1] : convertToRGB ? [0, 1, 2] : [0]
+    this.readSamples = multi ? [multi.r.band - 1, multi.g.band - 1, multi.b.band - 1] : convertToRGB ? [0, 1, 2] : Array.from({ length: samples }, (_, index) => index);
     if (single?.expression) {
       this.readSamples = findAndSortBandNumbers(single.expression);
     }
@@ -469,7 +472,6 @@ export class TIFFImageryProvider {
         ~~((nativeRect.north - targetRect.south) / nativeRect.height * height),
       ]
     }
-
 
     const options = {
       window,

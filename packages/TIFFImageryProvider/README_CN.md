@@ -129,6 +129,10 @@ interface TIFFImageryProviderOptions {
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
+  /**
+   * 如果 TIFF 的投影不是 EPSG:4326，你可以通过 ``projFunc`` 来处理投影
+   * @experimental
+   */
   projFunc?: (code: number) => {
     /** 投影函数，将 [lon, lat] 位置转换为 [x, y] */
     project: ((pos: number[]) => number[]);
