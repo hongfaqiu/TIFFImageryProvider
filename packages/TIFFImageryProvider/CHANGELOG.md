@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.9.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.8.2...v2.9.0) (2023-09-04)
+
+
+### Features
+
+* web based reprojection(but slow) ([665de3a](https://github.com/hongfaqiu/tiff-imagery-provider/commit/665de3a1eff952655db5daa8d516be8583f507f6))
+
+
+
+
+
 ## [2.8.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.8.1...v2.8.2) (2023-08-02)
 
 
