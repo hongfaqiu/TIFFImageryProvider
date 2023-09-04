@@ -29,7 +29,7 @@
   "author": "hongfaqiu",
   "license": "MIT",
   "files": [
-    "lib",
+    "dist",
     "README.md",
     "README_CN.md"
   ],
