@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.9.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.1...v2.9.2) (2023-09-04)
+
+
+### Bug Fixes
+
+* multi band tiff single band rendering [#20](https://github.com/hongfaqiu/tiff-imagery-provider/issues/20) ([eb4a653](https://github.com/hongfaqiu/tiff-imagery-provider/commit/eb4a653ef97b0b87b1eb33ec43e719d4958f3843))
+
+
+
+
+
 ## [2.9.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.0...v2.9.1) (2023-09-04)
 
 
