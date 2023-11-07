@@ -189,9 +189,9 @@ export class TIFFImageryProvider {
   };
   
   constructor(private readonly options: TIFFImageryProviderOptions & {
-    /** 
-     * @deprecated
-     * You can use fromUrl instead
+    /**
+     * @deprecated 
+     * Deprecated after cesium@1.104+, you can use fromUrl instead
      * @example 
      * const provider = await TIFFImageryProvider.fromUrl(url)
      */
@@ -393,6 +393,8 @@ export class TIFFImageryProvider {
 
   static async fromUrl(url: string | File | Blob, options: TIFFImageryProviderOptions = {}) {
     const provider = new TIFFImageryProvider(options as any);
+    if ((options as any).url) delete (options as any).url;
+    
     await provider._build(url, options)
     
     return provider;
@@ -661,6 +663,7 @@ export class TIFFImageryProvider {
 
   destroy() {
     this._images = undefined;
+    this._source = undefined;
     this._imagesCache = undefined;
     this._generateImageworkerFarm?.destory();
     this.plot?.destroy();

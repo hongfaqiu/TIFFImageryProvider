@@ -101,7 +101,12 @@ class TIFFImageryProvider {
     max: number;
   }>;
   constructor(options: TIFFImageryProviderOptions & {
-    /** Deprecated */
+    /** 
+     * @deprecated 
+     * Deprecated after cesium@1.104+, you can use fromUrl instead
+     * @example 
+     * const provider = await TIFFImageryProvider.fromUrl(url)
+     */
     url?: string | File | Blob;
   });
 

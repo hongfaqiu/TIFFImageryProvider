@@ -100,7 +100,12 @@ class TIFFImageryProvider {
     max: number;
   }>;
   constructor(options: TIFFImageryProviderOptions & {
-    /** 已弃用 */
+    /** 
+     * @deprecated 
+     * cesium@1.104+ 后弃用，你可以使用 fromUrl 替代
+     * @example 
+     * const provider = await TIFFImageryProvider.fromUrl(url)
+     */
     url?: string | File | Blob;
   });
 
