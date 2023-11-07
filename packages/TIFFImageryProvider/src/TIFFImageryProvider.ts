@@ -393,9 +393,11 @@ export class TIFFImageryProvider {
 
   static async fromUrl(url: string | File | Blob, options: TIFFImageryProviderOptions = {}) {
     const provider = new TIFFImageryProvider(options as any);
-    if ((options as any).url) delete (options as any).url;
-    
-    await provider._build(url, options)
+
+    await provider._build(url, {
+      ...options,
+      url: undefined
+    } as any)
     
     return provider;
   }
