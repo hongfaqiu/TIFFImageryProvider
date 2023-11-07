@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.9.3](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.2...v2.9.3) (2023-11-07)
+
+
+### Bug Fixes
+
+* auto delete url in options when use fromUrl ([f3e8908](https://github.com/hongfaqiu/tiff-imagery-provider/commit/f3e890846ec39e4c753bb01ddca59fa4114c51b7))
+
+
+
+
+
 ## [2.9.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.1...v2.9.2) (2023-09-04)
 
 
