@@ -10,6 +10,8 @@ import { reprojection } from "./helpers/reprojection";
 
 // @ts-ignore
 import GenerateImageWorker from "web-worker:./worker/worker-generateImage";
+// @ts-ignore
+import ReverseArrayWorker from "web-worker:./worker/worker-reverseArray";
 import { GenerateImageOptions } from "./helpers/generateImage";
 
 export interface SingleBandRenderOptions {
@@ -179,6 +181,7 @@ export class TIFFImageryProvider {
     data: ImageBitmap | HTMLCanvasElement | HTMLImageElement;
   }> = {};
   private _generateImageworkerFarm: WorkerFarm | null;
+  private _reverseArrayWorkerFarm: WorkerFarm | null;
   private _cacheTime: number;
   private _isTiled: boolean;
   private _proj?: {
@@ -187,6 +190,8 @@ export class TIFFImageryProvider {
     /** unprojection function */
     unproject: (pos: number[]) => number[];
   };
+  origin: number[];
+  reverseY: boolean = false;
   
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /**
@@ -203,6 +208,7 @@ export class TIFFImageryProvider {
     this.credit = new Credit(options.credit || "", false);
     this.errorEvent = new Event();
     this._generateImageworkerFarm = new WorkerFarm(new GenerateImageWorker());
+    this._reverseArrayWorkerFarm = new WorkerFarm(new ReverseArrayWorker());
     this._cacheTime = options.cache ?? 60 * 1000;
     
     this.ready = false;
@@ -223,9 +229,11 @@ export class TIFFImageryProvider {
     this._source = source;
     const image = await source.getImage();
     this._isTiled = image.isTiled;
-
+    
     // 获取空间范围
+    this.origin = this._getOrigin(image);
     this.bbox = image.getBoundingBox();
+    this.reverseY = (this.origin[1] - this.bbox[0]) > (this.origin[1] - this.bbox[3])
     const [west, south, east, north] = this.bbox;
 
     const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
@@ -403,6 +411,20 @@ export class TIFFImageryProvider {
   }
 
   /**
+   * Get the origin of an image.  If the image does not have an affine transform,
+   * the top-left corner of the pixel bounds is returned.
+   * @param {GeoTIFFImage} image The image.
+   * @return {Array<number>} The image origin.
+   */
+  private _getOrigin(image: GeoTIFFImage): number[] {
+    try {
+      return image.getOrigin().slice(0, 2);
+    } catch (_) {
+      return [0, image.fileDirectory.ImageLength];
+    }
+  }
+
+  /**
    * get suitable cog levels
    */
   private async _getCogLevels() {
@@ -476,7 +498,9 @@ export class TIFFImageryProvider {
         ~~((nativeRect.north - targetRect.south) / nativeRect.height * height),
       ]
     }
-
+    if (this.reverseY) {
+      window = [window[0], height - window[3], window[2], height - window[1]];
+    }
     const options = {
       window,
       pool: getWorkerPool(),
@@ -493,7 +517,14 @@ export class TIFFImageryProvider {
         res = await image.readRGB(options) as TypedArray[];
       } else {
         res = await image.readRasters(options) as TypedArray[];
+        if (this.reverseY) {
+          if (!this._reverseArrayWorkerFarm?.worker) {
+            throw new DeveloperError('web workers bootstrap error');
+          }
+          res = await Promise.all((res).map(arr => this._reverseArrayWorkerFarm.scheduleTask<any, TypedArray>({ array: arr, width: (res as any).width, height: (res as any).height })));
+        }
       }
+
       if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
         const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
         const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
@@ -625,7 +656,7 @@ export class TIFFImageryProvider {
     }
     const width = image.getWidth();
     const height = image.getHeight();
-    let posX: number, posY: number;
+    let posX: number, posY: number, window: number[];
     const { west, south, north, width: lonWidth } = this.rectangle;
     let lonGap = longitude - west;
     // 处理跨180°经线的情况
@@ -635,9 +666,14 @@ export class TIFFImageryProvider {
 
     posX = ~~(Math.abs(lonGap / lonWidth) * width);
     posY = ~~(Math.abs((north - latitude) / (north - south)) * height);
+    window = [posX, posY, posX + 1, posY + 1];
 
+    if (this.reverseY) {
+      posY = height - posY;
+      window = [posX, posY - 1, posX + 1, posY]
+    }
     const options = {
-      window: [posX, posY, posX + 1, posY + 1],
+      window,
       height: 1,
       width: 1,
       pool: getWorkerPool(),
