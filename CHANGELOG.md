@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.9.6](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.9.5...v2.9.6) (2023-11-20)
+
+
+### Bug Fixes
+
+* reverseY check ([fc695f5](https://github.com/hongfaqiu/TIFFImageryProvider/commit/fc695f55af82c3afb0c07338f359fcad0c18c797))
+
+
+
+
+
 ## [2.9.5](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.9.4...v2.9.5) (2023-11-17)
 
 
