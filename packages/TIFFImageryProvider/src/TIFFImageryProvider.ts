@@ -233,7 +233,7 @@ export class TIFFImageryProvider {
     // 获取空间范围
     this.origin = this._getOrigin(image);
     this.bbox = image.getBoundingBox();
-    this.reverseY = (this.origin[1] - this.bbox[0]) > (this.origin[1] - this.bbox[3])
+    this.reverseY = this._checkIfReversed(image);
     const [west, south, east, north] = this.bbox;
 
     const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
@@ -422,6 +422,22 @@ export class TIFFImageryProvider {
     } catch (_) {
       return [0, image.fileDirectory.ImageLength];
     }
+  }
+
+  private _checkIfReversed(image: GeoTIFFImage) {
+    const pixelScale = image.getFileDirectory().ModelPixelScale;
+    if (pixelScale) {
+      const pixelScaleY = pixelScale[1];
+      if (pixelScaleY < 0) return true;
+    }
+
+    const transformation = image.getFileDirectory().ModelTransformation;
+    if (transformation) {
+      const originX = transformation[3];
+      const originY = transformation[7];
+      if (originY > originX) return true;
+    }
+    return false;
   }
 
   /**
