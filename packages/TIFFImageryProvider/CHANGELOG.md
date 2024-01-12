@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.10.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.6...v2.10.0) (2024-01-12)
+
+
+### Bug Fixes
+
+* fix the issue of incomplete display across 180 degrees ([64ef6ef](https://github.com/hongfaqiu/tiff-imagery-provider/commit/64ef6efb1478af9b7868f9b5cc6437b94eb52d2f))
+
+
+### Features
+
+* add useRealValue option ([567861a](https://github.com/hongfaqiu/tiff-imagery-provider/commit/567861afa2e0501885b5c595538c3d653997bb13))
+
+
+
+
+
 ## [2.9.6](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.5...v2.9.6) (2023-11-20)
 
 
