@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.0...v2.10.1) (2024-01-12)
+
+
+### Bug Fixes
+
+* remove console & update readme ([7c6dcae](https://github.com/hongfaqiu/tiff-imagery-provider/commit/7c6dcaeee56c6152f854cad89e2029226ff3f229))
+
+
+
+
+
 # [2.10.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.9.6...v2.10.0) (2024-01-12)
 
 
