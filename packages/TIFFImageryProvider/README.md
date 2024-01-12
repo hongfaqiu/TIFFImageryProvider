@@ -90,6 +90,27 @@ TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
 });
 ```
 
+Custom colors
+
+```ts
+TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
+  renderOptions: {
+    single: {
+      "colors": [
+        [1, "rgb(154, 206, 127)"],
+        [2, "rgb(163, 214, 245)"],
+        [3, "rgb(255, 251, 177)"],
+        [4, "rgb(193, 114, 97)"],
+        [5, "rgb(220, 100, 120)"],
+        [6, "rgb(49, 173, 105)"]
+      ],
+      type: "discrete",
+      useRealValue: true // use real value in colors stops
+    }
+  }
+});
+```
+
 ## API
 
 ```ts
@@ -253,7 +274,7 @@ type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hs
 
 ## Demo
 
-[online Demo](https://tiff-imagery-provider-example.vercel.app/)
+[online Demo](https://tiff-imagery-provider.opendde.com/?panel=layer)
 
 - Powered by [Next.js](https://github.com/vercel/next.js).
 - Dark mode with [Semi-UI](<https://github.com/DouyinFE/semi-design>).

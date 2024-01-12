@@ -89,6 +89,27 @@ TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
 });
 ```
 
+自定义色带
+
+```ts
+TIFFImageryProvider.fromUrl(YOUR_TIFF_URL, {
+  renderOptions: {
+    single: {
+      "colors": [
+        [1, "rgb(154, 206, 127)"],
+        [2, "rgb(163, 214, 245)"],
+        [3, "rgb(255, 251, 177)"],
+        [4, "rgb(193, 114, 97)"],
+        [5, "rgb(220, 100, 120)"],
+        [6, "rgb(49, 173, 105)"]
+      ],
+      type: "discrete",
+      useRealValue: true // 使用tiff真实值作为色带的控制点
+    }
+  }
+});
+```
+
 ## API
 
 ```ts
@@ -251,7 +272,7 @@ type ColorScaleNames = 'viridis' | 'inferno' | 'turbo' | 'rainbow' | 'jet' | 'hs
 
 ## 示例
 
-[在线示例](https://tiff-imagery-provider-example.vercel.app/)
+[在线示例](https://tiff-imagery-provider.opendde.com/?panel=layer)
 
 - 使用 [Next.js](https://github.com/vercel/next.js) 搭建。
 - 使用 [Semi-UI](<https://github.com/DouyinFE/semi-design>) 实现暗黑模式。

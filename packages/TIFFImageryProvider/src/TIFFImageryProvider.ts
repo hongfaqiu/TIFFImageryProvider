@@ -254,7 +254,6 @@ export class TIFFImageryProvider {
         numberOfLevelZeroTilesY: 1
       });
     } else if (typeof this._proj?.project === 'function' && typeof this._proj?.unproject === 'function') {
-      console.log("bbox", this.bbox);
       console.warn(`[Experimental] Reprojection EPSG:${prjCode}`)
       this.tilingScheme = new TIFFImageryProviderTilingScheme({
         rectangleNortheastInMeters: new Cartesian2(east, north),
