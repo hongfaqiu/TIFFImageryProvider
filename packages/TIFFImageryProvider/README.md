@@ -184,6 +184,9 @@ interface SingleBandRenderOptions {
   */
   colors?: [number, string][] | string[];
 
+  /** Determine whether to use the true value range for custom color ranges, defaults to false */
+  useRealValue?: boolean;
+
   /** defaults to continuous */
   type?: 'continuous' | 'discrete';
 

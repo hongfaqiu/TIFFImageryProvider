@@ -42,13 +42,14 @@ export function getRange(bands: Record<number, {
   return { min, max, range };
 }
 
-export function generateColorScale(colors: [number, string][] | string[]) {
+export function generateColorScale(colors: [number, string][] | string[], minMax: number[]) {
   let stops: [number, string][];
 
   if (typeof colors[0] === 'string') {
     stops = (colors as string[]).map((color, index) => [index / colors.length, color])
   } else {
-    stops = (colors as [number, string][])
+    const [min, max] = minMax;
+    stops = (colors as [number, string][]).map(item => [((item[0] - min) / (max - min)), item[1]])
   }
 
   stops.sort((a, b) => a[0] - b[0]);

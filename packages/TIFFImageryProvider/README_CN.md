@@ -182,6 +182,9 @@ interface SingleBandRenderOptions {
    * [[0, 'red'], [0.6, 'green'], [1, 'blue']]
   */
   colors?: [number, string][] | string[];
+  
+  /** 控制是否使用真实值生成插值色带，colors参数的stopValue将使用真实值，默认为否 */
+  useRealValue?: boolean;
 
   /** 默认为连续 */
   type?: 'continuous' | 'discrete';
