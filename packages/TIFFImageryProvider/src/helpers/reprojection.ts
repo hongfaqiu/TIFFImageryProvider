@@ -18,7 +18,7 @@ function inRange(val: number, range: [number, number]) {
   }
 }
 
-export function reprojection(options: ReprojectionOptions) {
+export function reprojection(options: ReprojectionOptions): number[] {
   const { data, sourceBBox, targetBBox, project, sourceWidth, sourceHeight, nodata } = options;
   const { targetWidth = sourceWidth, targetHeight = sourceHeight } = options;
 

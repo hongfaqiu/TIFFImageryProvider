@@ -57,9 +57,8 @@ class TIFFImageryProviderTilingScheme extends WebMercatorTilingScheme {
 
     // @ts-ignore
     this._rectangle = Rectangle.fromCartographicArray([southwest, southeast, northwest, northeast])
-
   }
-  
+
   tileXYToNativeRectangle2(
     x: number,
     y: number,
@@ -96,8 +95,11 @@ class TIFFImageryProviderTilingScheme extends WebMercatorTilingScheme {
     const wn = projection.unproject(new Cartesian3(rect.west, rect.north));
     const en = projection.unproject(new Cartesian3(rect.east, rect.north));
     const es = projection.unproject(new Cartesian3(rect.east, rect.south));
-
-    return Rectangle.fromCartographicArray([ws, wn, en, es]);
+    const newRect = Rectangle.fromCartographicArray([ws, wn, en, es]);
+    if (newRect.east < newRect.west) {
+      newRect.east += CesiumMath.TWO_PI;
+    }
+    return newRect;
   };
 }
 

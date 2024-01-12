@@ -61,7 +61,7 @@ export interface SingleBandRenderOptions {
    * Whether or not values above the domain shall be clamped (if not defined defaults to clampLow value).
    */
   clampHigh?: boolean;
-  
+
   /**
    * Sets a mathematical expression to be evaluated on the plot. Expression can contain mathematical operations with integer/float values, band identifiers or GLSL supported functions with a single parameter.
    * Supported mathematical operations are: add '+', subtract '-', multiply '*', divide '/', power '**', unary plus '+a', unary minus '-a'.
@@ -192,7 +192,7 @@ export class TIFFImageryProvider {
   };
   origin: number[];
   reverseY: boolean = false;
-  
+
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /**
      * @deprecated 
@@ -210,7 +210,7 @@ export class TIFFImageryProvider {
     this._generateImageworkerFarm = new WorkerFarm(new GenerateImageWorker());
     this._reverseArrayWorkerFarm = new WorkerFarm(new ReverseArrayWorker());
     this._cacheTime = options.cache ?? 60 * 1000;
-    
+
     this.ready = false;
     if (defined(options.url)) {
       this.readyPromise = this._build(options.url, options).then(() => {
@@ -229,7 +229,7 @@ export class TIFFImageryProvider {
     this._source = source;
     const image = await source.getImage();
     this._isTiled = image.isTiled;
-    
+
     // 获取空间范围
     this.origin = this._getOrigin(image);
     this.bbox = image.getBoundingBox();
@@ -239,13 +239,7 @@ export class TIFFImageryProvider {
     const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
 
     this._proj = projFunc?.(prjCode)
-    if (typeof this._proj?.project === 'function' && typeof this._proj?.unproject === 'function') {
-      this.tilingScheme = new TIFFImageryProviderTilingScheme({
-        rectangleNortheastInMeters: new Cartesian2(east, north),
-        rectangleSouthwestInMeters: new Cartesian2(west, south),
-        ...this._proj
-      })
-    } else if (prjCode === 3857 || prjCode === 900913) {
+    if (prjCode === 3857 || prjCode === 900913) {
       this.tilingScheme = new WebMercatorTilingScheme({
         rectangleNortheastInMeters: new Cartesian2(east, north),
         rectangleSouthwestInMeters: new Cartesian2(west, south),
@@ -256,6 +250,14 @@ export class TIFFImageryProvider {
         numberOfLevelZeroTilesX: 1,
         numberOfLevelZeroTilesY: 1
       });
+    } else if (typeof this._proj?.project === 'function' && typeof this._proj?.unproject === 'function') {
+      console.log("bbox", this.bbox);
+      console.warn(`[Experimental] Reprojection EPSG:${prjCode}`)
+      this.tilingScheme = new TIFFImageryProviderTilingScheme({
+        rectangleNortheastInMeters: new Cartesian2(east, north),
+        rectangleSouthwestInMeters: new Cartesian2(west, south),
+        ...this._proj
+      })
     } else {
       const error = new DeveloperError(`Unspported projection type: EPSG:${prjCode}, please add projFunc parameter to handle projection`)
       throw error;
@@ -406,7 +408,7 @@ export class TIFFImageryProvider {
       ...options,
       url: undefined
     } as any)
-    
+
     return provider;
   }
 
@@ -457,7 +459,7 @@ export class TIFFImageryProvider {
         const firstImageLevel = Math.ceil((size - this.tileSize) / this.tileSize)
         levels.push(...new Array(firstImageLevel).fill(i))
       }
-      
+
       // add 50% tilewidth tolerance
       if (size > (this.tileSize * 0.5)) {
         maximumLevel = i;
@@ -483,7 +485,7 @@ export class TIFFImageryProvider {
     if (!image) {
       image = this._images[index] = await this._source.getImage(index);
     }
-    
+
     const width = image.getWidth();
     const height = image.getHeight();
     const tileXNum = this.tilingScheme.getNumberOfXTilesAtLevel(z);
@@ -544,10 +546,10 @@ export class TIFFImageryProvider {
       if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
         const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
         const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
+        
         const sourceBBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north] as any;
-        
         const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as any
-        
+
         const result = [];
         for (let i = 0; i < res.length; i++) {
           const prjData = reprojection({
@@ -571,7 +573,7 @@ export class TIFFImageryProvider {
         width: this.tileWidth,
         height: this.tileHeight
       };
-    } catch(error) {
+    } catch (error) {
       this.errorEvent.raiseEvent(error);
       throw error;
     }
@@ -587,7 +589,6 @@ export class TIFFImageryProvider {
         "requestImage must not be called before the imagery provider is ready."
       );
     }
-
     if (z < this.minimumLevel || z > this.maximumLevel) return undefined
     if (this._cacheTime && this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`].data;
 
@@ -598,9 +599,9 @@ export class TIFFImageryProvider {
       if (this._destroyed) {
         return undefined;
       }
-      
+
       let result: ImageBitmap | HTMLImageElement
-      
+
       if (multi || convertToRGB) {
         const opts: GenerateImageOptions = {
           data: data as any,
@@ -616,7 +617,7 @@ export class TIFFImageryProvider {
           }), {}),
           bands: this.bands,
           noData: this.noData,
-          colorMapping: Object.entries(this.renderOptions.colorMapping ?? { 'black': 'transparent' }).map((val) => val.map(stringColorToRgba)), 
+          colorMapping: Object.entries(this.renderOptions.colorMapping ?? { 'black': 'transparent' }).map((val) => val.map(stringColorToRgba)),
         }
         if (!this._generateImageworkerFarm?.worker) {
           throw new DeveloperError('web workers bootstrap error');
@@ -629,7 +630,7 @@ export class TIFFImageryProvider {
         this.readSamples.forEach((sample, index) => {
           this.plot.addDataset(`b${sample + 1}`, data[index], width, height);
         })
-        
+
         if (single.expression) {
           this.plot.render();
         } else {
