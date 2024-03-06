@@ -13,7 +13,6 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 - Three band rendering.
 - Multi mode color rendering.
 - Support identify TIFF value with cartographic position.
-- Web Workers speed up.
 - WebGL accelerated rendering.
 - Band calculation.
 - **[experimental]** Support any projected TIFF .
@@ -121,6 +120,9 @@ class TIFFImageryProvider {
     min: number;
     max: number;
   }>;
+  origin: number[];
+  reverseY: boolean;
+  samples: number;
   constructor(options: TIFFImageryProviderOptions & {
     /** 
      * @deprecated 
@@ -293,7 +295,6 @@ pnpm dev
 
 ## Plans
 
-- [x] Use Web Workers to generate tile image
 - [x] GPU speed up calculation
 - [ ] More efficient tile request method
 

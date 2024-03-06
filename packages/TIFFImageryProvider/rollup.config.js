@@ -1,9 +1,4 @@
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import typescript from '@rollup/plugin-typescript';
 import { readFileSync } from 'fs';
-import webWorkerLoader from "rollup-plugin-web-worker-loader";
-import { createRequire } from "module";
 import esbuild from 'rollup-plugin-esbuild';
 import path from 'path';
 import dts from 'rollup-plugin-dts';
@@ -29,12 +24,6 @@ const config = [
     },
     external,
     plugins: [
-      webWorkerLoader({
-        inline: true,
-        targetPlatform: "browser",
-        extensions: ["ts", "js"],
-        external,
-      }),
       esbuild({
         target: 'node14',
       }),

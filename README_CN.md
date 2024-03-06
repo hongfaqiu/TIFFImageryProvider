@@ -11,10 +11,9 @@
 - 三波段渲染。
 - 多模式颜色渲染。
 - 支持在地图上查询TIFF值。
-- 支持任何投影的TIFF。
-- Web Workers 加速。
 - WebGL 加速渲染。
 - 波段计算。
+- **[实验性]** 支持任何投影的TIFF。
 
 ## 安装
 
@@ -56,7 +55,7 @@ provider.readyPromise.then(() => {
 })
 ```
 
-如果 TIFF 的投影不是 EPSG:4326，你可以通过 ``projFunc`` 来处理投影
+**[实验性]** 如果 TIFF 的投影不是 EPSG:4326，你可以通过 ``projFunc`` 来处理投影
 
 ```ts
 import proj4 from 'proj4';
@@ -291,7 +290,6 @@ pnpm dev
 
 ## 计划
 
-- [x] 使用 Web Workers 生成瓦片图像
 - [x] 使用 GPU 加速计算
 - [ ] 更高效的瓦片请求方法
 

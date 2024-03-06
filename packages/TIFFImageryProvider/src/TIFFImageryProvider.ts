@@ -2,17 +2,13 @@ import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureIn
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
-import WorkerFarm from "./worker/worker-farm";
 import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba } from "./helpers/utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
 import { reprojection } from "./helpers/reprojection";
 
-// @ts-ignore
-import GenerateImageWorker from "web-worker:./worker/worker-generateImage";
-// @ts-ignore
-import ReverseArrayWorker from "web-worker:./worker/worker-reverseArray";
-import { GenerateImageOptions } from "./helpers/generateImage";
+import { GenerateImageOptions, generateImage } from "./helpers/generateImage";
+import { reverseArray } from "./helpers/utils";
 
 export interface SingleBandRenderOptions {
   /** band index start from 1, defaults to 1 */
@@ -181,10 +177,8 @@ export class TIFFImageryProvider {
   private _images: (GeoTIFFImage | null)[] = [];
   private _imagesCache: Record<string, {
     time: number;
-    data: ImageBitmap | HTMLCanvasElement | HTMLImageElement;
+    data: ImageData | HTMLCanvasElement | HTMLImageElement;
   }> = {};
-  private _generateImageworkerFarm: WorkerFarm | null;
-  private _reverseArrayWorkerFarm: WorkerFarm | null;
   private _cacheTime: number;
   private _isTiled: boolean;
   private _proj?: {
@@ -195,6 +189,7 @@ export class TIFFImageryProvider {
   };
   origin: number[];
   reverseY: boolean = false;
+  samples: number;
 
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /**
@@ -210,8 +205,6 @@ export class TIFFImageryProvider {
     this.minimumLevel = options.minimumLevel ?? 0;
     this.credit = new Credit(options.credit || "", false);
     this.errorEvent = new Event();
-    this._generateImageworkerFarm = new WorkerFarm(new GenerateImageWorker());
-    this._reverseArrayWorkerFarm = new WorkerFarm(new ReverseArrayWorker());
     this._cacheTime = options.cache ?? 60 * 1000;
 
     this.ready = false;
@@ -282,6 +275,7 @@ export class TIFFImageryProvider {
 
     // 获取波段数
     const samples = image.getSamplesPerPixel();
+    this.samples = samples;
     this.renderOptions = renderOptions ?? {}
     // 获取nodata值
     const noData = image.getGDALNoData();
@@ -538,17 +532,14 @@ export class TIFFImageryProvider {
       } else {
         res = await image.readRasters(options) as TypedArray[];
         if (this.reverseY) {
-          if (!this._reverseArrayWorkerFarm?.worker) {
-            throw new DeveloperError('web workers bootstrap error');
-          }
-          res = await Promise.all((res).map(arr => this._reverseArrayWorkerFarm.scheduleTask<any, TypedArray>({ array: arr, width: (res as any).width, height: (res as any).height })));
+          res = await Promise.all((res).map((arr: any) => reverseArray({ array: arr, width: (res as any).width, height: (res as any).height }))) as any;
         }
       }
 
       if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
         const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
         const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
-        
+
         const sourceBBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north] as any;
         const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as any
 
@@ -602,7 +593,7 @@ export class TIFFImageryProvider {
         return undefined;
       }
 
-      let result: ImageBitmap | HTMLImageElement
+      let result: ImageData | HTMLImageElement
 
       if (multi || convertToRGB) {
         const opts: GenerateImageOptions = {
@@ -621,11 +612,8 @@ export class TIFFImageryProvider {
           noData: this.noData,
           colorMapping: Object.entries(this.renderOptions.colorMapping ?? { 'black': 'transparent' }).map((val) => val.map(stringColorToRgba)),
         }
-        if (!this._generateImageworkerFarm?.worker) {
-          throw new DeveloperError('web workers bootstrap error');
-        }
 
-        result = await this._generateImageworkerFarm.scheduleTask<GenerateImageOptions, ImageBitmap>(opts);
+        result = await generateImage(opts);
       } else if (single && this.plot) {
         const { band = 1 } = single;
         this.plot.removeAllDataset();
@@ -722,7 +710,6 @@ export class TIFFImageryProvider {
     this._images = undefined;
     this._source = undefined;
     this._imagesCache = undefined;
-    this._generateImageworkerFarm?.destory();
     this.plot?.destroy();
     this._destroyed = true;
   }

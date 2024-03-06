@@ -39,7 +39,7 @@ const provider: any = await TIFFImageryProvider.fromUrl('https://sentinel-cogs.s
     return undefined
   },
 });
-
+console.log(provider);
 const imageryLayer = viewer.imageryLayers.addImageryProvider(provider);
 viewer.flyTo(imageryLayer, {
   duration: 1,
