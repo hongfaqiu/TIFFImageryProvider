@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.2](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.10.1...v2.10.2) (2024-03-06)
+
+
+### Bug Fixes
+
+* compatible Safari (remove web-worker) ([81ffe2d](https://github.com/hongfaqiu/TIFFImageryProvider/commit/81ffe2d5fc7c0c728b1815f25e19f06d5311d66f))
+
+
+
+
+
 ## [2.10.1](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.10.0...v2.10.1) (2024-01-12)
 
 
