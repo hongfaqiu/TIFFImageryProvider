@@ -571,6 +571,14 @@ export class TIFFImageryProvider {
       throw error;
     }
   }
+  
+  private _createTile() {
+    const canv = document.createElement("canvas");
+    canv.width = this.tileSize;
+    canv.height = this.tileSize;
+    canv.style.imageRendering = "pixelated";
+    return canv;
+  }
 
   async requestImage(
     x: number,
@@ -593,7 +601,7 @@ export class TIFFImageryProvider {
         return undefined;
       }
 
-      let result: ImageData | HTMLImageElement
+      let result: ImageData | HTMLImageElement | HTMLCanvasElement
 
       if (multi || convertToRGB) {
         const opts: GenerateImageOptions = {
@@ -627,9 +635,10 @@ export class TIFFImageryProvider {
           this.plot.renderDataset(`b${band}`)
         }
 
-        const image = new Image();
-        image.src = this.plot.canvas.toDataURL();
-        result = image;
+        const canv = this._createTile()
+        const ctx = canv.getContext("2d")
+        ctx.drawImage(this.plot.canvas, 0, 0);
+        result = canv;
       }
 
       if (result && this._cacheTime) {
