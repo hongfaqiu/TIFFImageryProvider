@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.3](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.2...v2.10.3) (2024-03-13)
+
+
+### Bug Fixes
+
+* safari canvas.toDataUrl() error ([1b0894f](https://github.com/hongfaqiu/tiff-imagery-provider/commit/1b0894f83f4cdbaff722f6c9c6b63ebf63a3d574))
+
+
+
+
+
 ## [2.10.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.1...v2.10.2) (2024-03-06)
 
 
