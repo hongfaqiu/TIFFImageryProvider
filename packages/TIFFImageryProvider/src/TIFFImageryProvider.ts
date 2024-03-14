@@ -221,10 +221,17 @@ export class TIFFImageryProvider {
 
   private async _build(url: string | File | Blob, options: TIFFImageryProviderOptions = {}) {
     const { tileSize, renderOptions, projFunc, requestOptions } = options;
-    const source = await (url instanceof File || url instanceof Blob ? fromBlob(url) : fromUrl(url, requestOptions))
-    this._source = source;
-    const image = await source.getImage();
+    let source = await (url instanceof File || url instanceof Blob ? fromBlob(url) : fromUrl(url, requestOptions))
+    let image = await source.getImage();
     this._isTiled = image.isTiled;
+
+    // handle native tiff range request error
+    if (!this._isTiled && typeof url === 'string') {
+      source = await fromBlob(await (await fetch(url)).blob());
+      image = await source.getImage();
+    }
+
+    this._source = source;
 
     // 获取空间范围
     this.origin = this._getOrigin(image);
@@ -574,8 +581,8 @@ export class TIFFImageryProvider {
   
   private _createTile() {
     const canv = document.createElement("canvas");
-    canv.width = this.tileSize;
-    canv.height = this.tileSize;
+    canv.width = this.tileWidth;
+    canv.height = this.tileHeight;
     canv.style.imageRendering = "pixelated";
     return canv;
   }
