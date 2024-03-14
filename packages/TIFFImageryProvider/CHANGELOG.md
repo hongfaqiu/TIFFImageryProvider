@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.4](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.3...v2.10.4) (2024-03-14)
+
+
+### Bug Fixes
+
+* native tiff range request error ([78ca47f](https://github.com/hongfaqiu/tiff-imagery-provider/commit/78ca47f6f2b0721be1c3586f7fb21616438c5f10))
+
+
+
+
+
 ## [2.10.3](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.2...v2.10.3) (2024-03-13)
 
 
