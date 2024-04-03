@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.5](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.10.4...v2.10.5) (2024-04-03)
+
+
+### Bug Fixes
+
+* useRealValue with domain config ([ca6fc2b](https://github.com/hongfaqiu/TIFFImageryProvider/commit/ca6fc2be48f0cfd1dc030d9d276732023044d607))
+
+
+
+
+
+
 ## [2.10.4](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.10.3...v2.10.4) (2024-03-14)
 
 
