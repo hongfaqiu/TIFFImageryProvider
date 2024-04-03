@@ -379,17 +379,18 @@ export class TIFFImageryProvider {
         if (!single.expression && !band) {
           throw new DeveloperError(`Invalid band${single.band}`);
         }
+        const domain = single.domain ?? [band.min, band.max]
         this.plot = new plot({
           canvas,
           ...single,
-          domain: single.domain ?? [band.min, band.max]
+          domain 
         })
         this.plot.setNoDataValue(this.noData);
 
         const { expression, colors, colorScaleImage } = single;
         this.plot.setExpression(expression);
         if (colors) {
-          const colorScale = generateColorScale(colors, single?.useRealValue ? [band.min, band.max] : [0, 1])
+          const colorScale = generateColorScale(colors, single?.useRealValue ? domain : [0, 1])
           addColorScale('temp', colorScale.colors, colorScale.positions);
           this.plot.setColorScale('temp' as any);
         } else if (!colorScaleImage) {
