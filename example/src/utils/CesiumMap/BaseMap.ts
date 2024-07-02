@@ -16,9 +16,6 @@ import type {
 } from 'cesium';
 import type { EventType, ExternalListenCallback } from '../subscriber';
 
-Cesium.Ion.defaultAccessToken =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4OGQwZTM2MC00NjkzLTRkZTgtYTU5MS0xZTA1NTljYWQyN2UiLCJpZCI6NTUwODUsImlhdCI6MTYyMDM5NjQ3NH0.lu_JBwyngYucPsvbCZt-xzmzgfwEKwcRXiYs5uV8uTM';
-
 export type CesiumMapOptions = {
   navigator?: boolean;
   displayMode?: 0 | 1 | 2;

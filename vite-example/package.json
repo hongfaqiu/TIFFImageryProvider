@@ -6,12 +6,12 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "typescript": "^5.1.6",
-    "vite": "^4.3.9",
+    "typescript": "^5.5.3",
+    "vite": "^4.5.3",
     "vite-plugin-cesium": "^1.2.22"
   },
   "dependencies": {
-    "cesium": "^1.108.0",
+    "cesium": "^1.119.0",
     "proj4-fully-loaded": "^0.2.0",
     "tiff-imagery-provider": "workspace:*"
   },

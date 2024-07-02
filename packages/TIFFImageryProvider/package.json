@@ -43,7 +43,7 @@
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/offscreencanvas": "^2019.7.0",
-    "cesium": "^1.108.0",
+    "cesium": "^1.119.0",
     "esbuild": "^0.19.2",
     "rollup": "^3.28.1",
     "rollup-plugin-dts": "^6.0.1",
