@@ -20,7 +20,7 @@ const viewer = new Viewer('cesiumContainer', {
   orderIndependentTranslucency: false,
 });
 
-const provider: any = await TIFFImageryProvider.fromUrl('https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/56/J/NP/2023/4/S2A_56JNP_20230410_0_L2A/TCI.tif', {
+const provider = await TIFFImageryProvider.fromUrl('/cogtif.tif', {
   enablePickFeatures: true,
   projFunc: (code) => {
     if (![4326, 3857, 900913].includes(code)) {
@@ -38,9 +38,18 @@ const provider: any = await TIFFImageryProvider.fromUrl('https://sentinel-cogs.s
     }
     return undefined
   },
+  renderOptions: {
+    "single": {
+      colorScale: "rainbow",
+    }
+  }
 });
 console.log(provider);
-const imageryLayer = viewer.imageryLayers.addImageryProvider(provider);
+const imageryLayer = viewer.imageryLayers.addImageryProvider(provider as any);
+const legend = document.getElementById("legend") as HTMLImageElement;
+const img = provider.plot.colorScaleCanvas.toDataURL();
+legend.src = img;
+
 viewer.flyTo(imageryLayer, {
   duration: 1,
 });

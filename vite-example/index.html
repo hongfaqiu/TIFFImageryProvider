@@ -8,7 +8,26 @@
     <script type="module" src="/src/index.ts"></script>
   </head>
 
+  <style>
+    #legendContainer {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      padding: 10px;
+      background-color: white;
+      z-index: 1;
+    }
+    #legend {
+      width: 256px;
+      height: 20px;
+    }
+  </style>
+
   <body>
-    <div id="cesiumContainer"></div>
+    <div id="cesiumContainer">
+      <div id="legendContainer">
+        <img id="legend" />
+      </div>
+    </div>
   </body>
 </html>

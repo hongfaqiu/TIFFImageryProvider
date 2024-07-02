@@ -55,16 +55,17 @@ export function generateColorScale(colors: [number, string][] | string[], minMax
   stops.sort((a, b) => a[0] - b[0]);
 
   if (stops[0][0] > 0) {
-    stops = [stops[0], ...stops]
-  }
-
-  if (stops[stops.length - 1][0] > 0) {
-    stops = [...stops, stops[stops.length - 1]]
+    stops = [[0, stops[0][1]], ...stops]
   }
 
   const colorScale = {
     colors: stops.map(stop => stop[1]),
-    positions: stops.map(stop => stop[0]),
+    positions: stops.map(stop => {
+      let s = stop[0];
+      if (s < 0) return 0;
+      if (s > 1) return 1;
+      return s;
+    }),
   }
 
   return colorScale;

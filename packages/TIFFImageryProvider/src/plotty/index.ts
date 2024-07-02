@@ -124,31 +124,40 @@ function addColorScale(name: string, colors: string[], positions: number[]) {
  * @param {RenderColorType} type the type of color scale to render, either "continuous" or "discrete"
  */
 function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement, type: RenderColorType = 'continuous') {
-  /* eslint-disable no-param-reassign */
   const csDef = colorscales[name];
   canvas.height = 1;
   const ctx = canvas.getContext('2d');
 
+  if (!ctx) {
+    throw new Error('Unable to get canvas context.');
+  }
+
   if (Object.prototype.toString.call(csDef) === '[object Object]') {
     canvas.width = 256;
-    const gradient = ctx.createLinearGradient(0, 0, 256, 1);
 
     if (type === 'continuous') {
+      const gradient = ctx.createLinearGradient(0, 0, 256, 1);
+
       for (let i = 0; i < csDef.colors.length; ++i) {
         gradient.addColorStop(csDef.positions[i], csDef.colors[i]);
       }
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 256, 1);
     } else if (type === 'discrete') {
       for (let i = 0; i < csDef.colors.length - 1; ++i) {
-        gradient.addColorStop(csDef.positions[i], csDef.colors[i]);
-        gradient.addColorStop(csDef.positions[i + 1] - 0.001, csDef.colors[i]);
+        const startPos = csDef.positions[i] * 256;
+        const endPos = csDef.positions[i + 1] * 256;
+        ctx.fillStyle = csDef.colors[i];
+        ctx.fillRect(startPos, 0, endPos - startPos, 1);
       }
-      gradient.addColorStop(1, csDef.colors[csDef.colors.length - 1]);
+
+      ctx.fillStyle = csDef.colors[csDef.colors.length - 1];
+      ctx.fillRect(csDef.positions[csDef.positions.length - 1] * 256, 0, 256 - csDef.positions[csDef.positions.length - 1] * 256, 1);
+
     } else {
       throw new Error('Invalid color scale type.');
     }
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 256, 1);
   } else if (Object.prototype.toString.call(csDef) === '[object Uint8Array]') {
     canvas.width = 256;
     const imgData = ctx.createImageData(256, 1);
@@ -157,7 +166,6 @@ function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement, type:
   } else {
     throw new Error('Color scale not defined.');
   }
-  /* eslint-enable no-param-reassign */
 }
 
 const vertexShaderSource = `
