@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.6](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.5...v2.10.6) (2024-07-02)
+
+
+### Bug Fixes
+
+* discrete colorScale drawing error ([1ced789](https://github.com/hongfaqiu/tiff-imagery-provider/commit/1ced78973fa8e5e19a95e65b973ed2301b0583ba))
+
+
+
+
+
 ## [2.10.5](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.4...v2.10.5) (2024-04-03)
 
 
