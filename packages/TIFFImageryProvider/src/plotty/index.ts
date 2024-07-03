@@ -127,40 +127,40 @@ function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement, type:
   const csDef = colorscales[name];
   canvas.height = 1;
   const ctx = canvas.getContext('2d');
+  // TODO: move into fs, dont's use texture interpolation
+  // Supports up to 4 decimal places of precision
+  const width = 10 ** 4;
 
   if (!ctx) {
     throw new Error('Unable to get canvas context.');
   }
 
   if (Object.prototype.toString.call(csDef) === '[object Object]') {
-    canvas.width = 256;
+    canvas.width = width;
 
     if (type === 'continuous') {
-      const gradient = ctx.createLinearGradient(0, 0, 256, 1);
+      const gradient = ctx.createLinearGradient(0, 0, width, 1);
 
       for (let i = 0; i < csDef.colors.length; ++i) {
         gradient.addColorStop(csDef.positions[i], csDef.colors[i]);
       }
 
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 256, 1);
+      ctx.fillRect(0, 0, width, 1);
     } else if (type === 'discrete') {
-      for (let i = 0; i < csDef.colors.length - 1; ++i) {
-        const startPos = csDef.positions[i] * 256;
-        const endPos = csDef.positions[i + 1] * 256;
+      for (let i = 0; i < csDef.colors.length; ++i) {
+        const nowPos = csDef.positions[i], lastPos = csDef.positions[i + 1];
+        const startPos = nowPos * (width - 10);
+        const endPos = lastPos ? lastPos * (width - 10) : width;
         ctx.fillStyle = csDef.colors[i];
         ctx.fillRect(startPos, 0, endPos - startPos, 1);
       }
-
-      ctx.fillStyle = csDef.colors[csDef.colors.length - 1];
-      ctx.fillRect(csDef.positions[csDef.positions.length - 1] * 256, 0, 256 - csDef.positions[csDef.positions.length - 1] * 256, 1);
-
     } else {
       throw new Error('Invalid color scale type.');
     }
   } else if (Object.prototype.toString.call(csDef) === '[object Uint8Array]') {
-    canvas.width = 256;
-    const imgData = ctx.createImageData(256, 1);
+    canvas.width = width;
+    const imgData = ctx.createImageData(width, 1);
     imgData.data.set(csDef);
     ctx.putImageData(imgData, 0, 0);
   } else {
