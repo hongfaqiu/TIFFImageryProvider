@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.7](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.6...v2.10.7) (2024-07-03)
+
+
+### Bug Fixes
+
+* fix discrete rendering errors, 4 decimal places of render precision support ([2006a62](https://github.com/hongfaqiu/tiff-imagery-provider/commit/2006a62dda50baecd88966cccbae04fcf3ef492c))
+
+
+
+
+
 ## [2.10.6](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.10.5...v2.10.6) (2024-07-02)
 
 
