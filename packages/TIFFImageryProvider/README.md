@@ -170,8 +170,8 @@ interface TIFFImageryProviderOptions {
   } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
-  /** geotiff resample method, defaults to nearest */
-  resampleMethod?: 'nearest' | 'bilinear' | 'linear';
+  /** resample web worker pool size, defaults to the number of CPUs available. When this parameter is `null` or 0, then the resampling will be done in the main thread. */
+  workerPoolSize?: number;
 }
 
 type TIFFImageryProviderRenderOptions = {

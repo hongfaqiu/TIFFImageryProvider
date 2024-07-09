@@ -18,7 +18,7 @@ function hasOwnProperty(obj: any, prop: string) {
 
 function defaultFor(arg: any, val: any) { return typeof arg !== 'undefined' ? arg : val; }
 
-function create3DContext(canvas: HTMLCanvasElement, optAttribs: { premultipliedAlpha: boolean; }) {
+function create3DContext(canvas: HTMLCanvasElement | OffscreenCanvas, optAttribs: { premultipliedAlpha: boolean; }) {
   const names = ['webgl', 'experimental-webgl'];
   let context: WebGLRenderingContext | null= null;
   for (let ii = 0; ii < names.length; ++ii) {
@@ -259,7 +259,7 @@ void main() {
  *
  */
 class plot {
-  canvas: HTMLCanvasElement;
+  canvas: HTMLCanvasElement | OffscreenCanvas;
   currentDataset: DataSet;
   datasetCollection: Record<string, DataSet>;
   gl: WebGLRenderingContext | null;
@@ -313,10 +313,10 @@ class plot {
         gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
       } else {
         // Fall back to 2d context
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = (this.canvas as HTMLCanvasElement).getContext('2d');
       }
     } else {
-      this.ctx = this.canvas.getContext('2d');
+      this.ctx = (this.canvas as HTMLCanvasElement).getContext('2d');
     }
 
     if (options.colorScaleImage) {
@@ -474,9 +474,9 @@ class plot {
   /**
    * Set the canvas to draw to. When no canvas is supplied, a new canvas element
    * is created.
-   * @param {HTMLCanvasElement} [canvas] the canvas element to render to.
+   * @param {HTMLCanvasElement | OffscreenCanvas} [canvas] the canvas element to render to.
    */
-  setCanvas(canvas: HTMLCanvasElement) {
+  setCanvas(canvas: HTMLCanvasElement | OffscreenCanvas) {
     this.canvas = canvas || document.createElement('canvas');
   }
 
@@ -513,7 +513,7 @@ class plot {
    * Get the canvas that is currently rendered to.
    * @returns {HTMLCanvasElement} the canvas that is currently rendered to.
    */
-  getCanvas(): HTMLCanvasElement {
+  getCanvas(): HTMLCanvasElement | OffscreenCanvas {
     return this.canvas;
   }
 

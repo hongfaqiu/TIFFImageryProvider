@@ -109,3 +109,29 @@ export function reverseArray(options: {
 
   return reversedArray;
 }
+
+export type ReasmpleDataOptions = {
+  sourceWidth: number;
+  sourceHeight: number;
+  targetWidth: number;
+  targetHeight: number;
+  /** start from 0 to 1, examples: [0, 0, 0.5, 0.5] */
+  window: [number, number, number, number];
+}
+
+export function resampleData(data: Uint8Array | Int16Array | Int32Array, options: ReasmpleDataOptions) {
+  const { sourceWidth, sourceHeight, targetWidth, targetHeight, window } = options;
+  const [x0, y0, x1, y1] = window;
+  
+  const resampledData = new Array(targetWidth * targetHeight);
+
+  for (let y = 0; y < targetHeight; y++) {
+    for (let x = 0; x < targetWidth; x++) {
+      const col = (sourceWidth * (x0 + x / targetWidth * (x1 - x0))) >>> 0;
+      const row = (sourceHeight * (y0 + y / targetHeight * (y1 - y0))) >>> 0;
+      resampledData[y * targetWidth + x] = data[row * sourceWidth + col];
+    }
+  }
+
+  return resampledData;
+}

@@ -55,7 +55,7 @@ provider.readyPromise.then(() => {
 })
 ```
 
-**[实验性]** 如果 TIFF 的投影不是 EPSG:4326，你可以通过 ``projFunc`` 来处理投影
+**[实验性]** 如果 TIFF 的投影不是 EPSG:4326或EPSG:3857，你可以通过 ``projFunc`` 来处理投影
 
 ```ts
 import proj4 from 'proj4';
@@ -166,8 +166,8 @@ interface TIFFImageryProviderOptions {
   } | undefined;
   /** 缓存生存时间，默认为60 * 1000毫秒 */
   cache?: number;
-  /** geotiff 重采样方法, 默认为 nearest */
-  resampleMethod?: 'nearest' | 'bilinear' | 'linear';
+  /** 重新采样 Web Worker 工作池大小，默认为可用 CPU 数量。当该参数为null或 0，则重采样将在主线程中完成。 */
+  workerPoolSize?: number;
 }
 
 type TIFFImageryProviderRenderOptions = {

@@ -2,13 +2,15 @@ import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureIn
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
-import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba } from "./helpers/utils";
+import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba, resampleData } from "./helpers/utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
 import { reprojection } from "./helpers/reprojection";
 
 import { GenerateImageOptions, generateImage } from "./helpers/generateImage";
 import { reverseArray } from "./helpers/utils";
+import { createCanavas } from "./helpers/createCanavas";
+import WorkerPool from "./worker/pool";
 
 export interface SingleBandRenderOptions {
   /** band index start from 1, defaults to 1 */
@@ -136,10 +138,12 @@ export interface TIFFImageryProviderOptions {
   } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
-  /** geotiff resample method, defaults to nearest */
-  resampleMethod?: 'nearest' | 'bilinear' | 'linear';
+  /** resample web worker pool size, defaults to the number of CPUs available. When this parameter is `null` or 0, then the resampling will be done in the main thread. */
+  workerPoolSize?: number;
 }
-const canvas = document.createElement('canvas');
+
+const canvas = createCanavas(256, 256);
+
 let workerPool: Pool;
 function getWorkerPool() {
   if (!workerPool) {
@@ -166,7 +170,7 @@ export class TIFFImageryProvider {
   }>;
   noData: number;
   hasAlphaChannel: boolean;
-  plot: plot;
+  plot?: plot;
   renderOptions: TIFFImageryProviderRenderOptions;
   readSamples: number[];
   requestLevels: number[];
@@ -177,7 +181,7 @@ export class TIFFImageryProvider {
   private _images: (GeoTIFFImage | null)[] = [];
   private _imagesCache: Record<string, {
     time: number;
-    data: ImageData | HTMLCanvasElement | HTMLImageElement;
+    data: ImageData | HTMLCanvasElement | HTMLImageElement | OffscreenCanvas;
   }> = {};
   private _cacheTime: number;
   private _isTiled: boolean;
@@ -190,6 +194,7 @@ export class TIFFImageryProvider {
   origin: number[];
   reverseY: boolean = false;
   samples: number;
+  workerPool: WorkerPool;
 
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /**
@@ -206,6 +211,7 @@ export class TIFFImageryProvider {
     this.credit = new Credit(options.credit || "", false);
     this.errorEvent = new Event();
     this._cacheTime = options.cache ?? 60 * 1000;
+    this.workerPool = new WorkerPool(options.workerPoolSize);
 
     this.ready = false;
     if (defined(options.url)) {
@@ -272,12 +278,10 @@ export class TIFFImageryProvider {
       this.rectangle.east += CesiumMath.TWO_PI;
     }
     this._imageCount = await source.getImageCount();
-    this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 512;
-    this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 512;
+    this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 256;
+    this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 256;
     // 获取合适的COG层级
     this.requestLevels = this._isTiled ? await this._getCogLevels() : [0];
-    const maxCogLevel = this.requestLevels.length - 1
-    this.maximumLevel = this.maximumLevel > maxCogLevel ? maxCogLevel : this.maximumLevel;
     this._images = new Array(this._imageCount).fill(null);
 
     // 获取波段数
@@ -383,7 +387,7 @@ export class TIFFImageryProvider {
         this.plot = new plot({
           canvas,
           ...single,
-          domain 
+          domain,
         })
         this.plot.setNoDataValue(this.noData);
 
@@ -397,6 +401,7 @@ export class TIFFImageryProvider {
           this.plot.setColorScale(single?.colorScale ?? 'blackwhite');
         }
       }
+
     } catch (e) {
       console.error(e);
       this.errorEvent.raiseEvent(e);
@@ -458,7 +463,7 @@ export class TIFFImageryProvider {
       const height = image.getHeight();
       const size = Math.max(width, height);
 
-      // 如果第一张瓦片的image tileSize大于512，则顺位后延，以减少请求量
+      // 如果第一张瓦片的image tileSize大于256，则顺位后延，以减少请求量
       if (i === this._imageCount - 1) {
         const firstImageLevel = Math.ceil((size - this.tileSize) / this.tileSize)
         levels.push(...new Array(firstImageLevel).fill(i))
@@ -483,7 +488,17 @@ export class TIFFImageryProvider {
    * @param y 
    * @param z 
    */
-  private async _loadTile(x: number, y: number, z: number) {
+  private async _loadTile(reqx: number, reqy: number, reqz: number) {
+    let x = reqx, y = reqy, z = reqz, startX = reqx, startY = reqy;
+    const maxCogLevel = this.requestLevels.length - 1;
+    if (z > maxCogLevel) {
+      z = maxCogLevel;
+      x = x >> (reqz - maxCogLevel)
+      y = y >> (reqz - maxCogLevel)
+      startX = x << (reqz - z);
+      startY = y << (reqz - z);
+    }
+    
     const index = this.requestLevels[z];
     let image = this._images[index];
     if (!image) {
@@ -523,27 +538,26 @@ export class TIFFImageryProvider {
     if (this.reverseY) {
       window = [window[0], height - window[3], window[2], height - window[1]];
     }
+    const windowWidth = window[2] - window[0], windowHeight = window[3] - window[1];
+    
     const options = {
       window,
       pool: getWorkerPool(),
-      width: this.tileWidth,
-      height: this.tileHeight,
       samples: this.readSamples,
-      resampleMethod: this.options.resampleMethod,
       fillValue: this.noData,
       interleave: false,
     }
-    let res: TypedArray[];
+    let res: any;
     try {
       if (this.renderOptions.convertToRGB) {
-        res = await image.readRGB(options) as TypedArray[];
+        res = await image.readRGB(options);
       } else {
-        res = await image.readRasters(options) as TypedArray[];
+        res = await image.readRasters(options);
         if (this.reverseY) {
-          res = await Promise.all((res).map((arr: any) => reverseArray({ array: arr, width: (res as any).width, height: (res as any).height }))) as any;
+          res = await Promise.all((res).map((arr) => reverseArray({ array: arr, width: res.width, height: res.height }))) as any;
         }
       }
-
+      
       if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
         const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
         const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
@@ -555,10 +569,8 @@ export class TIFFImageryProvider {
         for (let i = 0; i < res.length; i++) {
           const prjData = reprojection({
             data: res[i] as any,
-            sourceWidth: this.tileWidth,
-            sourceHeight: this.tileHeight,
-            targetWidth: this.tileWidth,
-            targetHeight: this.tileHeight,
+            sourceWidth: windowWidth,
+            sourceHeight: windowHeight,
             nodata: this.noData,
             project: this._proj.project,
             sourceBBox,
@@ -567,8 +579,24 @@ export class TIFFImageryProvider {
           result.push(prjData)
         }
         res = result
-
       }
+      
+      const tileNum = 1 << (reqz - z)
+      const x0 = (reqx - startX) / tileNum;
+      const y0 = (reqy - startY) / tileNum;
+      const step = 1 / (1 << (reqz - z))
+      const x1 = x0 + step;
+      const y1 = y0 + step;
+
+      res = await Promise.all(res.map(async (data: any) => this.workerPool.resample(data as any, {
+          sourceWidth: windowWidth,
+          sourceHeight: windowHeight,
+          targetWidth: this.tileWidth,
+          targetHeight: this.tileHeight,
+          window: [x0, y0, x1, y1]
+        })
+      ));
+
       return {
         data: res,
         width: this.tileWidth,
@@ -580,14 +608,6 @@ export class TIFFImageryProvider {
     }
   }
   
-  private _createTile() {
-    const canv = document.createElement("canvas");
-    canv.width = this.tileWidth;
-    canv.height = this.tileHeight;
-    canv.style.imageRendering = "pixelated";
-    return canv;
-  }
-
   async requestImage(
     x: number,
     y: number,
@@ -605,11 +625,12 @@ export class TIFFImageryProvider {
 
     try {
       const { width, height, data } = await this._loadTile(x, y, z);
-      if (this._destroyed) {
+      
+      if (this._destroyed || !width || !height) {
         return undefined;
       }
 
-      let result: ImageData | HTMLImageElement | HTMLCanvasElement
+      let result: ImageData | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas
 
       if (multi || convertToRGB) {
         const opts: GenerateImageOptions = {
@@ -643,8 +664,8 @@ export class TIFFImageryProvider {
           this.plot.renderDataset(`b${band}`)
         }
 
-        const canv = this._createTile()
-        const ctx = canv.getContext("2d")
+        const canv = createCanavas(this.tileWidth, this.tileHeight)
+        const ctx = canv.getContext("2d") as CanvasRenderingContext2D
         ctx.drawImage(this.plot.canvas, 0, 0);
         result = canv;
       }
@@ -728,6 +749,7 @@ export class TIFFImageryProvider {
     this._source = undefined;
     this._imagesCache = undefined;
     this.plot?.destroy();
+    this.workerPool.destroy();
     this._destroyed = true;
   }
 }

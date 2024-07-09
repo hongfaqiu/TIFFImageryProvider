@@ -20,7 +20,7 @@ const viewer = new Viewer('cesiumContainer', {
   orderIndependentTranslucency: false,
 });
 
-const provider = await TIFFImageryProvider.fromUrl('/cogtif.tif', {
+TIFFImageryProvider.fromUrl('/cogtif.tif', {
   enablePickFeatures: true,
   projFunc: (code) => {
     if (![4326, 3857, 900913].includes(code)) {
@@ -39,17 +39,18 @@ const provider = await TIFFImageryProvider.fromUrl('/cogtif.tif', {
     return undefined
   },
   renderOptions: {
-    "single": {
-      colorScale: "rainbow",
+    single: {
+      colorScale: 'rainbow'
     }
-  }
-});
-console.log(provider);
-const imageryLayer = viewer.imageryLayers.addImageryProvider(provider as any);
-const legend = document.getElementById("legend") as HTMLImageElement;
-const img = provider.plot.colorScaleCanvas.toDataURL();
-legend.src = img;
-
-viewer.flyTo(imageryLayer, {
-  duration: 1,
-});
+  },
+}).then((provider) => {
+  console.log(provider);
+  const imageryLayer = viewer.imageryLayers.addImageryProvider(provider as any);
+  const legend = document.getElementById("legend") as HTMLImageElement;
+  const img = provider.plot?.colorScaleCanvas.toDataURL();
+  legend.src = img;
+  
+  viewer.flyTo(imageryLayer, {
+    duration: 1,
+  });
+})

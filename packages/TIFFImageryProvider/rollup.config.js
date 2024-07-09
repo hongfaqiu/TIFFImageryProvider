@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import esbuild from 'rollup-plugin-esbuild';
 import path from 'path';
 import dts from 'rollup-plugin-dts';
+import webWorkerLoader from "rollup-plugin-web-worker-loader";
 
 const pkg = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url)).toString(),
@@ -26,6 +27,9 @@ const config = [
     plugins: [
       esbuild({
         target: 'node14',
+      }),
+      webWorkerLoader({
+        extensions: ["ts", "js"],
       }),
     ]
   }, 

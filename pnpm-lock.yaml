@@ -136,6 +136,9 @@ importers:
       rollup-plugin-esbuild:
         specifier: ^5.0.0
         version: 5.0.0(esbuild@0.19.2)(rollup@3.28.1)
+      rollup-plugin-web-worker-loader:
+        specifier: ^1.6.1
+        version: 1.6.1(rollup@3.28.1)
       tslib:
         specifier: ^2.5.0
         version: 2.5.0
@@ -7218,6 +7221,14 @@ packages:
       is-reference: 1.2.1
       magic-string: 0.25.9
       rollup: 2.79.1
+    dev: true
+
+  /rollup-plugin-web-worker-loader@1.6.1(rollup@3.28.1):
+    resolution: {integrity: sha512-4QywQSz1NXFHKdyiou16mH3ijpcfLtLGOrAqvAqu1Gx+P8+zj+3gwC2BSL/VW1d+LW4nIHC8F7d7OXhs9UdR2A==}
+    peerDependencies:
+      rollup: ^1.9.2 || ^2.0.0
+    dependencies:
+      rollup: 3.28.1
     dev: true
 
   /rollup@2.79.1:

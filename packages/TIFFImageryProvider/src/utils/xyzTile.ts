@@ -1,6 +1,6 @@
 const debugCanvas = document.createElement('canvas');
-debugCanvas.width = 512;
-debugCanvas.height = 512;
+debugCanvas.width = 256;
+debugCanvas.height = 256;
 
 export function generateCanvasWithText(text: string) {
   try {
