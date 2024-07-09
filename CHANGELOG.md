@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.11.0](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.10.7...v2.11.0) (2024-07-09)
+
+
+### Features
+
+* new resampling method [#30](https://github.com/hongfaqiu/TIFFImageryProvider/issues/30) ([9c2f8d0](https://github.com/hongfaqiu/TIFFImageryProvider/commit/9c2f8d06f2c2a880dff01a7a4a810cc332ae8daa))
+
+
+
+
+
 ## [2.10.7](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.10.6...v2.10.7) (2024-07-03)
 
 
