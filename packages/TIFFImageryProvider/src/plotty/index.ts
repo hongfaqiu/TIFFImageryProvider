@@ -129,7 +129,7 @@ function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement, type:
   const ctx = canvas.getContext('2d');
   // TODO: move into fs, dont's use texture interpolation
   // Supports up to 4 decimal places of precision
-  const width = 10 ** 4;
+  const width = 8192 //10 ** 4;
 
   if (!ctx) {
     throw new Error('Unable to get canvas context.');
