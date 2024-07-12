@@ -1,8 +1,11 @@
+import { TypedArray } from "geotiff";
+import { copyNewSize } from "./utils";
+
 export type ReprojectionOptions = {
   project: (pos: number[]) => number[];
   sourceBBox: [minX: number, minY: number, maxX: number, maxY: number];
   targetBBox: [minX: number, minY: number, maxX: number, maxY: number];
-  data: number[];
+  data: TypedArray//number[];
   sourceWidth: number;
   sourceHeight: number;
   targetWidth?: number;
@@ -18,7 +21,8 @@ function inRange(val: number, range: [number, number]) {
   }
 }
 
-export function reprojection(options: ReprojectionOptions): number[] {
+export function reprojection(options: ReprojectionOptions): TypedArray {
+  // console.log(`[DEBUG] reprojection(${JSON.stringify({...options, data: null })})`,options)
   const { data, sourceBBox, targetBBox, project, sourceWidth, sourceHeight, nodata } = options;
   const { targetWidth = sourceWidth, targetHeight = sourceHeight } = options;
 
@@ -32,7 +36,7 @@ export function reprojection(options: ReprojectionOptions): number[] {
   const stepLon = Math.abs(maxLon - minLon) / targetWidth;
   const stepLat = Math.abs(maxLat - minLat) / targetHeight;
 
-  const result = new Array(targetWidth * targetHeight).fill(nodata);
+  const result = copyNewSize(data, targetWidth, targetHeight)//.fill(nodata)//new Array(targetWidth * targetHeight).fill(nodata);
 
   for (let i = 0; i < targetHeight; i++) {
     for (let j = 0; j < targetWidth; j++) {
@@ -47,8 +51,8 @@ export function reprojection(options: ReprojectionOptions): number[] {
       const indexX = ~~((x - minX) / stepX);
       const indexY = ~~((maxY - y) / stepY);
 
-      const sourceVal = data[indexY * targetWidth + indexX];
-      const index = i * sourceWidth + j;
+      const sourceVal = data[indexY * sourceWidth + indexX];
+      const index = i * targetWidth + j;
       
       result[index] = sourceVal;
     }

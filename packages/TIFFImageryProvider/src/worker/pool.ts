@@ -1,4 +1,5 @@
-import { ReasmpleDataOptions, resampleData } from '../helpers/utils';
+import { TypedArray } from 'geotiff';
+import { ResampleDataOptions, resampleData } from '../helpers/utils';
 // @ts-ignore
 import create from 'web-worker:./worker';
 
@@ -36,7 +37,7 @@ class WorkerPool {
     }
   }
 
-  async resample(data: Uint8Array | Int16Array | Int32Array, options: ReasmpleDataOptions): Promise<any[]> {
+  async resample(data: TypedArray, options: ResampleDataOptions): Promise<TypedArray> {
     return this.size === 0
       ? resampleData(data, options)
       : new Promise((resolve) => {

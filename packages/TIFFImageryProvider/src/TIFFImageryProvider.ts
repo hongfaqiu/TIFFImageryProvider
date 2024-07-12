@@ -1,5 +1,5 @@
 import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CesiumMath, DeveloperError, defined, Cartesian2, WebMercatorTilingScheme } from "cesium";
-import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
+import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage, TypedArrayArrayWithDimensions } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
 import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba, resampleData } from "./helpers/utils";
@@ -547,13 +547,14 @@ export class TIFFImageryProvider {
       fillValue: this.noData,
       interleave: false,
     }
-    let res: any;
+    let res: TypedArrayArrayWithDimensions | TypedArray[]//any;
     try {
       if (this.renderOptions.convertToRGB) {
-        res = await image.readRGB(options);
+        res = await image.readRGB(options) as TypedArrayArrayWithDimensions;
       } else {
-        res = await image.readRasters(options);
+        res = await image.readRasters(options) as TypedArrayArrayWithDimensions;
         if (this.reverseY) {
+          // @ts-ignore
           res = await Promise.all((res).map((arr) => reverseArray({ array: arr, width: res.width, height: res.height }))) as any;
         }
       }
@@ -565,7 +566,7 @@ export class TIFFImageryProvider {
         const sourceBBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north] as any;
         const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as any
 
-        const result = [];
+        const result: TypedArray[] = [];
         for (let i = 0; i < res.length; i++) {
           const prjData = reprojection({
             data: res[i] as any,
@@ -588,7 +589,7 @@ export class TIFFImageryProvider {
       const x1 = x0 + step;
       const y1 = y0 + step;
 
-      res = await Promise.all(res.map(async (data: any) => this.workerPool.resample(data as any, {
+      res = await Promise.all(res.map(async (data) => this.workerPool.resample(data, {
           sourceWidth: windowWidth,
           sourceHeight: windowHeight,
           targetWidth: this.tileWidth,

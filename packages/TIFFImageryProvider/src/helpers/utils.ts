@@ -1,4 +1,5 @@
 import { Color } from "cesium";
+import { TypedArray } from "geotiff";
 
 export function getMinMax(data: number[], nodata: number) {
   let min: number, max: number;
@@ -95,10 +96,10 @@ export function stringColorToRgba(color: string) {
 }
 
 export function reverseArray(options: {
-  array: number[]; width: number; height: number;
+  array: TypedArray; width: number; height: number;
 }) {
   const { array, width, height } = options;
-  const reversedArray = [];
+  const reversedArray: number[] = [];
 
   for (let row = height - 1; row >= 0; row--) {
     const startIndex = row * width;
@@ -110,7 +111,7 @@ export function reverseArray(options: {
   return reversedArray;
 }
 
-export type ReasmpleDataOptions = {
+export type ResampleDataOptions = {
   sourceWidth: number;
   sourceHeight: number;
   targetWidth: number;
@@ -119,19 +120,80 @@ export type ReasmpleDataOptions = {
   window: [number, number, number, number];
 }
 
-export function resampleData(data: Uint8Array | Int16Array | Int32Array, options: ReasmpleDataOptions) {
-  const { sourceWidth, sourceHeight, targetWidth, targetHeight, window } = options;
-  const [x0, y0, x1, y1] = window;
+// export function resampleData(data: Uint8Array | Int16Array | Int32Array, options: ReasmpleDataOptions) {
+//   const { sourceWidth, sourceHeight, targetWidth, targetHeight, window } = options;
+//   const [x0, y0, x1, y1] = window;
   
-  const resampledData = new Array(targetWidth * targetHeight);
+//   const resampledData = new Array(targetWidth * targetHeight);
 
-  for (let y = 0; y < targetHeight; y++) {
-    for (let x = 0; x < targetWidth; x++) {
-      const col = (sourceWidth * (x0 + x / targetWidth * (x1 - x0))) >>> 0;
-      const row = (sourceHeight * (y0 + y / targetHeight * (y1 - y0))) >>> 0;
-      resampledData[y * targetWidth + x] = data[row * sourceWidth + col];
+//   for (let y = 0; y < targetHeight; y++) {
+//     for (let x = 0; x < targetWidth; x++) {
+//       const col = (sourceWidth * (x0 + x / targetWidth * (x1 - x0))) >>> 0;
+//       const row = (sourceHeight * (y0 + y / targetHeight * (y1 - y0))) >>> 0;
+//       resampledData[y * targetWidth + x] = data[row * sourceWidth + col];
+//     }
+//   }
+
+//   return resampledData;
+// }
+
+export function resampleData(data: TypedArray, options: ResampleDataOptions) {
+  // console.log(`[DEBUG] resampleData(${JSON.stringify(options)})`, data, options)
+  return resampleBilinear(data, options.sourceWidth, options.sourceHeight, options.targetWidth, options.targetHeight, options.window)
+}
+
+function lerp(v0: number, v1:number, t: number) {
+  return ((1 - t) * v0) + (t * v1);
+}
+export function copyNewSize(array: TypedArray, width: number, height: number, samplesPerPixel = 1) {
+  return new (Object.getPrototypeOf(array).constructor)(width * height * samplesPerPixel) as typeof array;
+}
+/**
+ * Resample the input arrays using bilinear interpolation.
+ * @param {TypedArray} valueArray The input arrays to resample
+ * @param {number} inWidth The width of the input rasters
+ * @param {number} inHeight The height of the input rasters
+ * @param {number} outWidth The desired width of the output rasters
+ * @param {number} outHeight The desired height of the output rasters
+ * @returns {TypedArray} The resampled rasters
+ */
+export function resampleBilinear(valueArray: TypedArray, inWidth: number, inHeight: number, outWidth: number, outHeight: number, window: [number, number, number, number]) {
+  const relX = inWidth / outWidth;
+  const relY = inHeight / outHeight;
+
+  const [x0, y0, x1, y1] = window
+
+  const windowWidth = x1 - x0
+  const windowHeight = y1 - y0
+
+  const newArray = copyNewSize(valueArray, outWidth, outHeight);
+  for (let y = 0; y < outHeight; ++y) {
+    // const rawY = relY * y;
+    const rawY = (inHeight * (y0 + y / outHeight * windowHeight))// * relY //?
+
+    const yl = Math.floor(rawY);
+    const yh = Math.min(Math.ceil(rawY), (inHeight - 1));
+
+    for (let x = 0; x < outWidth; ++x) {
+      // const rawX = relX * x;
+      const rawX = (inWidth * (x0 + x / outWidth * windowWidth ))// * relX //?
+      const tx = rawX % 1;
+
+      const xl = Math.floor(rawX);
+      const xh = Math.min(Math.ceil(rawX), (inWidth - 1));
+
+      const ll = valueArray[(yl * inWidth) + xl];
+      const hl = valueArray[(yl * inWidth) + xh];
+      const lh = valueArray[(yh * inWidth) + xl];
+      const hh = valueArray[(yh * inWidth) + xh];
+
+      const value = lerp(
+        lerp(ll, hl, tx),
+        lerp(lh, hh, tx),
+        rawY % 1,
+      );
+      newArray[(y * outWidth) + x] = value;
     }
   }
-
-  return resampledData;
+  return newArray;
 }
