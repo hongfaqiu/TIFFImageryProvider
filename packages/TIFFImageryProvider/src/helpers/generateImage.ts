@@ -1,8 +1,9 @@
 import { getRange, decimal2rgb } from "./utils";
 import { MultiBandRenderOptions } from "../TIFFImageryProvider";
+import { TypedArray } from "geotiff";
 
 export type GenerateImageOptions = {
-  data: Float32Array[];
+  data: TypedArray[];
   width: number;
   height: number;
   renderOptions?: MultiBandRenderOptions;

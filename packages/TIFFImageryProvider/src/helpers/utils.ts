@@ -92,7 +92,7 @@ export function stringColorToRgba(color: string) {
   const newColor = Color.fromCssColorString(color);
   const { red, green, blue, alpha } = newColor;
 
-  return [red, green, green, alpha].map(val => Math.round(val * 255));
+  return [red, green, blue, alpha].map(val => Math.round(val * 255));
 }
 
 export function reverseArray(options: {
@@ -118,28 +118,33 @@ export type ResampleDataOptions = {
   targetHeight: number;
   /** start from 0 to 1, examples: [0, 0, 0.5, 0.5] */
   window: [number, number, number, number];
+  method: 'bilinear' | 'nearest'
 }
 
-// export function resampleData(data: Uint8Array | Int16Array | Int32Array, options: ReasmpleDataOptions) {
-//   const { sourceWidth, sourceHeight, targetWidth, targetHeight, window } = options;
-//   const [x0, y0, x1, y1] = window;
+export function resampleNearest(data: TypedArray, options: ResampleDataOptions) {
+  const { sourceWidth, sourceHeight, targetWidth, targetHeight, window } = options;
+  const [x0, y0, x1, y1] = window;
   
-//   const resampledData = new Array(targetWidth * targetHeight);
+  const resampledData = copyNewSize(data, targetWidth, targetHeight)
 
-//   for (let y = 0; y < targetHeight; y++) {
-//     for (let x = 0; x < targetWidth; x++) {
-//       const col = (sourceWidth * (x0 + x / targetWidth * (x1 - x0))) >>> 0;
-//       const row = (sourceHeight * (y0 + y / targetHeight * (y1 - y0))) >>> 0;
-//       resampledData[y * targetWidth + x] = data[row * sourceWidth + col];
-//     }
-//   }
+  for (let y = 0; y < targetHeight; y++) {
+    for (let x = 0; x < targetWidth; x++) {
+      const col = (sourceWidth * (x0 + x / targetWidth * (x1 - x0))) >>> 0;
+      const row = (sourceHeight * (y0 + y / targetHeight * (y1 - y0))) >>> 0;
+      resampledData[y * targetWidth + x] = data[row * sourceWidth + col];
+    }
+  }
 
-//   return resampledData;
-// }
+  return resampledData;
+}
 
 export function resampleData(data: TypedArray, options: ResampleDataOptions) {
-  // console.log(`[DEBUG] resampleData(${JSON.stringify(options)})`, data, options)
-  return resampleBilinear(data, options.sourceWidth, options.sourceHeight, options.targetWidth, options.targetHeight, options.window)
+  switch (options.method) {
+    case "nearest":
+      return resampleNearest(data, options);
+    case "bilinear":
+      return resampleBilinear(data, options.sourceWidth, options.sourceHeight, options.targetWidth, options.targetHeight, options.window);
+  }
 }
 
 function lerp(v0: number, v1:number, t: number) {
@@ -149,17 +154,23 @@ export function copyNewSize(array: TypedArray, width: number, height: number, sa
   return new (Object.getPrototypeOf(array).constructor)(width * height * samplesPerPixel) as typeof array;
 }
 /**
- * Resample the input arrays using bilinear interpolation.
- * @param {TypedArray} valueArray The input arrays to resample
- * @param {number} inWidth The width of the input rasters
- * @param {number} inHeight The height of the input rasters
- * @param {number} outWidth The desired width of the output rasters
- * @param {number} outHeight The desired height of the output rasters
- * @returns {TypedArray} The resampled rasters
+ * Resample the input array using bilinear interpolation. Adapted from
+ * [geotiff.js](https://github.com/geotiffjs/geotiff.js/blob/a2013a3790a657badade613169c9eaa1dc550a0b/src/resample.js#L50-L84)
+ * @param valueArray The input arrays to resample
+ * @param inWidth The width of the input rasters
+ * @param inHeight The height of the input rasters
+ * @param outWidth The desired width of the output rasters
+ * @param outHeight The desired height of the output rasters
+ * @returns The resampled rasters
+ * @remarks
+ * There's still a problem here -- once the window is less than full (`[0,0,1,1]`), 
+ * there's visible edge stitching within a raster. I'm not sure if the issue starts here
+ * or in [reprojection.ts](./reprojection.ts), but geotiff.js's implementation doesn't
+ * use the `window` parameter, so I figure this may still need investigation.
  */
 export function resampleBilinear(valueArray: TypedArray, inWidth: number, inHeight: number, outWidth: number, outHeight: number, window: [number, number, number, number]) {
-  const relX = inWidth / outWidth;
-  const relY = inHeight / outHeight;
+  // const relX = inWidth / outWidth;
+  // const relY = inHeight / outHeight;
 
   const [x0, y0, x1, y1] = window
 
@@ -167,14 +178,14 @@ export function resampleBilinear(valueArray: TypedArray, inWidth: number, inHeig
   const windowHeight = y1 - y0
 
   const newArray = copyNewSize(valueArray, outWidth, outHeight);
-  for (let y = 0; y < outHeight; ++y) {
+  for (let y = 0; y < outHeight; y++) {
     // const rawY = relY * y;
     const rawY = (inHeight * (y0 + y / outHeight * windowHeight))// * relY //?
 
     const yl = Math.floor(rawY);
     const yh = Math.min(Math.ceil(rawY), (inHeight - 1));
 
-    for (let x = 0; x < outWidth; ++x) {
+    for (let x = 0; x < outWidth; x++) {
       // const rawX = relX * x;
       const rawX = (inWidth * (x0 + x / outWidth * windowWidth ))// * relX //?
       const tx = rawX % 1;
