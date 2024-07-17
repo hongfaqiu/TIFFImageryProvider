@@ -172,8 +172,6 @@ interface TIFFImageryProviderOptions {
   cache?: number;
   /** resample web worker pool size, defaults to the number of CPUs available. When this parameter is `null` or 0, then the resampling will be done in the main thread. */
   workerPoolSize?: number;
-  /** resample method, defaults to nearest */
-  resampleMethod?: 'bilinear' | 'nearest';
 }
 
 type TIFFImageryProviderRenderOptions = {
@@ -187,6 +185,8 @@ type TIFFImageryProviderRenderOptions = {
   multi?: MultiBandRenderOptions;
   /** priority 3 */
   single?: SingleBandRenderOptions;
+  /** resample method, defaults to nearest */
+  resampleMethod?: 'bilinear' | 'nearest';
 }
 
 interface SingleBandRenderOptions {

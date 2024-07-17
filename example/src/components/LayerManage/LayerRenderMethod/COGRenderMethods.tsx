@@ -17,6 +17,7 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
   value,
   onChange
 }) => {
+  const [resampleMethod, setResampleMethod] = useState<TIFFImageryProviderRenderOptions['resampleMethod']>(value?.resampleMethod ?? "nearest")
   const [mode, setMode] = useState<'default' | 'single' | 'multi' | 'rgb'>('default')
   const [single, setSingle] = useState<SingleBandRenderOptions>({
     band: 1,
@@ -46,18 +47,26 @@ const COGRenderMethods: React.FC<COGRenderMethodsProps> = ({
     if (!onChange) return;
 
     if (mode === 'single') {
-      onChange({ single })
+      onChange({ single, resampleMethod })
     } else if (mode === 'default') {
-      onChange(defaultStyle)
+      onChange({ ...defaultStyle, resampleMethod})
     } else if (mode === 'multi') {
-      onChange({ multi })
+      onChange({ multi, resampleMethod })
     } if (mode === 'rgb') {
-      onChange({ convertToRGB: true})
+      onChange({ convertToRGB: true, resampleMethod})
     }
-  }, [mode, single, noData, defaultStyle, multi])
+  }, [mode, single, noData, defaultStyle, multi, resampleMethod])
 
   return (
     <div className={styles.cogRenderContainer}>
+      <div className={styles.resampleMethod}>
+        重采样方式：
+        <Radio.Group value={resampleMethod} onChange={e => setResampleMethod(e.target.value)}>
+          <Radio value={'nearest'}>nearest</Radio>
+          <Radio value={'bilinear'}>bilinear</Radio>
+        </Radio.Group>
+      </div>
+
       <div className={styles.mode}>
         <Radio.Group value={mode} onChange={e => setMode(e.target.value)}>
           <Radio value={'default'}>默认样式</Radio>

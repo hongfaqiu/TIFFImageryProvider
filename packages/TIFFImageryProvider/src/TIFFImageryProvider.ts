@@ -106,6 +106,8 @@ export type TIFFImageryProviderRenderOptions = {
   multi?: MultiBandRenderOptions;
   /** priority 3 */
   single?: SingleBandRenderOptions;
+  /** resample method, defaults to nearest */
+  resampleMethod?: ResampleDataOptions['method']
 }
 
 export interface TIFFImageryProviderOptions {
@@ -144,8 +146,6 @@ export interface TIFFImageryProviderOptions {
    * then the resampling will be done in the main thread. 
    * */
   workerPoolSize?: number;
-  /** resample method, defaults to nearest */
-  resampleMethod?: ResampleDataOptions['method']
 }
 
 const canvas = createCanavas(256, 256);
@@ -605,7 +605,7 @@ export class TIFFImageryProvider {
         targetWidth: this.tileWidth,
         targetHeight: this.tileHeight,
         window: [x0, y0, x1, y1],
-        method: this.options.resampleMethod,
+        method: this.renderOptions.resampleMethod,
         buffer,
       })));
 

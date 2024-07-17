@@ -168,8 +168,6 @@ interface TIFFImageryProviderOptions {
   cache?: number;
   /** 重新采样 Web Worker 工作池大小，默认为可用 CPU 数量。当该参数为null或 0，则重采样将在主线程中完成。 */
   workerPoolSize?: number;
-  /** 重采样方法，默认为 nearest */
-  resampleMethod?: 'bilinear' | 'nearest'
 }
 
 type TIFFImageryProviderRenderOptions = {
@@ -183,6 +181,8 @@ type TIFFImageryProviderRenderOptions = {
   multi?: MultiBandRenderOptions;
   /** 优先级 3 */
   single?: SingleBandRenderOptions;
+  /** 重采样方法，默认为 nearest */
+  resampleMethod?: 'bilinear' | 'nearest'
 }
 
 interface SingleBandRenderOptions {
