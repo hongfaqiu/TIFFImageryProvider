@@ -1,11 +1,11 @@
 import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CesiumMath, DeveloperError, defined, Cartesian2, WebMercatorTilingScheme } from "cesium";
-import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage } from 'geotiff';
+import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage, TypedArrayArrayWithDimensions } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
-import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba, resampleData } from "./helpers/utils";
+import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba, ResampleDataOptions } from "./helpers/utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
-import { reprojection } from "./helpers/reprojection";
+import { BBox, reprojection } from "./helpers/reprojection";
 
 import { GenerateImageOptions, generateImage } from "./helpers/generateImage";
 import { reverseArray } from "./helpers/utils";
@@ -140,6 +140,7 @@ export interface TIFFImageryProviderOptions {
   cache?: number;
   /** resample web worker pool size, defaults to the number of CPUs available. When this parameter is `null` or 0, then the resampling will be done in the main thread. */
   workerPoolSize?: number;
+  resampleMethod?: ResampleDataOptions['method']
 }
 
 const canvas = createCanavas(256, 256);
@@ -547,14 +548,16 @@ export class TIFFImageryProvider {
       fillValue: this.noData,
       interleave: false,
     }
-    let res: any;
+    /** the cast to TypedArrayArray is safe because of `interleave: false` **/
+    let res: TypedArrayArrayWithDimensions | TypedArray[];
     try {
       if (this.renderOptions.convertToRGB) {
-        res = await image.readRGB(options);
+        res = await image.readRGB(options) as TypedArrayArrayWithDimensions;
       } else {
-        res = await image.readRasters(options);
+        res = await image.readRasters(options) as TypedArrayArrayWithDimensions;
         if (this.reverseY) {
-          res = await Promise.all((res).map((arr) => reverseArray({ array: arr, width: res.width, height: res.height }))) as any;
+          // @ts-ignore
+          res = await Promise.all((res).map((array) => reverseArray({ array, width: res.width, height: res.height })));
         }
       }
       
@@ -562,10 +565,10 @@ export class TIFFImageryProvider {
         const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
         const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
 
-        const sourceBBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north] as any;
-        const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as any
+        const sourceBBox: BBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north];
+        const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as BBox;
 
-        const result = [];
+        const result: TypedArray[] = [];
         for (let i = 0; i < res.length; i++) {
           const prjData = reprojection({
             data: res[i] as any,
@@ -588,12 +591,13 @@ export class TIFFImageryProvider {
       const x1 = x0 + step;
       const y1 = y0 + step;
 
-      res = await Promise.all(res.map(async (data: any) => this.workerPool.resample(data as any, {
+      res = await Promise.all(res.map(async (data) => this.workerPool.resample(data, {
           sourceWidth: windowWidth,
           sourceHeight: windowHeight,
           targetWidth: this.tileWidth,
           targetHeight: this.tileHeight,
-          window: [x0, y0, x1, y1]
+          window: [x0, y0, x1, y1],
+          method: this.options.resampleMethod ?? 'nearest'
         })
       ));
 
@@ -634,7 +638,7 @@ export class TIFFImageryProvider {
 
       if (multi || convertToRGB) {
         const opts: GenerateImageOptions = {
-          data: data as any,
+          data,
           width,
           height,
           renderOptions: multi ?? ['r', 'g', 'b'].reduce((pre, val, index) => ({
