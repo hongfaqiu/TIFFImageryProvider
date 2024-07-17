@@ -2,7 +2,7 @@ import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureIn
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage, TypedArrayArrayWithDimensions } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
-import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba, ResampleDataOptions } from "./helpers/utils";
+import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba } from "./helpers/utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
 import { BBox, reprojection } from "./helpers/reprojection";
@@ -11,6 +11,7 @@ import { GenerateImageOptions, generateImage } from "./helpers/generateImage";
 import { reverseArray } from "./helpers/utils";
 import { createCanavas } from "./helpers/createCanavas";
 import WorkerPool from "./worker/pool";
+import { ResampleDataOptions } from "./helpers/resample";
 
 export interface SingleBandRenderOptions {
   /** band index start from 1, defaults to 1 */
@@ -138,8 +139,12 @@ export interface TIFFImageryProviderOptions {
   } | undefined;
   /** cache survival time, defaults to 60 * 1000 ms */
   cache?: number;
-  /** resample web worker pool size, defaults to the number of CPUs available. When this parameter is `null` or 0, then the resampling will be done in the main thread. */
+  /** resample web worker pool size, defaults to the number of CPUs available. 
+   * When this parameter is `null` or 0, 
+   * then the resampling will be done in the main thread. 
+   * */
   workerPoolSize?: number;
+  /** resample method, defaults to nearest */
   resampleMethod?: ResampleDataOptions['method']
 }
 
@@ -240,7 +245,7 @@ export class TIFFImageryProvider {
 
     this._source = source;
 
-    // 获取空间范围
+    // get bounding box
     this.origin = this._getOrigin(image);
     this.bbox = image.getBoundingBox();
     this.reverseY = this._checkIfReversed(image);
@@ -273,7 +278,7 @@ export class TIFFImageryProvider {
     }
 
     this.rectangle = this.tilingScheme.rectangle
-    // 处理跨180度经线的情况
+    // dealing with situations crossing the 180 degree meridian
     // https://github.com/CesiumGS/cesium/blob/da00d26473f663db180cacd8e662ca4309e09560/packages/engine/Source/Core/TileAvailability.js#L195
     if (this.rectangle.east < this.rectangle.west) {
       this.rectangle.east += CesiumMath.TWO_PI;
@@ -281,19 +286,19 @@ export class TIFFImageryProvider {
     this._imageCount = await source.getImageCount();
     this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 256;
     this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 256;
-    // 获取合适的COG层级
+    // get the appropriate COG level
     this.requestLevels = this._isTiled ? await this._getCogLevels() : [0];
     this._images = new Array(this._imageCount).fill(null);
 
-    // 获取波段数
+    // Get the number of bands
     const samples = image.getSamplesPerPixel();
     this.samples = samples;
     this.renderOptions = renderOptions ?? {}
-    // 获取nodata值
+    // Get nodata value
     const noData = image.getGDALNoData();
     this.noData = this.renderOptions.nodata ?? noData;
 
-    // 赋初值
+    // Assign initial value
     if (samples < 3 && this.renderOptions.convertToRGB) {
       const error = new DeveloperError('Can not render the image as RGB, please check the convertToRGB parameter')
       throw error;
@@ -323,7 +328,7 @@ export class TIFFImageryProvider {
       this.readSamples = findAndSortBandNumbers(single.expression);
     }
 
-    // 获取波段最大最小值信息
+    // Get the maximum and minimum value information of the band
     const bands: Record<number, {
       min: number;
       max: number;
@@ -363,7 +368,7 @@ export class TIFFImageryProvider {
         }
 
         if (!single?.expression && !bands[bandNum]) {
-          // 尝试获取波段最大最小值
+          // Try to get the maximum and minimum values ​​of the band
           console.warn(`Can not get band${bandNum} min/max, try to calculate min/max values, or setting ${single ? 'domain' : 'min / max'}`)
 
           const previewImage = await source.getImage(this.requestLevels[0])
@@ -377,7 +382,7 @@ export class TIFFImageryProvider {
     }))
     this.bands = bands;
 
-    // 如果是单通道渲染, 则构建plot对象
+    // If it is single-pass rendering, build the plot object
     try {
       if (this.renderOptions.single) {
         const band = this.bands[single.band];
@@ -464,7 +469,7 @@ export class TIFFImageryProvider {
       const height = image.getHeight();
       const size = Math.max(width, height);
 
-      // 如果第一张瓦片的image tileSize大于256，则顺位后延，以减少请求量
+      // If the image tileSize of the first tile is greater than 256, the sequence will be delayed to reduce the amount of requests.
       if (i === this._imageCount - 1) {
         const firstImageLevel = Math.ceil((size - this.tileSize) / this.tileSize)
         levels.push(...new Array(firstImageLevel).fill(i))
@@ -484,7 +489,7 @@ export class TIFFImageryProvider {
   }
 
   /**
-   * 获取瓦片数据
+   * Get tile data
    * @param x 
    * @param y 
    * @param z 
@@ -539,7 +544,9 @@ export class TIFFImageryProvider {
     if (this.reverseY) {
       window = [window[0], height - window[3], window[2], height - window[1]];
     }
-    const windowWidth = window[2] - window[0], windowHeight = window[3] - window[1];
+    const buffer = 1;
+    window = [window[0] - buffer, window[1] - buffer, window[2] + buffer, window[3] + buffer]
+    const sourceWidth = window[2] - window[0], sourceHeight = window[3] - window[1];
     
     const options = {
       window,
@@ -570,14 +577,15 @@ export class TIFFImageryProvider {
 
         const result: TypedArray[] = [];
         for (let i = 0; i < res.length; i++) {
+          // TODO Buffer effects are not considered
           const prjData = reprojection({
             data: res[i] as any,
-            sourceWidth: windowWidth,
-            sourceHeight: windowHeight,
+            sourceWidth,
+            sourceHeight,
             nodata: this.noData,
             project: this._proj.project,
             sourceBBox,
-            targetBBox
+            targetBBox,
           })
           result.push(prjData)
         }
@@ -592,14 +600,14 @@ export class TIFFImageryProvider {
       const y1 = y0 + step;
 
       res = await Promise.all(res.map(async (data) => this.workerPool.resample(data, {
-          sourceWidth: windowWidth,
-          sourceHeight: windowHeight,
-          targetWidth: this.tileWidth,
-          targetHeight: this.tileHeight,
-          window: [x0, y0, x1, y1],
-          method: this.options.resampleMethod ?? 'nearest'
-        })
-      ));
+        sourceWidth,
+        sourceHeight,
+        targetWidth: this.tileWidth,
+        targetHeight: this.tileHeight,
+        window: [x0, y0, x1, y1],
+        method: this.options.resampleMethod,
+        buffer,
+      })));
 
       return {
         data: res,
@@ -708,7 +716,7 @@ export class TIFFImageryProvider {
     let posX: number, posY: number, window: number[];
     const { west, south, north, width: lonWidth } = this.rectangle;
     let lonGap = longitude - west;
-    // 处理跨180°经线的情况
+    // Handling cases across 180° longitude
     if (longitude < west) {
       lonGap += CesiumMath.TWO_PI;
     }

@@ -1,5 +1,5 @@
 import { TypedArray } from 'geotiff';
-import { ResampleDataOptions, resampleData } from '../helpers/utils';
+import { ResampleDataOptions, resampleData } from '../helpers/resample';
 // @ts-ignore
 import create from 'web-worker:./worker';
 

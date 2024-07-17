@@ -1,5 +1,5 @@
 import { TypedArray } from "geotiff";
-import { copyNewSize } from "./utils";
+import { copyNewSize } from "./resample";
 
 export type BBox = [minX: number, minY: number, maxX: number, maxY: number];
 

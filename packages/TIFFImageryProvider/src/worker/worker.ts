@@ -1,4 +1,4 @@
-import { resampleData } from "../helpers/utils";
+import { resampleData } from "../helpers/resample";
 
 onmessage = function (e) {
   const { data, options, id } = e.data;
