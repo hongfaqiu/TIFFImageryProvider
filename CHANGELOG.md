@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.12.2](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.12.1...v2.12.2) (2024-08-07)
+
+
+### Bug Fixes
+
+* [#35](https://github.com/hongfaqiu/TIFFImageryProvider/issues/35) tentatively solved the boundary anomaly of the bilinear methods ([bc4e481](https://github.com/hongfaqiu/TIFFImageryProvider/commit/bc4e48197f609861907b05c1beb987413ee3ea4c))
+
+
+
+
+
 ## [2.12.1](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.12.0...v2.12.1) (2024-07-17)
 
 **Note:** Version bump only for package root
