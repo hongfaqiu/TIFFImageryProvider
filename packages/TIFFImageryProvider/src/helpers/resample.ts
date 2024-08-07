@@ -71,14 +71,14 @@ export function resampleBilinear(data: TypedArray, options: ResampleDataOptions)
   for (let y = 0; y < targetHeight; y++) {
     const rawY = effectiveSourceHeight * (y0 + y / targetHeight * windowHeight) + buffer;
     const yl = Math.floor(rawY);
-    const yh = Math.min(Math.ceil(rawY), sourceHeight - 1);
+    const yh = Math.min(Math.ceil(rawY), sourceHeight - buffer - 1);
 
     for (let x = 0; x < targetWidth; x++) {
       const rawX = effectiveSourceWidth * (x0 + x / targetWidth * windowWidth) + buffer;
       const tx = rawX % 1;
 
       const xl = Math.floor(rawX);
-      const xh = Math.min(Math.ceil(rawX), sourceWidth - 1);
+      const xh = Math.min(Math.ceil(rawX), sourceWidth - buffer - 1);
 
       const ll = data[(yl * sourceWidth) + xl];
       const hl = data[(yl * sourceWidth) + xh];
