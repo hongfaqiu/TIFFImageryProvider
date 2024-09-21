@@ -2,8 +2,12 @@
   "name": "root",
   "private": true,
   "npmClient": "pnpm",
+  "publishConfig": {
+    "access": "public"
+  },
   "workspaces": [
     "packages/*"
+
   ],
   "scripts": {
     "dev": "turbo dev  --filter=!example",
