@@ -323,7 +323,7 @@ export class TIFFImageryProvider {
     }
 
     const { single, multi, convertToRGB } = this.renderOptions;
-    this.readSamples = multi ? [multi.r.band - 1, multi.g.band - 1, multi.b.band - 1] : convertToRGB ? [0, 1, 2] : Array.from({ length: samples }, (_, index) => index);
+    this.readSamples = multi ? [multi.r.band - 1, multi.g.band - 1, multi.b.band - 1] : convertToRGB ? [0, 1, 2] : [single.band - 1];
     if (single?.expression) {
       this.readSamples = findAndSortBandNumbers(single.expression);
     }
@@ -504,7 +504,7 @@ export class TIFFImageryProvider {
       startX = x << (reqz - z);
       startY = y << (reqz - z);
     }
-    
+
     const index = this.requestLevels[z];
     let image = this._images[index];
     if (!image) {
@@ -547,7 +547,7 @@ export class TIFFImageryProvider {
     const buffer = 1;
     window = [window[0] - buffer, window[1] - buffer, window[2] + buffer, window[3] + buffer]
     const sourceWidth = window[2] - window[0], sourceHeight = window[3] - window[1];
-    
+
     const options = {
       window,
       pool: getWorkerPool(),
@@ -567,7 +567,7 @@ export class TIFFImageryProvider {
           res = await Promise.all((res).map((array) => reverseArray({ array, width: res.width, height: res.height })));
         }
       }
-      
+
       if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
         const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
         const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
@@ -591,7 +591,7 @@ export class TIFFImageryProvider {
         }
         res = result
       }
-      
+
       const tileNum = 1 << (reqz - z)
       const x0 = (reqx - startX) / tileNum;
       const y0 = (reqy - startY) / tileNum;
@@ -619,7 +619,7 @@ export class TIFFImageryProvider {
       throw error;
     }
   }
-  
+
   async requestImage(
     x: number,
     y: number,
@@ -637,7 +637,7 @@ export class TIFFImageryProvider {
 
     try {
       const { width, height, data } = await this._loadTile(x, y, z);
-      
+
       if (this._destroyed || !width || !height) {
         return undefined;
       }
