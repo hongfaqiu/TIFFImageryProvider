@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.12.3](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.12.2...v2.12.3) (2024-09-21)
+
+
+### Bug Fixes
+
+* single render dont request more than one band ([575bdd9](https://github.com/hongfaqiu/TIFFImageryProvider/commit/575bdd9ab50f9ba3fad62b5d3e25bcfb3fb659d1))
+
+
+
+
+
+
 ## [2.12.2](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.12.1...v2.12.2) (2024-08-07)
 
 
