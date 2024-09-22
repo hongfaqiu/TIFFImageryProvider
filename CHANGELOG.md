@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.13.1](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.13.0...v2.13.1) (2024-09-22)
+
+
+### Bug Fixes
+
+* resample with nodata ([f3e17cf](https://github.com/hongfaqiu/TIFFImageryProvider/commit/f3e17cf69363b15edcff2cf03d0b1afc89fd3f02))
+
+
+
+
+
 # [2.13.0](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.12.3...v2.13.0) (2024-09-22)
 
 
