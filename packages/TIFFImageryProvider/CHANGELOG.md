@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.13.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.12.3...v2.13.0) (2024-09-22)
+
+
+### Bug Fixes
+
+* bilinear resample dont handle nodata ([6b1d709](https://github.com/hongfaqiu/tiff-imagery-provider/commit/6b1d70940101314fb9d97c267af2591ab4934913))
+
+
+### Features
+
+* optimize memory usage and improve performance ([0a44295](https://github.com/hongfaqiu/tiff-imagery-provider/commit/0a4429572ff6b29a94fc52c21f565d2c7fa8b051))
+
+
+
+
+
 ## [2.12.3](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.12.2...v2.12.3) (2024-09-21)
 
 
