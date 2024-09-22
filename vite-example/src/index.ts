@@ -20,7 +20,7 @@ const viewer = new Viewer('cesiumContainer', {
   orderIndependentTranslucency: false,
 });
 
-TIFFImageryProvider.fromUrl('/zeta.tif', {
+TIFFImageryProvider.fromUrl('/cogtif.tif', {
   enablePickFeatures: true,
   projFunc: (code) => {
     if (![4326, 3857, 900913].includes(code)) {

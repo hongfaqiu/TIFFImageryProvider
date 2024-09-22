@@ -15,6 +15,7 @@ Load GeoTIFF/COG(Cloud optimized GeoTIFF) on Cesium
 - Support identify TIFF value with cartographic position.
 - WebGL accelerated rendering.
 - Band calculation.
+- Support nearest neighbor and bilinear interpolation resampling methods.
 - **[experimental]** Support any projected TIFF .
 
 ## Install

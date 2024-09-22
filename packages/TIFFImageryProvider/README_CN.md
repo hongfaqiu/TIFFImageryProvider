@@ -13,6 +13,7 @@
 - 支持在地图上查询TIFF值。
 - WebGL 加速渲染。
 - 波段计算。
+- 支持最近邻和双线性插值重采样方法。
 - **[实验性]** 支持任何投影的TIFF。
 
 ## 安装
@@ -182,7 +183,7 @@ type TIFFImageryProviderRenderOptions = {
   /** 优先级 3 */
   single?: SingleBandRenderOptions;
   /** 重采样方法，默认为 nearest */
-  resampleMethod?: 'bilinear' | 'nearest'
+  resampleMethod?: 'bilinear' | 'nearest';
 }
 
 interface SingleBandRenderOptions {
