@@ -1,7 +1,7 @@
 import { ArcGisMapServerImageryProvider, ImageryLayer, Viewer } from 'cesium';
 import './index.css';
 import TIFFImageryProvider from 'tiff-imagery-provider';
-import proj4 from 'proj4-fully-loaded'; 
+import proj4 from 'proj4-fully-loaded';
 
 const viewer = new Viewer('cesiumContainer', {
   baseLayer: ImageryLayer.fromProviderAsync(ArcGisMapServerImageryProvider.fromUrl('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer', {
@@ -20,13 +20,13 @@ const viewer = new Viewer('cesiumContainer', {
   orderIndependentTranslucency: false,
 });
 
-TIFFImageryProvider.fromUrl('/cogtif.tif', {
+TIFFImageryProvider.fromUrl('/zeta.tif', {
   enablePickFeatures: true,
   projFunc: (code) => {
     if (![4326, 3857, 900913].includes(code)) {
       {
         try {
-          let prj = proj4("EPSG:4326", `EPSG:${code}`, )
+          let prj = proj4("EPSG:4326", `EPSG:${code}`,)
           if (prj) return {
             project: prj.forward,
             unproject: prj.inverse
@@ -40,8 +40,10 @@ TIFFImageryProvider.fromUrl('/cogtif.tif', {
   },
   renderOptions: {
     single: {
+      band: 1,
       colorScale: 'rainbow'
-    }
+    },
+    resampleMethod: 'bilinear'
   },
 }).then((provider) => {
   console.log(provider);
@@ -49,7 +51,7 @@ TIFFImageryProvider.fromUrl('/cogtif.tif', {
   const legend = document.getElementById("legend") as HTMLImageElement;
   const img = provider.plot?.colorScaleCanvas.toDataURL();
   legend.src = img;
-  
+
   viewer.flyTo(imageryLayer, {
     duration: 1,
   });

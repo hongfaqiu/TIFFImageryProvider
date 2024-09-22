@@ -607,6 +607,7 @@ export class TIFFImageryProvider {
         window: [x0, y0, x1, y1],
         method: this.renderOptions.resampleMethod,
         buffer,
+        nodata: this.noData,
       })));
 
       return {

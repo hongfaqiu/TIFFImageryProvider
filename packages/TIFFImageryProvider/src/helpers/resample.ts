@@ -9,6 +9,8 @@ export type ResampleDataOptions = {
   window: [number, number, number, number];
   method?: 'bilinear' | 'nearest';
   buffer?: number;
+  /** No-data value */
+  nodata?: number; // 新增 nodata 属性
 }
 
 export function resampleNearest(data: TypedArray, options: ResampleDataOptions) {
@@ -33,7 +35,7 @@ export function resampleNearest(data: TypedArray, options: ResampleDataOptions) 
 
 export function resampleData(data: TypedArray, options: ResampleDataOptions) {
   const { method = 'nearest' } = options;
-  
+
   switch (method) {
     case "nearest":
       return resampleNearest(data, options);
@@ -68,30 +70,43 @@ export function resampleBilinear(data: TypedArray, options: ResampleDataOptions)
   const effectiveSourceWidth = sourceWidth - 2 * buffer;
   const effectiveSourceHeight = sourceHeight - 2 * buffer;
 
+  const invTargetWidth = 1 / targetWidth;
+  const invTargetHeight = 1 / targetHeight;
+
   for (let y = 0; y < targetHeight; y++) {
-    const rawY = effectiveSourceHeight * (y0 + y / targetHeight * windowHeight) + buffer;
+    const yRatio = y * invTargetHeight;
+    const yMapped = y0 + yRatio * windowHeight;
+    const rawY = effectiveSourceHeight * yMapped + buffer;
     const yl = Math.floor(rawY);
     const yh = Math.min(Math.ceil(rawY), sourceHeight - buffer - 1);
+    const ty = rawY - yl; // Equivalent to rawY % 1 but more efficient
 
     for (let x = 0; x < targetWidth; x++) {
-      const rawX = effectiveSourceWidth * (x0 + x / targetWidth * windowWidth) + buffer;
-      const tx = rawX % 1;
-
+      const xRatio = x * invTargetWidth;
+      const xMapped = x0 + xRatio * windowWidth;
+      const rawX = effectiveSourceWidth * xMapped + buffer;
       const xl = Math.floor(rawX);
       const xh = Math.min(Math.ceil(rawX), sourceWidth - buffer - 1);
+      const tx = rawX - xl; // Equivalent to rawX % 1 but more efficient
 
-      const ll = data[(yl * sourceWidth) + xl];
-      const hl = data[(yl * sourceWidth) + xh];
-      const lh = data[(yh * sourceWidth) + xl];
-      const hh = data[(yh * sourceWidth) + xh];
+      const ll = data[yl * sourceWidth + xl];
+      const hl = data[yl * sourceWidth + xh];
+      const lh = data[yh * sourceWidth + xl];
+      const hh = data[yh * sourceWidth + xh];
 
-      const value = lerp(
-        lerp(ll, hl, tx),
-        lerp(lh, hh, tx),
-        rawY % 1,
-      );
-      newArray[(y * targetWidth) + x] = value;
+      // Check if any of the four neighboring pixels is nodata
+      if (ll === options.nodata || hl === options.nodata || lh === options.nodata || hh === options.nodata) {
+        newArray[y * targetWidth + x] = options.nodata;
+        continue;
+      }
+
+      // Perform bilinear interpolation
+      const v0 = ll * (1 - tx) + hl * tx;
+      const v1 = lh * (1 - tx) + hh * tx;
+      const value = v0 * (1 - ty) + v1 * ty;
+      newArray[y * targetWidth + x] = value;
     }
   }
+
   return newArray;
 }
