@@ -139,8 +139,8 @@ export interface TIFFImageryProviderOptions {
     /** unprojection function, convert [x, y] position to [lon, lat] */
     unproject: ((pos: number[]) => number[]);
   } | undefined;
-  /** cache survival time, defaults to 60 * 1000 ms */
-  cache?: number;
+  /** 缓存大小,默认为100 */
+  cacheSize?: number;
   /** resample web worker pool size, defaults to the number of CPUs available. 
    * When this parameter is `null` or 0, 
    * then the resampling will be done in the main thread. 
@@ -185,11 +185,8 @@ export class TIFFImageryProvider {
   private _source!: GeoTIFF;
   private _imageCount!: number;
   private _images: (GeoTIFFImage | null)[] = [];
-  private _imagesCache: Record<string, {
-    time: number;
-    data: ImageData | HTMLCanvasElement | HTMLImageElement | OffscreenCanvas;
-  }> = {};
-  private _cacheTime: number;
+  private _imagesCache: Map<string, ImageData | HTMLCanvasElement | HTMLImageElement | OffscreenCanvas> = new Map();
+  private _cacheSize: number;
   private _isTiled: boolean;
   private _proj?: {
     /** projection function, convert [lon, lat] position to EPSG:4326 */
@@ -216,7 +213,7 @@ export class TIFFImageryProvider {
     this.minimumLevel = options.minimumLevel ?? 0;
     this.credit = new Credit(options.credit || "", false);
     this.errorEvent = new Event();
-    this._cacheTime = options.cache ?? 60 * 1000;
+    this._cacheSize = options.cacheSize ?? 100;
     this.workerPool = new WorkerPool(options.workerPoolSize);
 
     this.ready = false;
@@ -621,18 +618,18 @@ export class TIFFImageryProvider {
     }
   }
 
-  async requestImage(
-    x: number,
-    y: number,
-    z: number,
-  ) {
+  async requestImage(x: number, y: number, z: number) {
     if (!this.ready) {
       throw new DeveloperError(
         "requestImage must not be called before the imagery provider is ready."
       );
     }
     if (z < this.minimumLevel || z > this.maximumLevel) return undefined
-    if (this._cacheTime && this._imagesCache[`${x}_${y}_${z}`]) return this._imagesCache[`${x}_${y}_${z}`].data;
+    const cacheKey = `${x}_${y}_${z}`;
+
+    if (this._imagesCache.has(cacheKey)) {
+      return this._imagesCache.get(cacheKey);
+    }
 
     const { single, multi, convertToRGB } = this.renderOptions;
 
@@ -683,17 +680,15 @@ export class TIFFImageryProvider {
         result = canv;
       }
 
-      if (result && this._cacheTime) {
-        const now = new Date().getTime()
-        this._imagesCache[`${x}_${y}_${z}`] = {
-          time: now,
-          data: result
-        };
-        for (let key in this._imagesCache) {
-          if ((now - this._imagesCache[key].time) > this._cacheTime) {
-            delete this._imagesCache[key]
-          }
+      if (result) {
+        // 如果缓存已满,删除最早添加的项
+        if (this._imagesCache.size >= this._cacheSize) {
+          const oldestKey = this._imagesCache.keys().next().value;
+          this._imagesCache.delete(oldestKey);
         }
+
+        // 添加新图像到缓存
+        this._imagesCache.set(cacheKey, result);
       }
       return result;
     } catch (e) {
@@ -758,11 +753,31 @@ export class TIFFImageryProvider {
   }
 
   destroy() {
-    this._images = undefined;
-    this._source = undefined;
-    this._imagesCache = undefined;
+    // 清理图像缓存
+    if (this._imagesCache) {
+      for (const key in this._imagesCache) {
+        delete this._imagesCache[key];
+      }
+      this._imagesCache.clear();
+    }
+
+    // 销毁工作线程池
+    if (this.workerPool) {
+      this.workerPool.destroy();
+    }
+
+    // 销毁WebGL资源
+    if (this.plot && this.plot.gl) {
+      for (const programKey in this.plot.programCache) {
+        this.plot.gl.deleteProgram(this.plot.programCache[programKey]);
+      }
+      this.plot.gl.deleteBuffer(this.plot.positionBuffer);
+    }
+
+    // 清理其他资源
     this.plot?.destroy();
-    this.workerPool.destroy();
+    this._images = [];
+    this._source = undefined;
     this._destroyed = true;
   }
 }

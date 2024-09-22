@@ -31,7 +31,7 @@ export function reprojection(options: ReprojectionOptions): TypedArray {
   const [minX, minY, maxX, maxY] = sourceBBox;
 
   const [minLon, minLat, maxLon, maxLat] = targetBBox;
-  
+
   const stepX = Math.abs(maxX - minX) / sourceWidth;
   const stepY = Math.abs(maxY - minY) / sourceHeight;
 
@@ -55,7 +55,7 @@ export function reprojection(options: ReprojectionOptions): TypedArray {
 
       const sourceVal = data[indexY * sourceWidth + indexX];
       const index = i * targetWidth + j;
-      
+
       result[index] = sourceVal;
     }
   }

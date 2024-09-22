@@ -155,7 +155,7 @@ interface TIFFImageryProviderOptions {
   hasAlphaChannel?: boolean;
   renderOptions?: TIFFImageryProviderRenderOptions;
   /**
-   * 如果 TIFF 的投影不是 EPSG:4326，你可以通过 ``projFunc`` 来处理投影
+   * 如果 TIFF 的投影不是 EPSG:4326或EPSG:3857，你可以通过 ``projFunc`` 来处理投影
    * @experimental
    */
   projFunc?: (code: number) => {
@@ -164,9 +164,9 @@ interface TIFFImageryProviderOptions {
     /** 逆投影函数，将 [x, y] 位置转换为 [lon, lat] */
     unproject: ((pos: number[]) => number[]);
   } | undefined;
-  /** 缓存生存时间，默认为60 * 1000毫秒 */
-  cache?: number;
-  /** 重新采样 Web Worker 工作池大小，默认为可用 CPU 数量。当该参数为null或 0，则重采样将在主线程中完成。 */
+  /** 缓存大小，默认为100 */
+  cacheSize?: number;
+  /** 重采样 Web Worker 工作池大小，默认为可用 CPU 数量。当该参数为null或 0，则重采样将在主线程中完成。 */
   workerPoolSize?: number;
 }
 
