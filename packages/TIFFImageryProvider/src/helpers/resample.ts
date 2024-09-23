@@ -95,17 +95,27 @@ export function resampleBilinear(data: TypedArray, options: ResampleDataOptions)
       const xh = Math.min(Math.ceil(rawX), sourceWidth - buffer - 1);
       const txFraction = rawX - xl; // Equivalent to rawX % 1 but more efficient
 
-      const ll = data[yl * sourceWidth + xl];
-      const hl = data[yl * sourceWidth + xh];
-      const lh = data[yh * sourceWidth + xl];
-      const hh = data[yh * sourceWidth + xh];
+      const center = data[yl * sourceWidth + xl];
+      const neighbors = [
+        data[yl * sourceWidth + xl],
+        data[yl * sourceWidth + xh],
+        data[yh * sourceWidth + xl],
+        data[yh * sourceWidth + xh],
+      ];
+
+      neighbors.forEach((neighbor, index) => {
+        if (isNodata(neighbor)) {
+          neighbors[index] = center;
+        }
+      });
 
       // Check if any of the four neighboring pixels is nodata
-      if (isNodata(ll) || isNodata(hl) || isNodata(lh) || isNodata(hh)) {
+      if (isNodata(center)) {
         newArray[y * targetWidth + x] = nodata;
         continue;
       }
 
+      const [ll, hl, lh, hh] = neighbors;
       // Perform bilinear interpolation
       const v0 = lerp(ll, hl, txFraction);
       const v1 = lerp(lh, hh, txFraction);
