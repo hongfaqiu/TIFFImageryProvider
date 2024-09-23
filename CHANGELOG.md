@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.13.2](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.13.1...v2.13.2) (2024-09-23)
+
+
+### Bug Fixes
+
+* show grid when neighboring with nodata ([cd8941e](https://github.com/hongfaqiu/TIFFImageryProvider/commit/cd8941e703716c01abd9c85913ee37fb4357798f))
+
+
+
+
+
 ## [2.13.1](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.13.0...v2.13.1) (2024-09-22)
 
 
