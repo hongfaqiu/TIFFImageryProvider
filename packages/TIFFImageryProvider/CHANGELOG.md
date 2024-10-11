@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.13.3](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.13.2...v2.13.3) (2024-10-11)
+
+
+### Bug Fixes
+
+* geotiff workpool setting ([eb741c5](https://github.com/hongfaqiu/tiff-imagery-provider/commit/eb741c5f70d165bc6981c1f248f2e5d4c2667c2e))
+
+
+
+
+
 ## [2.13.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.13.1...v2.13.2) (2024-09-23)
 
 
