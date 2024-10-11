@@ -150,14 +150,6 @@ export interface TIFFImageryProviderOptions {
 
 const canvas = createCanavas(256, 256);
 
-let workerPool: Pool;
-function getWorkerPool() {
-  if (!workerPool) {
-    workerPool = new Pool();
-  };
-  return workerPool;
-}
-
 export class TIFFImageryProvider {
   ready: boolean;
   tilingScheme: TIFFImageryProviderTilingScheme | GeographicTilingScheme | WebMercatorTilingScheme;
@@ -198,6 +190,7 @@ export class TIFFImageryProvider {
   reverseY: boolean = false;
   samples: number;
   workerPool: WorkerPool;
+  geotiffWorkerPool: Pool;
 
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /**
@@ -215,6 +208,7 @@ export class TIFFImageryProvider {
     this.errorEvent = new Event();
     this._cacheSize = options.cacheSize ?? 100;
     this.workerPool = new WorkerPool(options.workerPoolSize);
+    this.geotiffWorkerPool = new Pool(options.workerPoolSize);
 
     this.ready = false;
     if (defined(options.url)) {
@@ -283,6 +277,7 @@ export class TIFFImageryProvider {
     this._imageCount = await source.getImageCount();
     this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 256;
     this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 256;
+    console.log(this.tileWidth, this.tileHeight)
     // get the appropriate COG level
     this.requestLevels = this._isTiled ? await this._getCogLevels() : [0];
     this._images = new Array(this._imageCount).fill(null);
@@ -371,7 +366,7 @@ export class TIFFImageryProvider {
           const previewImage = await source.getImage(this.requestLevels[0])
           const data = (await previewImage.readRasters({
             samples: [i],
-            pool: getWorkerPool(),
+            pool: this.geotiffWorkerPool,
           }) as unknown as number[][])[0].filter((item: any) => !isNaN(item))
           bands[bandNum] = getMinMax(data, noData)
         }
@@ -547,7 +542,7 @@ export class TIFFImageryProvider {
 
     const options = {
       window,
-      pool: getWorkerPool(),
+      pool: this.geotiffWorkerPool,
       samples: this.readSamples,
       fillValue: this.noData,
       interleave: false,
@@ -729,7 +724,7 @@ export class TIFFImageryProvider {
       window,
       height: 1,
       width: 1,
-      pool: getWorkerPool(),
+      pool: this.geotiffWorkerPool,
       interleave: false,
     }
     let res: TypedArray[];
