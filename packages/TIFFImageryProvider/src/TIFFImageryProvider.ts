@@ -125,6 +125,11 @@ export interface TIFFImageryProviderOptions {
   credit?: string;
   tileSize?: number;
   maximumLevel?: number;
+  /** 
+   * If true, the maximumLevel will be calculated based on the tile number
+   * @default false
+   * */
+  useImageCountAsMaximumLevel?: boolean;
   minimumLevel?: number;
   enablePickFeatures?: boolean;
   hasAlphaChannel?: boolean;
@@ -139,7 +144,7 @@ export interface TIFFImageryProviderOptions {
     /** unprojection function, convert [x, y] position to [lon, lat] */
     unproject: ((pos: number[]) => number[]);
   } | undefined;
-  /** 缓存大小,默认为100 */
+  /** cache size, defaults to 100 */
   cacheSize?: number;
   /** resample web worker pool size, defaults to the number of CPUs available. 
    * When this parameter is `null` or 0, 
@@ -275,9 +280,11 @@ export class TIFFImageryProvider {
       this.rectangle.east += CesiumMath.TWO_PI;
     }
     this._imageCount = await source.getImageCount();
+    if (options.useImageCountAsMaximumLevel) {
+      this.maximumLevel = this._imageCount
+    }
     this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 256;
     this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 256;
-    console.log(this.tileWidth, this.tileHeight)
     // get the appropriate COG level
     this.requestLevels = this._isTiled ? await this._getCogLevels() : [0];
     this._images = new Array(this._imageCount).fill(null);
