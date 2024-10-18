@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.14.0](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.13.3...v2.14.0) (2024-10-18)
+
+
+### Features
+
+* add useImageCountAsMaximumLevel parameter ([8ffc2c2](https://github.com/hongfaqiu/TIFFImageryProvider/commit/8ffc2c2d0a9c531b19a345011b61c726909be1ea))
+* gpu based resample ([0ca44b2](https://github.com/hongfaqiu/TIFFImageryProvider/commit/0ca44b26e355dc1c61fd7210250dcef73af62990))
+
+
+
+
+
 ## [2.13.3](https://github.com/hongfaqiu/TIFFImageryProvider/compare/v2.13.2...v2.13.3) (2024-10-11)
 
 
