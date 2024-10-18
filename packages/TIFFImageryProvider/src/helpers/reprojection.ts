@@ -1,5 +1,8 @@
 import { TypedArray } from "geotiff";
-import { copyNewSize } from "./resample";
+
+export function copyNewSize(array: TypedArray, width: number, height: number, samplesPerPixel = 1) {
+  return new (Object.getPrototypeOf(array).constructor)(width * height * samplesPerPixel) as typeof array;
+}
 
 export type BBox = [minX: number, minY: number, maxX: number, maxY: number];
 
