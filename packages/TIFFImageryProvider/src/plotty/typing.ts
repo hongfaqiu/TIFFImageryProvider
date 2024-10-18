@@ -37,6 +37,21 @@ export type PlotOptions = {
   height?: number;
 
   /**
+   * The width of the output tile.
+   */
+  tileWidth?: number;
+
+  /**
+   * The height of the output tile.
+   */
+  tileHeight?: number;
+
+  /**
+   * The buffer of the input tile.
+   */
+  buffer?: number;
+
+  /**
    * A list of named datasets. Each must have 'id', 'data', 'width' and 'height'.
    */
   datasets?: {

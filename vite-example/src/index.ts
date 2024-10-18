@@ -43,8 +43,9 @@ TIFFImageryProvider.fromUrl('/cogtif.tif', {
       band: 1,
       colorScale: 'rainbow'
     },
-    resampleMethod: 'bilinear'
+    // resampleMethod: 'bilinear',
   },
+  // useImageCountAsMaximumLevel: true
 }).then((provider) => {
   console.log(provider);
   const imageryLayer = viewer.imageryLayers.addImageryProvider(provider as any);

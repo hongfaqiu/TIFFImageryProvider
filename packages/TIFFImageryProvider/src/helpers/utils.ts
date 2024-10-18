@@ -32,7 +32,7 @@ export function getRange(bands: Record<number, {
   min?: number,
   max?: number,
   band: number
-  } | undefined) {
+} | undefined) {
   const band = bands[opts.band]
   if (!band) {
     throw new Error(`Invalid band${opts.band}`)
@@ -64,7 +64,7 @@ export function generateColorScale(colors: [number, string][] | string[], minMax
   if (stops[0][0] > 0) {
     stops = [[0, stops[0][1]], ...stops]
   }
-  
+
   const colorScale = {
     colors: stops.map(stop => stop[1]),
     positions: stops.map(stop => {
@@ -95,18 +95,14 @@ export function stringColorToRgba(color: string) {
   return [red, green, blue, alpha].map(val => Math.round(val * 255));
 }
 
-export function reverseArray(options: {
-  array: TypedArray; width: number; height: number;
-}) {
-  const { array, width, height } = options;
-  const reversedArray: number[] = [];
-
-  for (let row = height - 1; row >= 0; row--) {
-    const startIndex = row * width;
-    const endIndex = startIndex + width;
-    const rowArray = array.slice(startIndex, endIndex);
-    reversedArray.push(...rowArray);
+export async function reverseArray({ array, width, height }: { array: TypedArray, width: number, height: number }): Promise<TypedArray> {
+  const newArray = new (array.constructor as any)(array.length);
+  for (let i = 0; i < height; i++) {
+    const srcRow = (height - 1 - i) * width;
+    const dstRow = i * width;
+    for (let j = 0; j < width; j++) {
+      newArray[dstRow + j] = array[srcRow + j];
+    }
   }
-
-  return reversedArray;
+  return newArray;
 }
