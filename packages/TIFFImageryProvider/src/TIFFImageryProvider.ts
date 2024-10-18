@@ -278,7 +278,7 @@ export class TIFFImageryProvider {
     }
     this._imageCount = await source.getImageCount();
     if (options.useImageCountAsMaximumLevel) {
-      this.maximumLevel = this._imageCount
+      this.maximumLevel = this._imageCount - 1;
     }
     this.tileSize = this.tileWidth = tileSize || (this._isTiled ? image.getTileWidth() : image.getWidth()) || 256;
     this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 256;

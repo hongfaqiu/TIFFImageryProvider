@@ -198,7 +198,6 @@ const vertexShaderSource = `
   attribute vec2 a_texCoord;
   uniform mat3 u_matrix;
   uniform vec2 u_resolution;
-  uniform vec2 u_sourceSize;
   uniform vec2 u_targetSize;
   uniform vec4 u_window;
   varying vec2 v_texCoord;
@@ -212,7 +211,7 @@ const vertexShaderSource = `
     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
     
     v_texCoord = a_texCoord;
-    v_sourceTexCoord = mix(u_window.xy, u_window.zw, a_position / u_targetSize) * (u_sourceSize - 1.0) / u_sourceSize;
+    v_sourceTexCoord = mix(u_window.xy, u_window.zw, a_position / u_targetSize);
   }
 `;
 
@@ -709,14 +708,11 @@ class plot {
       }
 
       float getValue(sampler2D texture, vec2 point) {
-        vec2 effectiveSize = u_sourceSize - 2.0 * u_buffer;
-        vec2 adjustedPoint = (point * effectiveSize + u_buffer) / u_sourceSize;
-        
-        if (any(lessThan(adjustedPoint, vec2(0.0))) || any(greaterThanEqual(adjustedPoint, vec2(1.0)))) {
+        if (any(lessThan(point, vec2(0.0))) || any(greaterThanEqual(point, vec2(1.0)))) {
           return u_noDataValue;
         }
 
-        vec2 clampedSamplePoint = clamp(adjustedPoint, vec2(0.0), vec2(1.0) - (1.0 / u_sourceSize));
+        vec2 clampedSamplePoint = clamp(point, vec2(0.0), vec2(1.0) - (1.0 / (u_sourceSize - vec2(2.0 * u_buffer))));
 
         vec4 sample = texture2D(texture, clampedSamplePoint);
 
@@ -724,27 +720,24 @@ class plot {
       }
 
       float sampleNearest(sampler2D texture, vec2 uv) {
-        vec2 effectiveSize = u_sourceSize - 2.0 * u_buffer;
-        vec2 texelCoords = uv * effectiveSize;
-        vec2 samplePoint = (texelCoords + 0.5 + u_buffer) / u_sourceSize;
-        float value = getValue(texture, samplePoint);
+        vec2 adjustedPoint = (uv * (u_sourceSize - vec2(2.0 * u_buffer)) + vec2(u_buffer)) / u_sourceSize;
+        float value = getValue(texture, adjustedPoint);
         return value;
       }
 
       vec4 sampleBilinear(sampler2D texture, vec2 uv) {
-        vec2 effectiveSize = u_sourceSize - 2.0 * u_buffer;
-        vec2 texelCoords = uv * effectiveSize;
+        vec2 texelCoords = uv * (u_sourceSize - vec2(2.0 * u_buffer)) + vec2(u_buffer);
         vec2 f = fract(texelCoords);
 
-        vec2 tl = (floor(texelCoords) + vec2(0.0, 0.0) + u_buffer) / u_sourceSize;
-        vec2 tr = (floor(texelCoords) + vec2(1.0, 0.0) + u_buffer) / u_sourceSize;
-        vec2 bl = (floor(texelCoords) + vec2(0.0, 1.0) + u_buffer) / u_sourceSize;
-        vec2 br = (floor(texelCoords) + vec2(1.0, 1.0) + u_buffer) / u_sourceSize;
+        vec2 tl = (floor(texelCoords) + vec2(0.0, 0.0)) / u_sourceSize;
+        vec2 tr = (floor(texelCoords) + vec2(1.0, 0.0)) / u_sourceSize;
+        vec2 bl = (floor(texelCoords) + vec2(0.0, 1.0)) / u_sourceSize;
+        vec2 br = (floor(texelCoords) + vec2(1.0, 1.0)) / u_sourceSize;
 
-        float tlSample = texture2D(texture, tl).r;
-        float trSample = texture2D(texture, tr).r;
-        float blSample = texture2D(texture, bl).r;
-        float brSample = texture2D(texture, br).r;
+        float tlSample = getValue(texture, tl);
+        float trSample = getValue(texture, tr);
+        float blSample = getValue(texture, bl);
+        float brSample = getValue(texture, br);
 
         float w1 = (1.0 - f.x) * (1.0 - f.y);
         float w2 = f.x * (1.0 - f.y);
@@ -885,7 +878,6 @@ class plot {
 
   private setupUniforms(program: WebGLProgram) {
     const gl = this.gl!;
-
     gl.uniform2f(gl.getUniformLocation(program, 'u_resolution'), this.tileWidth, this.tileHeight);
     gl.uniform2f(gl.getUniformLocation(program, 'u_sourceSize'), this.currentDataset.width, this.currentDataset.height);
     gl.uniform2f(gl.getUniformLocation(program, 'u_targetSize'), this.tileWidth, this.tileHeight);
