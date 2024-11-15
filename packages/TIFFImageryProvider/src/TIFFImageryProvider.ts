@@ -7,7 +7,6 @@ import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
 import { BBox, reprojection } from "./helpers/reprojection";
 
-import { GenerateImageOptions, generateImage } from "./helpers/generateImage";
 import { reverseArray } from "./helpers/utils";
 import { createCanavas } from "./helpers/createCanavas";
 
@@ -194,6 +193,7 @@ export class TIFFImageryProvider {
   samples: number;
   geotiffWorkerPool: Pool;
   private _buffer: number = 1;
+  private _rgbPlot: plot;
 
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /**
@@ -378,14 +378,15 @@ export class TIFFImageryProvider {
     }))
     this.bands = bands;
 
-    // If it is single-pass rendering, build the plot object
     try {
+      // 如果是单波段渲染,创建plot对象
       if (this.renderOptions.single) {
         const band = this.bands[single.band];
         if (!single.expression && !band) {
           throw new DeveloperError(`Invalid band${single.band}`);
         }
         const domain = single.domain ?? [band.min, band.max]
+        const canvas = createCanavas(this.tileWidth, this.tileHeight);
         this.plot = new plot({
           canvas,
           ...single,
@@ -405,6 +406,17 @@ export class TIFFImageryProvider {
         } else if (!colorScaleImage) {
           this.plot.setColorScale(single?.colorScale ?? 'blackwhite');
         }
+      }
+
+      // 如果是RGB渲染,创建RGB plot对象
+      if (this.renderOptions.multi || this.renderOptions.convertToRGB) {
+        const canvas = createCanavas(this.tileWidth, this.tileHeight);
+        this._rgbPlot = new plot({
+          canvas,
+          tileWidth: this.tileWidth,
+          tileHeight: this.tileHeight,
+          buffer: this._buffer
+        });
       }
 
     } catch (e) {
@@ -615,9 +627,9 @@ export class TIFFImageryProvider {
         "requestImage must not be called before the imagery provider is ready."
       );
     }
-    if (z < this.minimumLevel || z > this.maximumLevel) return undefined
-    const cacheKey = `${x}_${y}_${z}`;
+    if (z < this.minimumLevel || z > this.maximumLevel) return undefined;
 
+    const cacheKey = `${x}_${y}_${z}`;
     if (this._imagesCache.has(cacheKey)) {
       return this._imagesCache.get(cacheKey);
     }
@@ -631,60 +643,77 @@ export class TIFFImageryProvider {
         return undefined;
       }
 
-      let result: ImageData | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas
+      let result: ImageData | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
+      let targetPlot: plot;
 
-      if (multi || convertToRGB) {
-        const opts: GenerateImageOptions = {
-          data,
-          width,
-          height,
-          renderOptions: multi ?? ['r', 'g', 'b'].reduce((pre, val, index) => ({
-            ...pre,
-            [val]: {
-              band: index + 1,
-              min: 0,
-              max: 255
-            }
-          }), {}),
-          bands: this.bands,
-          noData: this.noData,
-          colorMapping: Object.entries(this.renderOptions.colorMapping ?? { 'black': 'transparent' }).map((val) => val.map(stringColorToRgba)),
-        }
+      try {
+        // Determine which plot to use
+        if (multi || convertToRGB) {
+          if (!this._rgbPlot) {
+            console.warn('RGB plot not initialized');
+            return undefined;
+          }
+          targetPlot = this._rgbPlot;
 
-        result = await generateImage(opts);
-      } else if (single && this.plot) {
-        const { band = 1 } = single;
-        this.plot.removeAllDataset();
-        this.readSamples.forEach((sample, index) => {
-          this.plot.addDataset(`b${sample + 1}`, data[index], width, height);
-        });
+          // Setup RGB rendering
+          targetPlot.removeAllDataset();
+          data.forEach((bandData, index) => {
+            targetPlot.addDataset(`band${index + 1}`, bandData, width, height);
+          });
 
-        // 设置插值方法
-        this.plot.setInterpolationMethod(this.renderOptions.resampleMethod || 'nearest');
+          targetPlot.setRGBOptions({
+            bands: multi ?? ['r', 'g', 'b'].reduce((pre, val, index) => ({
+              ...pre,
+              [val]: {
+                band: index + 1,
+                min: 0,
+                max: 255
+              }
+            }), {}),
+            colorMapping: this.renderOptions.colorMapping
+          });
+        } else if (single && this.plot) {
+          targetPlot = this.plot;
 
-        if (single.expression) {
-          this.plot.render(window);
+          // Setup single band rendering
+          targetPlot.removeAllDataset();
+          this.readSamples.forEach((sample, index) => {
+            targetPlot.addDataset(`b${sample + 1}`, data[index], width, height);
+          });
+
+          if (single.expression) {
+            targetPlot.render(window);
+          } else {
+            targetPlot.renderDataset(`b${single.band}`, window);
+          }
         } else {
-          this.plot.renderDataset(`b${band}`, window);
+          return undefined;
         }
 
+        // Set interpolation method
+        targetPlot.setInterpolationMethod(this.renderOptions.resampleMethod || 'nearest');
+
+        // Render to canvas
+        targetPlot.render(window);
         const canv = createCanavas(this.tileWidth, this.tileHeight);
         const ctx = canv.getContext("2d") as CanvasRenderingContext2D;
-        ctx.drawImage(this.plot.canvas, 0, 0);
+        ctx.drawImage(targetPlot.canvas, 0, 0);
         result = canv;
-      }
 
-      if (result) {
-        // 如果缓存已满,删除最早添加的项
-        if (this._imagesCache.size >= this._cacheSize) {
-          const oldestKey = this._imagesCache.keys().next().value;
-          this._imagesCache.delete(oldestKey);
+        // Cache the result
+        if (result) {
+          if (this._imagesCache.size >= this._cacheSize) {
+            const oldestKey = this._imagesCache.keys().next().value;
+            this._imagesCache.delete(oldestKey);
+          }
+          this._imagesCache.set(cacheKey, result);
         }
 
-        // 添加新图像到缓存
-        this._imagesCache.set(cacheKey, result);
+        return result;
+      } catch (e) {
+        console.error('Error during rendering:', e);
+        return undefined;
       }
-      return result;
     } catch (e) {
       console.error(e);
       this.errorEvent.raiseEvent(e);
@@ -768,6 +797,8 @@ export class TIFFImageryProvider {
     this._images = [];
     this._source = undefined;
     this._destroyed = true;
+    this._rgbPlot?.destroy();
+    this._rgbPlot = undefined;
   }
 }
 

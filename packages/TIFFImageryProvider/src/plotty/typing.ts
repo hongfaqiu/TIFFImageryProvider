@@ -15,6 +15,15 @@ export type RenderColorType = 'continuous' | 'discrete';
 
 export type ColorScaleNames = keyof typeof colorscales;
 
+export interface RGBOptions {
+  bands: {
+    r?: { band: number; min?: number; max?: number; };
+    g?: { band: number; min?: number; max?: number; };
+    b?: { band: number; min?: number; max?: number; };
+  };
+  colorMapping?: Record<string, string>;
+}
+
 export type PlotOptions = {
   /**
    * The canvas to render to.
@@ -75,4 +84,6 @@ export type PlotOptions = {
    * Plotty can also function with pure javascript but it is much slower then using WebGL rendering.
    */
   useWebGL?: boolean;
+
+  rgbOptions?: RGBOptions;
 } & SingleBandRenderOptions
