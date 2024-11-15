@@ -91,7 +91,7 @@ function setRectangle(gl: WebGLRenderingContext, x: number, y: number, width: nu
     x2, y2]), gl.STATIC_DRAW);
 }
 
-function createDataset(gl: WebGLRenderingContext, id: string, data: TypedArray, width: number, height: number) {
+function createDataset(gl: WebGLRenderingContext, id: string, data: TypedArray, width: number, height: number, noDataValue: number) {
   let textureData: WebGLTexture;
   if (gl) {
     gl.viewport(0, 0, width, height);
@@ -107,7 +107,7 @@ function createDataset(gl: WebGLRenderingContext, id: string, data: TypedArray, 
     const processedData = new Float32Array(data.length);
 
     for (let i = 0; i < data.length; i++) {
-      processedData[i] = isNaN(data[i]) ? Number.MIN_SAFE_INTEGER : data[i];
+      processedData[i] = isNaN(data[i]) ? noDataValue : data[i];
     }
 
     // Upload the image into the texture.
@@ -439,7 +439,7 @@ class plot {
     if (this.currentDataset && this.currentDataset.id === null) {
       destroyDataset(this.gl, this.currentDataset);
     }
-    this.currentDataset = createDataset(this.gl, null, data, width, height);
+    this.currentDataset = createDataset(this.gl, null, data, width, height, this.noDataValue);
   }
 
   /**s
@@ -455,7 +455,7 @@ class plot {
     if (this.datasetAvailable(id)) {
       throw new Error(`There is already a dataset registered with id '${id}'`);
     }
-    this.datasetCollection[id] = createDataset(this.gl, id, data, width, height);
+    this.datasetCollection[id] = createDataset(this.gl, id, data, width, height, this.noDataValue);
     if (!this.currentDataset) {
       this.currentDataset = this.datasetCollection[id];
     }
