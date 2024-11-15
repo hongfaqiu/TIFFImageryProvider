@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.15.1](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.15.0...v2.15.1) (2024-11-15)
+
+
+### Bug Fixes
+
+* process NAN value ([cb91df3](https://github.com/hongfaqiu/tiff-imagery-provider/commit/cb91df38ddfd67911a8e73c4c6bdf0eb054cc5b9))
+
+
+
+
+
 # [2.15.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.14.2...v2.15.0) (2024-11-15)
 
 
