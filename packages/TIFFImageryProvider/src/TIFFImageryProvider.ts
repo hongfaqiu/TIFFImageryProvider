@@ -386,7 +386,6 @@ export class TIFFImageryProvider {
           throw new DeveloperError(`Invalid band${single.band}`);
         }
         const domain = single.domain ?? [band.min, band.max]
-        const canvas = createCanavas(this.tileWidth, this.tileHeight);
         this.plot = new plot({
           canvas,
           ...single,
@@ -410,7 +409,6 @@ export class TIFFImageryProvider {
 
       // 如果是RGB渲染,创建RGB plot对象
       if (this.renderOptions.multi || this.renderOptions.convertToRGB) {
-        const canvas = createCanavas(this.tileWidth, this.tileHeight);
         this._rgbPlot = new plot({
           canvas,
           tileWidth: this.tileWidth,

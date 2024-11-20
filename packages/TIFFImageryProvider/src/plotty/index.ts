@@ -763,7 +763,7 @@ class plot {
           return u_noDataValue;
         }
 
-        vec2 clampedSamplePoint = clamp(point, vec2(0.0), vec2(1.0) - (1.0 / (u_sourceSize - vec2(2.0 * u_buffer))));
+        vec2 clampedSamplePoint = clamp(point, vec2(0.0), vec2(1.0) - (1.0 / u_sourceSize));
 
         vec4 sample = texture2D(texture, clampedSamplePoint);
 
