@@ -20,17 +20,12 @@ function hasOwnProperty(obj: any, prop: string) {
 function defaultFor(arg: any, val: any) { return typeof arg !== 'undefined' ? arg : val; }
 
 function create3DContext(canvas: HTMLCanvasElement | OffscreenCanvas, optAttribs: { premultipliedAlpha: boolean; }) {
-  const names = ['webgl', 'experimental-webgl'];
-  let context: WebGLRenderingContext | null = null;
-  for (let ii = 0; ii < names.length; ++ii) {
-    try {
-      context = canvas.getContext(names[ii] as any, optAttribs) as any as WebGLRenderingContext;
-    } catch (e) { }
-    if (context) {
-      break;
-    }
-  }
-  if (!context || !context.getExtension('OES_texture_float')) {
+  let context: WebGL2RenderingContext | null = null;
+  try {
+    context = canvas.getContext('webgl2', optAttribs) as WebGL2RenderingContext;
+  } catch (e) { }
+
+  if (!context) {
     return null;
   }
   return context;
@@ -91,7 +86,7 @@ function setRectangle(gl: WebGLRenderingContext, x: number, y: number, width: nu
     x2, y2]), gl.STATIC_DRAW);
 }
 
-function createDataset(gl: WebGLRenderingContext, id: string, data: TypedArray, width: number, height: number, noDataValue: number) {
+function createDataset(gl: WebGL2RenderingContext, id: string, data: TypedArray, width: number, height: number, noDataValue: number) {
   let textureData: WebGLTexture;
   if (gl) {
     gl.viewport(0, 0, width, height);
@@ -110,11 +105,17 @@ function createDataset(gl: WebGLRenderingContext, id: string, data: TypedArray, 
       processedData[i] = isNaN(data[i]) ? noDataValue : data[i];
     }
 
-    // Upload the image into the texture.
-    gl.texImage2D(gl.TEXTURE_2D, 0,
-      gl.LUMINANCE,
-      width, height, 0,
-      gl.LUMINANCE, gl.FLOAT, processedData
+    // Use R32F format for single channel float data in WebGL2
+    gl.texImage2D(
+      gl.TEXTURE_2D,    // target
+      0,                // level
+      gl.R32F,         // internalformat - use R32F instead of LUMINANCE
+      width,           // width
+      height,          // height
+      0,               // border
+      gl.RED,          // format - use RED instead of LUMINANCE
+      gl.FLOAT,        // type
+      processedData    // data
     );
   }
   return { textureData, width, height, data, id };
@@ -145,20 +146,27 @@ function addColorScale(name: string, colors: string[], positions: number[]) {
  * Render the colorscale to the specified canvas.
  * @memberof module:plotty
  * @param {String} name the name of the color scale to render
- * @param {HTMLCanvasElement} canvas the canvas to render to
- * @param {RenderColorType} type the type of color scale to render, either "continuous" or "discrete"
+ * @param {Object} options options for rendering
+ * @param {HTMLCanvasElement} options.canvas the canvas to render to
+ * @param {RenderColorType} [options.type='continuous'] the type of color scale to render
  */
-function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement, type: RenderColorType = 'continuous') {
+function renderColorScaleToCanvas(
+  name: string,
+  options: {
+    canvas: HTMLCanvasElement;
+    type?: RenderColorType;
+  }
+) {
+  const { canvas, type = 'continuous' } = options;
   const csDef = colorscales[name];
   canvas.height = 1;
   const ctx = canvas.getContext('2d');
-  // TODO: move into fs, dont's use texture interpolation
-  // Supports up to 4 decimal places of precision
-  const width = 8192 //10 ** 4;
 
   if (!ctx) {
     throw new Error('Unable to get canvas context.');
   }
+
+  const width = 256;
 
   if (Object.prototype.toString.call(csDef) === '[object Object]') {
     canvas.width = width;
@@ -193,16 +201,17 @@ function renderColorScaleToCanvas(name: string, canvas: HTMLCanvasElement, type:
   }
 }
 
-const vertexShaderSource = `
+const vertexShaderSource = `#version 300 es
   precision mediump float;
-  attribute vec2 a_position;
-  attribute vec2 a_texCoord;
+  
+  in vec2 a_position;
+  in vec2 a_texCoord;
   uniform mat3 u_matrix;
   uniform vec2 u_resolution;
   uniform vec2 u_targetSize;
   uniform vec4 u_window;
-  varying vec2 v_texCoord;
-  varying vec2 v_sourceTexCoord;
+  out vec2 v_texCoord;
+  out vec2 v_sourceTexCoord;
 
   void main() {
     vec2 position = (u_matrix * vec3(a_position, 1)).xy;
@@ -251,7 +260,7 @@ class plot {
   canvas: HTMLCanvasElement | OffscreenCanvas;
   currentDataset: DataSet;
   datasetCollection: Record<string, DataSet>;
-  gl: WebGLRenderingContext | null;
+  gl: WebGL2RenderingContext | null;
   program: WebGLProgram;
   texCoordBuffer: WebGLBuffer;
   ctx: CanvasRenderingContext2D;
@@ -301,8 +310,6 @@ class plot {
     }
 
     if (defaultFor(options.useWebGL, true)) {
-      // Try to create a webgl context in a temporary canvas to see if webgl and
-      // required OES_texture_float is supported
       const gl = create3DContext(this.canvas, { premultipliedAlpha: false });
       if (gl !== null) {
         this.gl = gl;
@@ -313,23 +320,11 @@ class plot {
         }
         gl.useProgram(this.program);
 
-        // look up where the vertex data needs to go.
+        // Get attribute locations
+        const positionLocation = gl.getAttribLocation(this.program, 'a_position');
         const texCoordLocation = gl.getAttribLocation(this.program, 'a_texCoord');
 
-        // provide texture coordinates for the rectangle.
-        this.texCoordBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-          0.0, 0.0,
-          1.0, 0.0,
-          0.0, 1.0,
-          0.0, 1.0,
-          1.0, 0.0,
-          1.0, 1.0]), gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(texCoordLocation);
-        gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
-
-        // Create and bind the position buffer
+        // Create and set position buffer
         this.positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -341,12 +336,30 @@ class plot {
           1, 1
         ]), gl.STATIC_DRAW);
 
-        // Set up the vertex attribute pointer
-        const positionLocation = gl.getAttribLocation(this.program, 'a_position');
-        gl.enableVertexAttribArray(positionLocation);
-        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        // Create and set texture coordinate buffer
+        this.texCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+          0.0, 0.0,
+          1.0, 0.0,
+          0.0, 1.0,
+          0.0, 1.0,
+          1.0, 0.0,
+          1.0, 1.0]), gl.STATIC_DRAW);
+
+        // Enable vertex attribute arrays
+        if (positionLocation !== -1) {
+          gl.enableVertexAttribArray(positionLocation);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+          gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        }
+
+        if (texCoordLocation !== -1) {
+          gl.enableVertexAttribArray(texCoordLocation);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
+          gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+        }
       } else {
-        // Fall back to 2d context
         this.ctx = (this.canvas as HTMLCanvasElement).getContext('2d');
       }
     } else {
@@ -580,7 +593,10 @@ class plot {
       this.colorScaleCanvas.width = 256;
       this.colorScaleCanvas.height = 1;
     }
-    renderColorScaleToCanvas(name, this.colorScaleCanvas, this.colorType);
+    renderColorScaleToCanvas(name, {
+      canvas: this.colorScaleCanvas,
+      type: this.colorType,
+    });
     this.name = name;
     this.setColorScaleImage(this.colorScaleCanvas);
   }
@@ -613,13 +629,18 @@ class plot {
       this.textureScale = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, this.textureScale);
 
-      // Set the parameters so we can render any size image.
+      // Set texture parameters
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      // Upload the image into the texture.
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, colorScaleImage);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+      try {
+        // Upload texture data
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, colorScaleImage);
+      } catch (e) {
+        console.error('Failed to upload color scale texture:', e);
+      }
     }
   }
 
@@ -638,7 +659,7 @@ class plot {
   render(window?: [number, number, number, number]) {
     const dataset = this.currentDataset;
 
-    // 设置 canvas 尺寸为目标尺寸（瓦片尺寸）
+    // Set canvas size to target size (tile size)
     if (this.canvas instanceof HTMLCanvasElement) {
       this.canvas.width = this.tileWidth;
       this.canvas.height = this.tileHeight;
@@ -725,187 +746,178 @@ class plot {
   }
 
   private createFragmentShader(ids: string[] | null): string {
-    const baseShader = `
-      precision mediump float;
-      uniform sampler2D u_textureScale;
-      uniform vec2 u_sourceSize;
-      uniform vec2 u_targetSize;
-      uniform vec2 u_domain;
-      uniform vec2 u_display_range;
-      uniform bool u_apply_display_range;
-      uniform float u_noDataValue;
-      uniform bool u_clampLow;
-      uniform bool u_clampHigh;
-      uniform int u_interpolationMethod;
-      uniform float u_buffer;
-      ${this._isRGB ? `
-      uniform sampler2D u_texture_r;
-      uniform sampler2D u_texture_g;
-      uniform sampler2D u_texture_b;
-      uniform float u_r_min;
-      uniform float u_r_max;
-      uniform float u_g_min;
-      uniform float u_g_max;
-      uniform float u_b_min;
-      uniform float u_b_max;
-      uniform vec4 u_mapping_from[${Math.max(1, this._colorMapping.length)}];
-      uniform vec4 u_mapping_to[${Math.max(1, this._colorMapping.length)}];
-      ` : ''}
-      varying vec2 v_texCoord;
-      varying vec2 v_sourceTexCoord;
+    const baseShader = `#version 300 es
+precision mediump float;
+precision mediump sampler2D;
 
-      bool isNoData(float value) {
-        return (value == u_noDataValue) || (value != value);
-      }
+uniform sampler2D u_textureScale;
+uniform vec2 u_sourceSize;
+uniform vec2 u_targetSize;
+uniform vec2 u_domain;
+uniform vec2 u_display_range;
+uniform bool u_apply_display_range;
+uniform float u_noDataValue;
+uniform bool u_clampLow;
+uniform bool u_clampHigh;
+uniform int u_interpolationMethod;
+uniform float u_buffer;
 
-      float getValue(sampler2D texture, vec2 point) {
-        if (any(lessThan(point, vec2(0.0))) || any(greaterThanEqual(point, vec2(1.0)))) {
-          return u_noDataValue;
-        }
+${this._isRGB ? `
+uniform sampler2D u_texture_r;
+uniform sampler2D u_texture_g;
+uniform sampler2D u_texture_b;
+uniform float u_r_min;
+uniform float u_r_max;
+uniform float u_g_min;
+uniform float u_g_max;
+uniform float u_b_min;
+uniform float u_b_max;
+uniform vec4 u_mapping_from[${Math.max(1, this._colorMapping.length)}];
+uniform vec4 u_mapping_to[${Math.max(1, this._colorMapping.length)}];
+` : ''}
 
-        vec2 clampedSamplePoint = clamp(point, vec2(0.0), vec2(1.0) - (1.0 / u_sourceSize));
+in vec2 v_texCoord;
+in vec2 v_sourceTexCoord;
+out vec4 fragColor;
 
-        vec4 sample = texture2D(texture, clampedSamplePoint);
+bool isNoData(float value) {
+    return (value == u_noDataValue) || (value != value);
+}
 
-        return sample.r;
-      }
+float getValue(sampler2D tex, vec2 point) {
+    if (any(lessThan(point, vec2(0.0))) || any(greaterThanEqual(point, vec2(1.0)))) {
+        return u_noDataValue;
+    }
 
-      float sampleNearest(sampler2D texture, vec2 uv) {
-        vec2 adjustedPoint = (uv * (u_sourceSize - vec2(2.0 * u_buffer)) + vec2(u_buffer)) / u_sourceSize;
-        float value = getValue(texture, adjustedPoint);
-        return value;
-      }
+    vec2 clampedSamplePoint = clamp(point, vec2(0.0), vec2(1.0) - (1.0 / u_sourceSize));
+    return texture(tex, clampedSamplePoint).r;
+}
 
-      vec4 sampleBilinear(sampler2D texture, vec2 uv) {
-        vec2 texelCoords = uv * (u_sourceSize - vec2(2.0 * u_buffer)) + vec2(u_buffer);
-        vec2 f = fract(texelCoords);
+float sampleNearest(sampler2D tex, vec2 uv) {
+    vec2 adjustedPoint = (uv * (u_sourceSize - vec2(2.0 * u_buffer)) + vec2(u_buffer)) / u_sourceSize;
+    return getValue(tex, adjustedPoint);
+}
 
-        vec2 tl = (floor(texelCoords) + vec2(0.0, 0.0)) / u_sourceSize;
-        vec2 tr = (floor(texelCoords) + vec2(1.0, 0.0)) / u_sourceSize;
-        vec2 bl = (floor(texelCoords) + vec2(0.0, 1.0)) / u_sourceSize;
-        vec2 br = (floor(texelCoords) + vec2(1.0, 1.0)) / u_sourceSize;
+vec4 sampleBilinear(sampler2D tex, vec2 uv) {
+    vec2 texelCoords = uv * (u_sourceSize - vec2(2.0 * u_buffer)) + vec2(u_buffer);
+    vec2 f = fract(texelCoords);
 
-        float tlSample = getValue(texture, tl);
-        float trSample = getValue(texture, tr);
-        float blSample = getValue(texture, bl);
-        float brSample = getValue(texture, br);
+    vec2 tl = (floor(texelCoords) + vec2(0.0, 0.0)) / u_sourceSize;
+    vec2 tr = (floor(texelCoords) + vec2(1.0, 0.0)) / u_sourceSize;
+    vec2 bl = (floor(texelCoords) + vec2(0.0, 1.0)) / u_sourceSize;
+    vec2 br = (floor(texelCoords) + vec2(1.0, 1.0)) / u_sourceSize;
 
-        float w1 = (1.0 - f.x) * (1.0 - f.y);
-        float w2 = f.x * (1.0 - f.y);
-        float w3 = (1.0 - f.x) * f.y;
-        float w4 = f.x * f.y;
+    float tlSample = getValue(tex, tl);
+    float trSample = getValue(tex, tr);
+    float blSample = getValue(tex, bl);
+    float brSample = getValue(tex, br);
 
-        float value = 0.0;
-        float totalWeight = 0.0;
+    float w1 = (1.0 - f.x) * (1.0 - f.y);
+    float w2 = f.x * (1.0 - f.y);
+    float w3 = (1.0 - f.x) * f.y;
+    float w4 = f.x * f.y;
 
-        if (!isNoData(tlSample)) {
-          value += tlSample * w1;
-          totalWeight += w1;
-        }
-        if (!isNoData(trSample)) {
-          value += trSample * w2;
-          totalWeight += w2;
-        }
-        if (!isNoData(blSample)) {
-          value += blSample * w3;
-          totalWeight += w3;
-        }
-        if (!isNoData(brSample)) {
-          value += brSample * w4;
-          totalWeight += w4;
-        }
+    float value = 0.0;
+    float totalWeight = 0.0;
 
-        if (totalWeight == 0.0) {
-          return vec4(u_noDataValue, 0.0, 0.0, 0.0);
-        }
+    if (!isNoData(tlSample)) {
+        value += tlSample * w1;
+        totalWeight += w1;
+    }
+    if (!isNoData(trSample)) {
+        value += trSample * w2;
+        totalWeight += w2;
+    }
+    if (!isNoData(blSample)) {
+        value += blSample * w3;
+        totalWeight += w3;
+    }
+    if (!isNoData(brSample)) {
+        value += brSample * w4;
+        totalWeight += w4;
+    }
 
-        float normalizedValue = value / totalWeight;
-        float alpha = totalWeight;
+    if (totalWeight == 0.0) {
+        return vec4(u_noDataValue, 0.0, 0.0, 0.0);
+    }
 
-        return vec4(normalizedValue, 0.0, 0.0, alpha);
-      }
+    return vec4(value / totalWeight, 0.0, 0.0, totalWeight);
+}
 
-      ${this._isRGB ? `
-      vec4 processRGBValue(vec4 rValue, vec4 gValue, vec4 bValue) {
-        if(isNoData(rValue.r) || isNoData(gValue.r) || isNoData(bValue.r)) {
-          return vec4(0.0, 0.0, 0.0, 0.0);
-        }
+${this._isRGB ? `
+vec4 processRGBValue(vec4 rValue, vec4 gValue, vec4 bValue) {
+    if(isNoData(rValue.r) || isNoData(gValue.r) || isNoData(bValue.r)) {
+        return vec4(0.0, 0.0, 0.0, 0.0);
+    }
 
-        float r = (rValue.r - u_r_min) / (u_r_max - u_r_min);
-        float g = (gValue.r - u_g_min) / (u_g_max - u_g_min);
-        float b = (bValue.r - u_b_min) / (u_b_max - u_b_min);
+    float r = (rValue.r - u_r_min) / (u_r_max - u_r_min);
+    float g = (gValue.r - u_g_min) / (u_g_max - u_g_min);
+    float b = (bValue.r - u_b_min) / (u_b_max - u_b_min);
 
-        vec4 color = vec4(r, g, b, 1.0);
-        
-        // Apply color mapping
-        for(int i = 0; i < ${Math.max(1, this._colorMapping.length)}; i++) {
-          if(abs(color.r - u_mapping_from[i].r) < 0.01 && 
-             abs(color.g - u_mapping_from[i].g) < 0.01 && 
-             abs(color.b - u_mapping_from[i].b) < 0.01) {
+    vec4 color = vec4(r, g, b, 1.0);
+    
+    // Apply color mapping
+    for(int i = 0; i < ${Math.max(1, this._colorMapping.length)}; i++) {
+        if(abs(color.r - u_mapping_from[i].r) < 0.01 && 
+           abs(color.g - u_mapping_from[i].g) < 0.01 && 
+           abs(color.b - u_mapping_from[i].b) < 0.01) {
             return u_mapping_to[i];
-          }
         }
-        
-        return color;
-      }
-      ` : ''}
-    `;
+    }
+    
+    return color;
+}
+` : ''}`;
 
     let mainFunction: string;
     if (this._isRGB) {
       mainFunction = `
-        void main() {
-          vec4 rValue, gValue, bValue;
-          
-          if (u_interpolationMethod == 0) {
-            // Nearest neighbor interpolation
-            rValue = vec4(sampleNearest(u_texture_r, v_sourceTexCoord), 0.0, 0.0, 1.0);
-            gValue = vec4(sampleNearest(u_texture_g, v_sourceTexCoord), 0.0, 0.0, 1.0);
-            bValue = vec4(sampleNearest(u_texture_b, v_sourceTexCoord), 0.0, 0.0, 1.0);
-          } else {
-            // Bilinear interpolation
-            rValue = sampleBilinear(u_texture_r, v_sourceTexCoord);
-            gValue = sampleBilinear(u_texture_g, v_sourceTexCoord); 
-            bValue = sampleBilinear(u_texture_b, v_sourceTexCoord);
-          }
-          
-          gl_FragColor = processRGBValue(rValue, gValue, bValue);
-        }
-      `;
+void main() {
+    vec4 rValue, gValue, bValue;
+    
+    if (u_interpolationMethod == 0) {
+        rValue = vec4(sampleNearest(u_texture_r, v_sourceTexCoord), 0.0, 0.0, 1.0);
+        gValue = vec4(sampleNearest(u_texture_g, v_sourceTexCoord), 0.0, 0.0, 1.0);
+        bValue = vec4(sampleNearest(u_texture_b, v_sourceTexCoord), 0.0, 0.0, 1.0);
+    } else {
+        rValue = sampleBilinear(u_texture_r, v_sourceTexCoord);
+        gValue = sampleBilinear(u_texture_g, v_sourceTexCoord); 
+        bValue = sampleBilinear(u_texture_b, v_sourceTexCoord);
+    }
+    
+    fragColor = processRGBValue(rValue, gValue, bValue);
+}`;
     } else {
       mainFunction = `
-        void main() {
-          vec4 sampledValue;
-          
-          if (u_interpolationMethod == 0) {
-            sampledValue = vec4(sampleNearest(u_textureData, v_sourceTexCoord), 0.0, 0.0, 1.0);
-          } else {
-            sampledValue = sampleBilinear(u_textureData, v_sourceTexCoord);
-          }
-
-          float value = sampledValue.r;
-          float alpha = sampledValue.a;
-
-          if (isNoData(value) || alpha == 0.0) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-          } else if (u_apply_display_range && (value < u_display_range[0] || value >= u_display_range[1])) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-          } else if ((!u_clampLow && value < u_domain[0]) || (!u_clampHigh && value > u_domain[1])) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-          } else {
-            float normalisedValue = (value - u_domain[0]) / (u_domain[1] - u_domain[0]);
-            vec4 color = texture2D(u_textureScale, vec2(normalisedValue, 0.0));
-            gl_FragColor = vec4(color.rgb, color.a * alpha);
-          }
-        }
-      `;
+void main() {
+    vec4 sampledValue;
+    
+    if (u_interpolationMethod == 0) {
+        sampledValue = vec4(sampleNearest(u_textureData, v_sourceTexCoord), 0.0, 0.0, 1.0);
+    } else {
+        sampledValue = sampleBilinear(u_textureData, v_sourceTexCoord);
     }
 
-    return `
-      ${baseShader}
-      ${ids ? ids.map((id: string) => `uniform sampler2D u_texture_${id};`).join('\n') : this._isRGB ? '' : 'uniform sampler2D u_textureData;'}
-      ${mainFunction}
-    `;
+    float value = sampledValue.r;
+    float alpha = sampledValue.a;
+
+    if (isNoData(value) || alpha == 0.0) {
+        fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    } else if (u_apply_display_range && (value < u_display_range[0] || value >= u_display_range[1])) {
+        fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    } else if ((!u_clampLow && value < u_domain[0]) || (!u_clampHigh && value > u_domain[1])) {
+        fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    } else {
+        float normalisedValue = (value - u_domain[0]) / (u_domain[1] - u_domain[0]);
+        vec4 color = texture(u_textureScale, vec2(normalisedValue, 0.0));
+        fragColor = vec4(color.rgb, color.a * alpha);
+    }
+}`;
+    }
+
+    return `${baseShader}
+${ids ? ids.map((id: string) => `uniform sampler2D u_texture_${id};`).join('\n') : this._isRGB ? '' : 'uniform sampler2D u_textureData;'}
+${mainFunction}`;
   }
 
   private setupTextures(program: WebGLProgram, ids: string[] | null, dataset: any) {
