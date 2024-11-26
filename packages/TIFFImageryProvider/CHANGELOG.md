@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.16.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.15.2...v2.16.0) (2024-11-26)
+
+
+### Features
+
+* upgrade to WebGL2 and optimize color scale texture ([85c6048](https://github.com/hongfaqiu/tiff-imagery-provider/commit/85c6048a51d17fedab5b3b342bdc541cfbf2f168))
+
+
+
+
+
 ## [2.15.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.15.1...v2.15.2) (2024-11-20)
 
 
