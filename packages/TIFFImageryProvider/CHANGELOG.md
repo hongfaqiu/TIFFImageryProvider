@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.17.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.16.0...v2.17.0) (2025-01-06)
+
+
+### Features
+
+* **TIFFImageryProvider:** enhance tile loading and reprojection performance ([baea8c3](https://github.com/hongfaqiu/tiff-imagery-provider/commit/baea8c32b355718c2f226fce736d947e4677bd8d))
+
+
+
+
+
 # [2.16.0](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.15.2...v2.16.0) (2024-11-26)
 
 
