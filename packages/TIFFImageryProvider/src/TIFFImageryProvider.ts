@@ -682,9 +682,15 @@ export class TIFFImageryProvider {
 
           // Setup RGB rendering
           targetPlot.removeAllDataset();
-          this.readSamples.forEach((sample, index) => {
-            targetPlot.addDataset(`band${sample + 1}`, data[index], width, height);
-          });
+          if (multi) {
+            ['r', 'g', 'b'].map((color, index) => {
+              targetPlot.addDataset(`band${this.renderOptions.multi[color].band}`, data[index], width, height);
+            });
+          } else {
+            this.readSamples.forEach((sample, index) => {
+              targetPlot.addDataset(`band${sample + 1}`, data[index], width, height);
+            });
+          }
 
           targetPlot.setRGBOptions({
             bands: multi ?? ['r', 'g', 'b'].reduce((pre, val, index) => ({
