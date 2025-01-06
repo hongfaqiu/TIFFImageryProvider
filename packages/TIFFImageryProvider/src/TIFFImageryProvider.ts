@@ -504,115 +504,142 @@ export class TIFFImageryProvider {
    * @param z 
    */
   private async _loadTile(reqx: number, reqy: number, reqz: number) {
-    let x = reqx, y = reqy, z = reqz, startX = reqx, startY = reqy;
-    const maxCogLevel = this.requestLevels.length - 1;
-    if (z > maxCogLevel) {
-      z = maxCogLevel;
-      x = x >> (reqz - maxCogLevel)
-      y = y >> (reqz - maxCogLevel)
-      startX = x << (reqz - z);
-      startY = y << (reqz - z);
-    }
-
-    const index = this.requestLevels[z];
-    let image = this._images[index];
-    if (!image) {
-      image = this._images[index] = await this._source.getImage(index);
-    }
-
-    const width = image.getWidth();
-    const height = image.getHeight();
-    const tileXNum = this.tilingScheme.getNumberOfXTilesAtLevel(z);
-    const tileYNum = this.tilingScheme.getNumberOfYTilesAtLevel(z);
-    const tilePixel = {
-      xWidth: width / tileXNum,
-      yWidth: height / tileYNum
-    }
-    let window = [
-      Math.round(x * tilePixel.xWidth),
-      Math.round(y * tilePixel.yWidth),
-      Math.round((x + 1) * tilePixel.xWidth),
-      Math.round((y + 1) * tilePixel.yWidth),
-    ];
-
-    if (this._proj && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
-      const targetRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
-      const nativeRect = this.tilingScheme.nativeRectangle;
-      targetRect.west -= (nativeRect.width / width)
-      targetRect.east += (nativeRect.width / width)
-      targetRect.south -= (nativeRect.height / height)
-      targetRect.north += (nativeRect.height / height)
-
-      window = [
-        ~~((targetRect.west - nativeRect.west) / nativeRect.width * width),
-        ~~((nativeRect.north - targetRect.north) / nativeRect.height * height),
-        ~~((targetRect.east - nativeRect.west) / nativeRect.width * width),
-        ~~((nativeRect.north - targetRect.south) / nativeRect.height * height),
-      ]
-    }
-    if (this.reverseY) {
-      window = [window[0], height - window[3], window[2], height - window[1]];
-    }
-    window = [window[0] - this._buffer, window[1] - this._buffer, window[2] + this._buffer, window[3] + this._buffer]
-    const sourceWidth = window[2] - window[0], sourceHeight = window[3] - window[1];
-
-    const options = {
-      window,
-      pool: this.geotiffWorkerPool,
-      samples: this.readSamples,
-      fillValue: this.noData,
-      interleave: false,
-    }
-
-    let res: TypedArrayArrayWithDimensions | TypedArray[];
     try {
-      if (this.renderOptions.convertToRGB) {
-        res = await image.readRGB(options) as TypedArrayArrayWithDimensions;
-      } else {
-        res = await image.readRasters(options) as TypedArrayArrayWithDimensions;
-        if (this.reverseY) {
-          res = await Promise.all((res as TypedArray[]).map((array) =>
-            reverseArray({ array, width: sourceWidth, height: sourceHeight })
-          )) as TypedArray[];
-        }
+      let x = reqx, y = reqy, z = reqz, startX = reqx, startY = reqy;
+      const maxCogLevel = this.requestLevels.length - 1;
+      if (z > maxCogLevel) {
+        z = maxCogLevel;
+        x = x >> (reqz - maxCogLevel)
+        y = y >> (reqz - maxCogLevel)
+        startX = x << (reqz - z);
+        startY = y << (reqz - z);
       }
 
-      if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
-        const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
-        const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
-
-        const sourceBBox: BBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north];
-        const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as BBox;
-
-        const result: TypedArray[] = [];
-        for (let i = 0; i < res.length; i++) {
-          const prjData = reprojection({
-            data: res[i] as any,
-            sourceWidth,
-            sourceHeight,
-            nodata: this.noData,
-            project: this._proj.project,
-            sourceBBox,
-            targetBBox,
-          })
-          result.push(prjData)
-        }
-        res = result
+      const index = this.requestLevels[z];
+      let image = this._images[index];
+      if (!image) {
+        image = this._images[index] = await this._source.getImage(index);
       }
 
-      const tileNum = 1 << (reqz - z)
-      const x0 = (reqx - startX) / tileNum;
-      const y0 = (reqy - startY) / tileNum;
-      const step = 1 / (1 << (reqz - z))
-      const x1 = x0 + step;
-      const y1 = y0 + step;
+      const width = image.getWidth();
+      const height = image.getHeight();
+      const tileXNum = this.tilingScheme.getNumberOfXTilesAtLevel(z);
+      const tileYNum = this.tilingScheme.getNumberOfYTilesAtLevel(z);
+      const tilePixel = {
+        xWidth: width / tileXNum,
+        yWidth: height / tileYNum
+      }
+      let window = [
+        Math.round(x * tilePixel.xWidth),
+        Math.round(y * tilePixel.yWidth),
+        Math.round((x + 1) * tilePixel.xWidth),
+        Math.round((y + 1) * tilePixel.yWidth),
+      ];
 
-      return {
-        data: res,
-        width: sourceWidth,
-        height: sourceHeight,
-        window: [x0, y0, x1, y1] as [number, number, number, number]
-      };
+      if (this._proj && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
+        const targetRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
+        const nativeRect = this.tilingScheme.nativeRectangle;
+        targetRect.west -= (nativeRect.width / width)
+        targetRect.east += (nativeRect.width / width)
+        targetRect.south -= (nativeRect.height / height)
+        targetRect.north += (nativeRect.height / height)
+
+        window = [
+          ~~((targetRect.west - nativeRect.west) / nativeRect.width * width),
+          ~~((nativeRect.north - targetRect.north) / nativeRect.height * height),
+          ~~((targetRect.east - nativeRect.west) / nativeRect.width * width),
+          ~~((nativeRect.north - targetRect.south) / nativeRect.height * height),
+        ]
+      }
+      if (this.reverseY) {
+        window = [window[0], height - window[3], window[2], height - window[1]];
+      }
+      window = [window[0] - this._buffer, window[1] - this._buffer, window[2] + this._buffer, window[3] + this._buffer]
+      const sourceWidth = window[2] - window[0], sourceHeight = window[3] - window[1];
+
+      const options = {
+        window,
+        pool: this.geotiffWorkerPool,
+        samples: this.readSamples,
+        fillValue: this.noData,
+        interleave: false,
+      }
+
+      let res: TypedArrayArrayWithDimensions | TypedArray[];
+
+      // 使用 AbortController 来控制异步操作
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 30000); // 30秒超时
+
+      try {
+        if (this.renderOptions.convertToRGB) {
+          res = await image.readRGB(options) as TypedArrayArrayWithDimensions;
+        } else {
+          res = await image.readRasters(options) as TypedArrayArrayWithDimensions;
+          if (this.reverseY) {
+            res = await Promise.all((res as TypedArray[]).map((array) =>
+              reverseArray({ array, width: sourceWidth, height: sourceHeight })
+            )) as TypedArray[];
+          }
+        }
+
+        if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
+          const sourceRect = this.tilingScheme.tileXYToNativeRectangle2(x, y, z);
+          const targetRect = this.tilingScheme.tileXYToRectangle(x, y, z);
+
+          const sourceBBox: BBox = [sourceRect.west, sourceRect.south, sourceRect.east, sourceRect.north];
+          const targetBBox = [targetRect.west, targetRect.south, targetRect.east, targetRect.north].map(CesiumMath.toDegrees) as BBox;
+
+          const result: TypedArray[] = [];
+          for (let i = 0; i < res.length; i++) {
+            try {
+              // 在循环中释放临时数据
+              const sourceData = res[i] as TypedArray;
+              const prjData = await reprojection({
+                data: sourceData,
+                sourceWidth,
+                sourceHeight,
+                nodata: this.noData,
+                project: this._proj.project,
+                sourceBBox,
+                targetBBox,
+              });
+              result.push(prjData);
+            } finally {
+              // 如果不是最后一个通道，释放源数据
+              if (i < res.length - 1 && res[i]) {
+                try {
+                  (res[i] as TypedArray).fill(0);
+                  res[i] = null;
+                } catch (e) {
+                  console.warn('Failed to clean up channel data:', e);
+                }
+              }
+            }
+          }
+          res = result;
+        }
+
+        const tileNum = 1 << (reqz - z)
+        const x0 = (reqx - startX) / tileNum;
+        const y0 = (reqy - startY) / tileNum;
+        const step = 1 / (1 << (reqz - z))
+        const x1 = x0 + step;
+        const y1 = y0 + step;
+
+        clearTimeout(timeoutId);
+        return {
+          data: res,
+          width: sourceWidth,
+          height: sourceHeight,
+          window: [x0, y0, x1, y1] as [number, number, number, number]
+        };
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Tile loading timeout');
+        }
+        throw error;
+      }
     } catch (error) {
       this.errorEvent.raiseEvent(error);
       throw error;
@@ -655,8 +682,8 @@ export class TIFFImageryProvider {
 
           // Setup RGB rendering
           targetPlot.removeAllDataset();
-          data.forEach((bandData, index) => {
-            targetPlot.addDataset(`band${index + 1}`, bandData, width, height);
+          this.readSamples.forEach((sample, index) => {
+            targetPlot.addDataset(`band${sample + 1}`, data[index], width, height);
           });
 
           targetPlot.setRGBOptions({

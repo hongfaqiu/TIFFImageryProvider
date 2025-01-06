@@ -52,5 +52,8 @@
     "tslib": "^2.5.0",
     "typescript": "4.8.4"
   },
-  "gitHead": "98a51f8d9e84194a1f48cab5cec43a0aa3c940f8"
+  "gitHead": "98a51f8d9e84194a1f48cab5cec43a0aa3c940f8",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
 }
