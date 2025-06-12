@@ -10,6 +10,7 @@ import { BBox, reprojection } from "./helpers/reprojection";
 import { reverseArray } from "./helpers/utils";
 import { createCanavas } from "./helpers/createCanavas";
 
+
 export interface SingleBandRenderOptions {
   /** band index start from 1, defaults to 1 */
   band?: number;
@@ -179,6 +180,7 @@ export class TIFFImageryProvider {
   private _source!: GeoTIFF;
   private _imageCount!: number;
   private _images: (GeoTIFFImage | null)[] = [];
+   private _masks: (GeoTIFFImage | null)[] = [];
   private _imagesCache: Map<string, ImageData | HTMLCanvasElement | HTMLImageElement | OffscreenCanvas> = new Map();
   private _cacheSize: number;
   private _isTiled: boolean;
@@ -276,7 +278,19 @@ export class TIFFImageryProvider {
     if (this.rectangle.east < this.rectangle.west) {
       this.rectangle.east += CesiumMath.TWO_PI;
     }
+
     this._imageCount = await source.getImageCount();
+    for (let i = 0; i < this._imageCount; i++) {
+      const img = await source.getImage(i);
+      if (this._isMask(img)) {
+        // console.warn(`Image ${i} is a mask image, skipping...`);
+        this._masks.push(img);
+      }
+      else {
+        this._images.push(img);
+      }
+    }
+    this._imageCount = this._images.length;
     if (options.useImageCountAsMaximumLevel) {
       this.maximumLevel = this._imageCount - 1;
     }
@@ -284,7 +298,7 @@ export class TIFFImageryProvider {
     this.tileHeight = tileSize || (this._isTiled ? image.getTileHeight() : image.getHeight()) || 256;
     // get the appropriate COG level
     this.requestLevels = this._isTiled ? await this._getCogLevels() : [0];
-    this._images = new Array(this._imageCount).fill(null);
+    // this._images = new Array(this._imageCount).fill(null);
 
     // Get the number of bands
     const samples = image.getSamplesPerPixel();
@@ -449,6 +463,11 @@ export class TIFFImageryProvider {
       return [0, image.fileDirectory.ImageLength];
     }
   }
+  private _isMask(image: GeoTIFFImage): boolean {
+  const fileDirectory = image.fileDirectory;
+  const type = fileDirectory.NewSubfileType || 0;
+  return (type & 4) === 4;
+}
 
   private _checkIfReversed(image: GeoTIFFImage) {
     const pixelScale = image.getFileDirectory().ModelPixelScale;
@@ -473,7 +492,7 @@ export class TIFFImageryProvider {
     const levels: number[] = [];
     let maximumLevel: number = this._imageCount - 1;
     for (let i = this._imageCount - 1; i >= 0; i--) {
-      const image = this._images[i] = await this._source.getImage(i);
+      const image = this._images[i] ;
       const width = image.getWidth();
       const height = image.getHeight();
       const size = Math.max(width, height);
