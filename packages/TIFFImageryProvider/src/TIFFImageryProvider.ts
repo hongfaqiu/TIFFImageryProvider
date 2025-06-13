@@ -839,6 +839,7 @@ export class TIFFImageryProvider {
     // 清理其他资源
     this.plot?.destroy();
     this._images = [];
+    this._masks = [];
     this._source = undefined;
     this._destroyed = true;
     this._rgbPlot?.destroy();
