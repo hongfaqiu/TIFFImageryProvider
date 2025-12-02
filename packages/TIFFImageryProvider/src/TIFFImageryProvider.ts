@@ -429,6 +429,7 @@ export class TIFFImageryProvider {
           tileHeight: this.tileHeight,
           buffer: this._buffer
         });
+        this._rgbPlot.setNoDataValue(this.noData);
       }
 
     } catch (e) {
@@ -595,11 +596,12 @@ export class TIFFImageryProvider {
           res = await image.readRGB(options) as TypedArrayArrayWithDimensions;
         } else {
           res = await image.readRasters(options) as TypedArrayArrayWithDimensions;
-          if (this.reverseY) {
-            res = await Promise.all((res as TypedArray[]).map((array) =>
-              reverseArray({ array, width: sourceWidth, height: sourceHeight })
-            )) as TypedArray[];
-          }
+        }
+
+        if (this.reverseY) {
+          res = await Promise.all((res as TypedArray[]).map((array) =>
+            reverseArray({ array, width: sourceWidth, height: sourceHeight })
+          )) as TypedArray[];
         }
 
         if (this._proj?.project && this.tilingScheme instanceof TIFFImageryProviderTilingScheme) {
