@@ -144,11 +144,16 @@ export interface TIFFImageryProviderOptions {
   } | undefined;
   /** cache size, defaults to 100 */
   cacheSize?: number;
-  /** resample web worker pool size, defaults to the number of CPUs available. 
+  /** decompression web worker pool size, defaults to the number of CPUs available. 
    * When this parameter is `null` or 0, 
-   * then the resampling will be done in the main thread. 
+   * then the decompression will be done in the main thread. 
    * */
   workerPoolSize?: number;
+  /** option to provide own geotiff worker pool. enables custom decompression
+   * workers, and control over the Pool's lifecycle. 
+   * if provided, `workerPoolSize` will be ignored
+   */
+  geotiffWorkerPool?: Pool;
 }
 
 const canvas = createCanavas(256, 256);
@@ -212,7 +217,7 @@ export class TIFFImageryProvider {
     this.credit = new Credit(options.credit || "", false);
     this.errorEvent = new Event();
     this._cacheSize = options.cacheSize ?? 100;
-    this.geotiffWorkerPool = new Pool(options.workerPoolSize);
+    this.geotiffWorkerPool = options.geotiffWorkerPool ?? new Pool(options.workerPoolSize);
 
     this.ready = false;
     if (defined(options.url)) {
