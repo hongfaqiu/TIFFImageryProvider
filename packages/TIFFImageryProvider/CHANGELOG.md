@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.17.3](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.17.2...v2.17.3) (2026-03-09)
+
+**Note:** Version bump only for package tiff-imagery-provider
+
+
+
+
+
 ## [2.17.2](https://github.com/hongfaqiu/tiff-imagery-provider/compare/v2.17.1...v2.17.2) (2025-12-02)
 
 **Note:** Version bump only for package tiff-imagery-provider
