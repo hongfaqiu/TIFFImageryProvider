@@ -251,7 +251,7 @@ export class TIFFImageryProvider {
     this.reverseY = this._checkIfReversed(image);
     const [west, south, east, north] = this.bbox;
 
-    const prjCode = +(image.geoKeys.ProjectedCSTypeGeoKey ?? image.geoKeys.GeographicTypeGeoKey)
+    const prjCode = +(image.getGeoKeys().ProjectedCSTypeGeoKey ?? image.getGeoKeys().GeographicTypeGeoKey)
 
     this._proj = projFunc?.(prjCode)
     if (prjCode === 3857 || prjCode === 900913) {
@@ -466,23 +466,23 @@ export class TIFFImageryProvider {
     try {
       return image.getOrigin().slice(0, 2);
     } catch (_) {
-      return [0, image.fileDirectory.ImageLength];
+      return [0, image.fileDirectory.getValue('ImageLength')];
     }
   }
   private _isMask(image: GeoTIFFImage): boolean {
   const fileDirectory = image.fileDirectory;
-  const type = fileDirectory.NewSubfileType || 0;
+  const type = fileDirectory.getValue('NewSubfileType') || 0;
   return (type & 4) === 4;
 }
 
   private _checkIfReversed(image: GeoTIFFImage) {
-    const pixelScale = image.getFileDirectory().ModelPixelScale;
+    const pixelScale = image.fileDirectory.getValue('ModelPixelScale');
     if (pixelScale) {
       const pixelScaleY = pixelScale[1];
       if (pixelScaleY < 0) return true;
     }
 
-    const transformation = image.getFileDirectory().ModelTransformation;
+    const transformation = image.fileDirectory.getValue('ModelTransformation');
     if (transformation) {
       const originX = transformation[3];
       const originY = transformation[7];

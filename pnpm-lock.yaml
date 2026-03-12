@@ -109,8 +109,8 @@ importers:
   packages/TIFFImageryProvider:
     dependencies:
       geotiff:
-        specifier: ^2.0.7
-        version: 2.1.3
+        specifier: ^3.0.4
+        version: 3.0.4
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^24.0.1
@@ -2578,8 +2578,8 @@ packages:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
     engines: {node: '>= 0.4'}
 
-  geotiff@2.1.3:
-    resolution: {integrity: sha512-PT6uoF5a1+kbC3tHmZSUsLHBp2QJlHasxxxxPW47QIY1VBKpFB+FcDvX+MxER6UzgLQZ0xDzJ9s48B9JbOCTqA==}
+  geotiff@3.0.4:
+    resolution: {integrity: sha512-lzcQkSZ5XYAYgDVVCKrPPn6OyzFFEmewYc4PzQyzrKdf7KxCG5WPCnwvpkKNrz1nHQD1HkyYXo7ZRFAmlMrTOw==}
     engines: {node: '>=10.19'}
 
   get-caller-file@2.0.5:
@@ -5107,8 +5107,8 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zstddec@0.1.0:
-    resolution: {integrity: sha512-w2NTI8+3l3eeltKAdK8QpiLo/flRAr2p8AGeakfMZOXBxOg9HIu4LVDxBi81sYgVhFhdJjv1OrB5ssI8uFPoLg==}
+  zstddec@0.2.0:
+    resolution: {integrity: sha512-oyPnDa1X5c13+Y7mA/FDMNJrn4S8UNBe0KCqtDmor40Re7ALrPN6npFwyYVRRh+PqozZQdeg23QtbcamZnG5rA==}
 
 snapshots:
 
@@ -7815,7 +7815,7 @@ snapshots:
 
   generator-function@2.0.1: {}
 
-  geotiff@2.1.3:
+  geotiff@3.0.4:
     dependencies:
       '@petamoriken/float16': 3.9.3
       lerc: 3.0.0
@@ -7824,7 +7824,7 @@ snapshots:
       quick-lru: 6.1.2
       web-worker: 1.5.0
       xml-utils: 1.10.2
-      zstddec: 0.1.0
+      zstddec: 0.2.0
 
   get-caller-file@2.0.5: {}
 
@@ -10741,4 +10741,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zstddec@0.1.0: {}
+  zstddec@0.2.0: {}

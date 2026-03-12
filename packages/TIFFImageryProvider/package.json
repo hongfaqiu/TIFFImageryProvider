@@ -37,7 +37,7 @@
     "cesium": "*"
   },
   "dependencies": {
-    "geotiff": "^2.0.7"
+    "geotiff": "^3.0.4"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^24.0.1",
