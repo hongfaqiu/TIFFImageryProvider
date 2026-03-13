@@ -1,8 +1,8 @@
-import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CesiumMath, DeveloperError, defined, Cartesian2, WebMercatorTilingScheme } from "cesium";
+import { Event, GeographicTilingScheme, Credit, Rectangle, ImageryLayerFeatureInfo, Math as CesiumMath, DeveloperError, defined, Cartesian2, WebMercatorTilingScheme, TileDiscardPolicy, Proxy } from "cesium";
 import GeoTIFF, { Pool, fromUrl, fromBlob, GeoTIFFImage, TypedArrayArrayWithDimensions } from 'geotiff';
 
 import { addColorScale, plot } from './plotty'
-import { getMinMax, generateColorScale, findAndSortBandNumbers, stringColorToRgba } from "./helpers/utils";
+import { getMinMax, generateColorScale, findAndSortBandNumbers } from "./helpers/utils";
 import { ColorScaleNames, TypedArray } from "./plotty/typing";
 import TIFFImageryProviderTilingScheme from "./TIFFImageryProviderTilingScheme";
 import { BBox, reprojection } from "./helpers/reprojection";
@@ -154,6 +154,8 @@ export interface TIFFImageryProviderOptions {
    * if provided, `workerPoolSize` will be ignored
    */
   geotiffWorkerPool?: Pool;
+  tileDiscardPolicy?: TileDiscardPolicy;
+  proxy?: Proxy;
 }
 
 const canvas = createCanavas(256, 256);
@@ -201,6 +203,8 @@ export class TIFFImageryProvider {
   geotiffWorkerPool: Pool;
   private _buffer: number = 1;
   private _rgbPlot: plot;
+  tileDiscardPolicy: TileDiscardPolicy
+  proxy: Proxy
 
   constructor(private readonly options: TIFFImageryProviderOptions & {
     /**
@@ -218,6 +222,8 @@ export class TIFFImageryProvider {
     this.errorEvent = new Event();
     this._cacheSize = options.cacheSize ?? 100;
     this.geotiffWorkerPool = options.geotiffWorkerPool ?? new Pool(options.workerPoolSize);
+    this.tileDiscardPolicy = options.tileDiscardPolicy
+    this.proxy = options.proxy
 
     this.ready = false;
     if (defined(options.url)) {
@@ -824,6 +830,10 @@ export class TIFFImageryProvider {
       featureInfo.configureDescriptionFromProperties(data)
     }
     return [featureInfo];
+  }
+
+  getTileCredits(x: number, y: number, z: number): Credit[] {
+    return [this.credit]
   }
 
   destroy() {
